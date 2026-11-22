@@ -41,6 +41,7 @@ h1{font-family:var(--font-display);font-weight:600;font-size:28px;margin:0;text-
 header p{margin:0;color:var(--muted);font-size:14px;max-width:80ch}
 .home{width:100%;font-size:13px;color:var(--accent);text-decoration:none}
 .home:hover{text-decoration:underline}
+.beta{font-family:var(--font-mono);font-weight:500;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 8px;vertical-align:middle}
 main{max-width:1280px;margin:0 auto;padding:8px 20px 32px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px}
 @media (max-width:920px){main{grid-template-columns:minmax(0,1fr)}}
 .full{grid-column:1/-1}
@@ -94,7 +95,7 @@ details ul{padding-left:18px;max-width:80ch}
 <body>
 <header>
   <a class="home" href="../">&larr; All simulators</a>
-  <h1>Visual Pathway Simulator</h1>
+  <h1>Visual Pathway Simulator <span class="beta">Beta</span></h1>
   <p>Lesion the pathway from optic nerve to calcarine cortex and read the fields. Fields are drawn as the patient sees them, and the pathway is viewed from above: the patient's left is on your left in both.</p>
 </header>
 <main>

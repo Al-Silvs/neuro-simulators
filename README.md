@@ -45,6 +45,7 @@ The landing page lists every entry in `SIMS` (near the bottom of `index.html`) t
 3. Add one entry to `SIMS` in the root `index.html`: `path`, `section`, `glyph`, `title`, `blurb` (one or two sentences) and `features` (three short items).
    - `section` must be a name in the `SECTIONS` list. Add a new name there (for example `'Epilepsy'`) to start a new group; empty sections are not shown.
    - `glyph` is a key in `GLYPHS` (`fields`, `eye`, `circuit`, `plexus`, `cmap`). Add a new 40×40 line drawing there, or leave the key out for a blank tile.
+   - Add `beta: true` to the entry to show a Beta badge on its card. Add the same badge to the page's `<h1>` (see `visual-pathway/index.html`).
 4. Commit and push. Pages redeploys on its own.
 
 ## Notes

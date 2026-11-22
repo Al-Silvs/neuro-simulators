@@ -42,6 +42,7 @@ section h2{font-family:var(--font-mono);font-weight:500;font-size:12.5px;letter-
 .card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .glyph{flex:none;width:56px;height:56px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
 .glyph svg{width:40px;height:40px}
+.badge{font-family:var(--font-mono);font-weight:500;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 8px;align-self:center}
 .card .text{display:flex;flex-direction:column;gap:4px;min-width:0}
 .card h3{font-family:var(--font-display);font-weight:600;font-size:20px;line-height:1.25;margin:0;display:flex;align-items:baseline;gap:8px}
 .card h3 .arrow{color:var(--accent);font-family:var(--font-body);font-weight:500;font-size:16px;transition:transform .12s}
@@ -80,7 +81,7 @@ footer a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 <script>
 // To add a simulator: put it in its own folder (folder/index.html), then add one entry to SIMS.
 // `section` must match a name in SECTIONS. Sections with no live simulators are not shown.
-// An entry with live: false is hidden. Delete that line when its folder is published.
+// `beta: true` shows a Beta badge on the card. An entry with live: false is hidden. Delete that line when its folder is published.
 const SECTIONS = ['Neuro-ophthalmology', 'Movement disorders', 'Peripheral nerve and neuromuscular'];
 
 // Line drawings for each card, 40×40, drawn in the accent colour.
@@ -102,6 +103,7 @@ const SIMS = [
     path: 'visual-pathway/',
     section: 'Neuro-ophthalmology',
     glyph: 'fields',
+    beta: true,
     title: 'Visual pathway',
     blurb: 'Lesion anywhere from optic nerve to occipital cortex and see each eye’s field, the binocular field and the pupils.',
     features: ['Field plots', 'RAPD and swinging flashlight', 'Syndrome presets']
@@ -158,6 +160,7 @@ for (const name of SECTIONS) {
     g.innerHTML = '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (GLYPHS[s.glyph] || '') + '</svg>';
     const h3 = el('h3', null, s.title);
     const arrow = el('span', 'arrow', '→'); arrow.setAttribute('aria-hidden', 'true'); h3.append(arrow);
+    if (s.beta) h3.append(el('span', 'badge', 'Beta'));
     const ul = el('ul', 'features');
     for (const f of s.features) ul.append(el('li', null, f));
     const text = el('div', 'text'); text.append(h3, el('p', null, s.blurb), ul);
