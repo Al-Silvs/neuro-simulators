@@ -10,7 +10,7 @@ visual-pathway/index.html
 basal-ganglia/index.html
 brachial-plexus/index.html
 emg-ncs/index.html
-extraocular/index.html     (not yet published)
+extraocular/index.html
 ```
 
 Each simulator is one self-contained HTML file in its own folder, so its address is `<site>/<folder>/`.
@@ -36,7 +36,7 @@ This repository is `Al-Silvs/neuro-simulators`, deployed from `master` at `/`. L
 
 ## Publish simulators one at a time
 
-The landing page lists every entry in `SIMS` (near the bottom of `index.html`) that is not marked `live: false`. Live now: visual pathway, basal ganglia, brachial plexus, EMG and nerve conduction. Hidden: extraocular. To publish one, commit its folder, delete its `live: false` line, and push.
+The landing page lists every entry in `SIMS` (near the bottom of `index.html`) that is not marked `live: false`. Live now: visual pathway, extraocular movements, basal ganglia, brachial plexus, EMG and nerve conduction. None are hidden. To publish one, commit its folder, delete its `live: false` line, and push.
 
 ## Add a simulator
 
