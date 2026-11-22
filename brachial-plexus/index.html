@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brachial Plexus Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: plexus wiring across the top with presets, then arm figures, strength table and reflexes/NCS-EMG below. */
+  --bg:#eef0ee; --panel:#fbfcfb; --ink:#18202b; --muted:#5a6472; --line:#d5d9de;
+  --accent:#1f56c9; --accent-strong:#1f56c9; --accent-soft:#dbe5fa; --lesion:#c3352a; --lesion-soft:#f7dedb; --ok:#276b42;
+  --stem:#e6e9ee; --stem-edge:#c3c9d2; --outline:#6b5a52;
+  --font-display:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440;
+    --accent:#6f9bff; --accent-strong:#3a63c9; --accent-soft:#1d2a47; --lesion:#ff6a5c; --lesion-soft:#3a1e1c; --ok:#5fc48a;
+    --stem:#1f2630; --stem-edge:#36404d; --outline:#8b95a3; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440;
+  --accent:#6f9bff; --accent-strong:#3a63c9; --accent-soft:#1d2a47; --lesion:#ff6a5c; --lesion-soft:#3a1e1c; --ok:#5fc48a;
+  --stem:#1f2630; --stem-edge:#36404d; --outline:#8b95a3; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+header{padding:12px 16px 8px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center}
+h1{font-family:var(--font-display);font-weight:600;font-size:24px;margin:0}
+.home{font-size:13.5px;color:var(--accent);text-decoration:none;white-space:nowrap}
+.home:hover{text-decoration:underline}
+.home:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+header p{margin:0;color:var(--muted);font-size:14px;flex:1;min-width:280px}
+/* Layout: syndrome bar on top; first row (plexus | arm | strength) fills the window height and scrolls inside itself;
+   second row below holds the localisation clues and the reflexes/NCS/EMG. */
+#bar{margin:0 16px 12px}
+.work{display:grid;gap:12px;padding:0 16px 16px;grid-template-columns:minmax(0,1fr)}
+.work>*{min-width:0}
+.arms{height:min(78vh,760px)}
+@media (min-width:760px){.work{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.work>.col:first-child,#rx-panel{grid-column:1/-1}}
+@media (min-width:1200px) and (min-height:640px){
+  .work{grid-template-columns:minmax(0,1.7fr) minmax(0,.95fr) minmax(0,.95fr);grid-template-rows:var(--rowH,80vh) auto}
+  .work>.col:first-child{grid-column:auto}
+  .work>.col{overflow:auto;min-height:0}
+  #rx-panel{grid-column:1/-1}
+  #arm-panel{display:flex;flex-direction:column}
+  .arms{flex:1;min-height:0;height:auto}
+  #mtab thead th{position:sticky;top:0;background:var(--panel);z-index:1}
+  #rx-panel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 22px;align-content:start}
+  #rx-panel>.ph{grid-column:1/-1}
+  #rx-panel .rxg h3{margin-top:0}
+}
+@media (min-width:1640px) and (min-height:640px){
+  .work{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)}
+}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.panel h2{font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:.4px;text-transform:uppercase;margin:0 0 10px;color:var(--muted)}
+.panel h3{font-size:14px;margin:14px 0 6px}
+.row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.btn{font:inherit;font-size:13.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 11px;border-radius:7px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn[aria-pressed="true"]{background:var(--accent-strong);border-color:var(--accent-strong);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg .btn{border:0;border-radius:0}
+.seg .btn+.btn{border-left:1px solid var(--line)}
+.plexwrap{overflow-x:auto}
+.plex{width:100%;min-width:420px;height:auto;display:block}
+/* plexus labels: plexus parts (roots bold; trunks and cords small capitals), nerves plain, anatomical sites italic */
+.plex .lab{fill:var(--ink)}
+.plex .lab.root{font-size:16px;font-weight:700}
+.plex .lab.part{font-size:13px;font-weight:600;letter-spacing:.7px;text-transform:uppercase}
+.plex .lab.nerve{font-size:14.5px}
+.plex .lab.branch{font-size:13px;fill:var(--muted)}
+.plex .site{font-style:italic;fill:var(--muted);font-size:13.5px}
+.plex .col{font-size:11px;fill:var(--muted);letter-spacing:.5px}
+.plex .hit{cursor:pointer}
+.plex .hit:focus{outline:none}
+.plex .hit:focus-visible .vis{stroke-width:9}
+.plex .hit:focus-visible text{text-decoration:underline}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.synrow{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.pg{display:inline-flex;flex-wrap:wrap;gap:5px;align-items:center}
+.pg .plab{font-size:12.5px;color:var(--muted);margin-right:2px}
+.pg+.pg{padding-left:12px;border-left:1px solid var(--line)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.statusrow{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:6px 18px;align-items:center;margin-top:10px}
+@media (max-width:900px){.statusrow{grid-template-columns:minmax(0,1fr)}}
+.lb{font:inherit;font-size:12px;font-weight:600;width:24px;height:24px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer;vertical-align:middle;padding:0}
+.lb:hover,.lb:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+.lb.txt{width:auto;height:auto;border:0;padding:0;border-radius:0;color:var(--accent);text-decoration:underline;font-weight:500}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ph h2{margin:0!important}
+.pkey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);margin:2px 0 6px}
+.pkey svg{vertical-align:middle;margin-right:4px}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--bg);font-size:13px;line-height:1.35;padding:6px 9px;border-radius:7px;max-width:260px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.tip b{font-weight:600}
+.tip .lost{color:#ff9b8f}
+:root[data-theme="dark"] .tip .lost{color:#b3261e}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tip .lost{color:#b3261e}}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+dialog#guide{width:min(920px,94vw);max-height:88vh;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink)}
+dialog#guide::backdrop{background:rgba(10,14,20,.45)}
+.ghead{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line)}
+.ghead h2{font-family:var(--font-display);font-size:20px;margin:0}
+.gbody{display:grid;grid-template-columns:200px minmax(0,1fr);max-height:calc(88vh - 60px)}
+.gnav{display:flex;flex-direction:column;gap:2px;padding:12px;border-right:1px solid var(--line);overflow:auto}
+.gnav button{font:inherit;font-size:14px;text-align:left;background:none;border:0;border-radius:6px;padding:8px 10px;color:var(--ink);cursor:pointer}
+.gnav button[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.gcontent{overflow:auto;padding:4px 22px 22px;font-size:15px}
+.gcontent section{padding-top:14px}
+.gcontent h3{font-family:var(--font-display);font-size:17px;margin:0 0 6px}
+.gcontent ul{padding-left:20px}.gcontent li{margin-bottom:6px}
+.gkey{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13.5px;margin:6px 0}
+.gkey span{display:inline-flex;align-items:center;gap:6px}
+.gkey i{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.2)}
+@media (max-width:700px){.gbody{grid-template-columns:minmax(0,1fr)}.gnav{flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line)}}
+.clues{margin-top:4px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 10px;font-size:13.5px;align-items:baseline}
+.clues dt{color:var(--muted);font-size:12.5px}
+.clues dd{margin:0}
+.lvl{display:flex;align-items:baseline;gap:6px;margin:0 0 3px}
+@media (max-width:480px){.clues{grid-template-columns:minmax(0,1fr)}.clues dd{margin-bottom:4px}}
+.lvl small{color:var(--muted);font-size:11.5px}
+.gb{font-family:var(--font-mono);font-size:11.5px;font-weight:500;min-width:20px;height:20px;padding:0 4px;border-radius:10px;display:inline-grid;place-items:center;border:1px solid rgba(0,0,0,.25)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.desc{padding:8px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;font-size:14px;min-height:calc(2.9em + 16px);align-self:stretch}
+.desc b{font-weight:600}
+label.sl{display:grid;grid-template-columns:64px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:14px}
+label.sl output{font-family:var(--font-mono);font-size:13px;color:var(--muted);text-align:right}
+input[type=range]{width:100%;accent-color:var(--lesion)}
+/* chip row keeps a fixed height so adding a lesion never pushes the page down */
+.chips{display:flex;flex-wrap:nowrap;gap:6px;margin-top:6px;height:32px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.chip{flex:none}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 6px 3px 10px;border-radius:999px;border:1px solid var(--lesion);background:var(--lesion-soft);font-size:13px}
+.chip button{border:0;background:none;color:var(--ink);cursor:pointer;font-size:15px;line-height:1;min-width:24px;min-height:24px;border-radius:50%}
+.chip button:focus-visible{outline:2px solid var(--accent)}
+.arms{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.arms figure{margin:0;text-align:center}
+.arms figure{display:flex;flex-direction:column;min-height:0;height:100%}
+.fig{position:relative;flex:1;min-height:0;width:100%}
+.fig svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.fig canvas,.fig svg{cursor:crosshair}
+.fig canvas{position:absolute;top:0;left:50%;transform:translateX(-50%);height:100%;width:auto;display:block}
+.arms figcaption{font-size:12.5px;color:var(--muted)}
+.musc path.m{cursor:pointer;stroke:rgba(60,35,30,.7);stroke-width:1}
+.musc path.m.hl{stroke:var(--accent);stroke-width:2.4}
+.deep{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;font-size:12.5px;align-items:center}
+.deep .lab{color:var(--muted);margin-right:2px}
+.dchip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 4px;border:1px solid var(--line);border-radius:999px;cursor:default}
+.dchip.hl{border-color:var(--accent);background:var(--accent-soft)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-weight:500;color:var(--muted);font-size:12.5px;text-align:left;padding:4px}
+td{padding:3px 4px;border-top:1px solid var(--line)}
+td.r{font-family:var(--font-mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
+td.g{width:44px;text-align:right}
+tr.grp td{border-top:none;padding-top:12px;font-size:13px;color:var(--muted);font-weight:600}
+td.nv{font-size:12.5px;color:var(--muted)}
+tr:not(.weak) .gb{background:none!important;border-color:transparent;color:var(--muted)!important}
+@media (max-width:420px){#mtab .nv{display:none}}
+tr.weak td:first-child{color:var(--lesion);font-weight:500}
+tr.hl td{background:var(--accent-soft)}
+.pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.pill.bad{border-color:var(--lesion);background:var(--lesion-soft)}
+.pill.good{border-color:var(--ok);color:var(--ok)}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <a class="home" href="../">&larr; All simulators</a>
+  <h1>Brachial Plexus Simulator</h1>
+  <p>Lesion roots, trunks, cords or nerves and read the exam and NCS/EMG.</p>
+  <button class="btn" type="button" id="open-guide" data-open="g-start">Guide ?</button>
+</header>
+<section class="panel" id="bar" aria-labelledby="h-syn">
+  <h2 id="h-syn" class="sr-only">Syndromes</h2>
+  <div class="synrow" id="presets">
+    <span class="pg"><button class="btn sm" type="button" id="b-normal">Normal</button><button class="btn sm" type="button" id="b-mystery">Mystery lesion</button><button class="btn sm" type="button" id="b-reveal" hidden>Reveal answer</button></span>
+  </div>
+  <div class="statusrow">
+    <div class="desc" id="desc"></div>
+    <div>
+      <label class="sl" for="sev">Severity <input type="range" id="sev" min="0.1" max="1" step="0.05" value="1"><output id="o-sev">100%</output></label>
+      <div class="chips" id="chips"></div>
+    </div>
+  </div>
+</section>
+<main class="work">
+  <div class="col" tabindex="0" aria-label="Plexus and localisation clues">
+    <section class="panel" aria-labelledby="h-px">
+      <div class="ph"><h2 id="h-px">Plexus: click a segment to lesion</h2><button class="lb" type="button" data-open="g-plexus" aria-label="Guide: plexus diagram">?</button></div>
+      <div class="pkey" aria-hidden="true">
+        <span><svg width="26" height="10"><line x1="2" y1="5" x2="24" y2="5" stroke="var(--lesion)" stroke-width="4"/><circle cx="13" cy="5" r="4.5" fill="var(--lesion)"/></svg>Lesion</span>
+        <span><svg width="26" height="10"><line x1="2" y1="5" x2="24" y2="5" stroke="var(--lesion)" stroke-width="4" stroke-opacity=".45"/></svg>All fibres lost downstream</span>
+        <span><svg width="26" height="10"><line x1="2" y1="5" x2="24" y2="5" stroke="var(--accent)" stroke-width="4"/><line x1="2" y1="5" x2="24" y2="5" stroke="var(--lesion)" stroke-width="4" stroke-dasharray="4 4"/></svg>Some fibres lost</span>
+      </div>
+      <div class="plexwrap"><svg class="plex" id="plex" viewBox="0 0 845 455" role="group" aria-label="Brachial plexus schematic"></svg></div>
+      <div id="clue-panel" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+      <div class="ph"><h2 id="h-cl">Localisation clues</h2><button class="lb" type="button" data-open="g-clues" aria-label="Guide: localisation clues">?</button></div>
+      <dl class="clues" id="clues"></dl>
+      <p class="sr-only" id="live" aria-live="polite"></p>
+    </div>
+    </section>
+  </div>
+  <section class="panel col" id="arm-panel" aria-labelledby="h-arm">
+    <div class="ph">
+      <h2 id="h-arm">Arm <button class="lb" type="button" data-open="g-arm" aria-label="Guide: arm figures">?</button></h2>
+      <div class="seg" role="group" aria-label="Arm view">
+        <button class="btn" type="button" id="av-sens" aria-pressed="true">Sensation</button>
+        <button class="btn" type="button" id="av-musc" aria-pressed="false">Muscles</button>
+      </div>
+    </div>
+    <div class="row" id="sens-ctl">
+      <div class="seg" role="group" aria-label="Sensory map colouring">
+        <button class="btn" type="button" id="sm-def" aria-pressed="true">Deficit</button>
+        <button class="btn" type="button" id="sm-der" aria-pressed="false">Dermatomes</button>
+        <button class="btn" type="button" id="sm-nrv" aria-pressed="false">Nerves</button>
+      </div>
+    </div>
+    <p class="hint" id="arm-hint">Hover or tap the arm to name the dermatome and nerve.</p>
+    <div class="arms" style="margin-top:8px">
+      <figure><div class="fig"><canvas id="arm-post" role="img" aria-label="Right arm, posterior surface, sensory map" aria-describedby="sens-sum"></canvas><svg id="mus-post" class="musc" viewBox="0 0 380 770" role="img" aria-label="Right arm, posterior muscles" hidden></svg></div></figure>
+      <figure><div class="fig"><canvas id="arm-ant" role="img" aria-label="Right arm, anterior surface, sensory map" aria-describedby="sens-sum"></canvas><svg id="mus-ant" class="musc" viewBox="0 0 380 770" role="img" aria-label="Right arm, anterior muscles" hidden></svg></div></figure>
+    </div>
+    <div class="deep" id="deep" hidden></div>
+  </section>
+    <section class="panel col" id="st-panel" tabindex="0" aria-labelledby="h-st">
+      <h2 id="h-st">Strength (MRC)</h2>
+      <table id="mtab"><thead><tr><th>Muscle</th><th>Roots</th><th class="nv">Nerve</th><th style="text-align:right">MRC</th></tr></thead><tbody></tbody></table>
+    </section>
+    <section class="panel" id="rx-panel" aria-labelledby="h-rx">
+      <div class="ph"><h2 id="h-rx">Reflexes</h2><button class="lb" type="button" data-open="g-ncs" aria-label="Guide: reading NCS and EMG">?</button></div>
+      <div class="rxg"><table id="rtab"><tbody></tbody></table></div>
+      <div class="rxg"><h3>Nerve conduction: SNAPs</h3><table id="stab"><tbody></tbody></table></div>
+      <div class="rxg"><h3>Needle EMG</h3><table id="etab"><tbody></tbody></table></div>
+    </section>
+</main>
+<div class="tip" id="tip" hidden></div>
+<dialog id="guide" aria-labelledby="g-title">
+  <div class="ghead"><h2 id="g-title">Guide</h2><button class="btn" type="button" id="g-close" aria-label="Close the guide">Close ✕</button></div>
+  <div class="gbody">
+    <nav class="gnav" aria-label="Guide sections">
+      <button type="button" data-sec="g-start">Getting started</button>
+      <button type="button" data-sec="g-plexus">Plexus diagram</button>
+      <button type="button" data-sec="g-arm">Arm figures</button>
+      <button type="button" data-sec="g-clues">Localisation clues</button>
+      <button type="button" data-sec="g-ncs">Reflexes, NCS and EMG</button>
+      <button type="button" data-sec="g-model">How the model works</button>
+    </nav>
+    <div class="gcontent">
+      <section id="g-start"><h3>Getting started</h3>
+        <p>Pick a syndrome from the bar at the top, or click segments of the plexus to build your own lesion. Severity scales every lesion; radiculopathy presets start at 60%.</p>
+        <p><b>Mystery lesion</b> picks a random syndrome and hides the lesion. Localise it from the strength, sensory, reflex and NCS/EMG findings, then press Reveal answer. Clicking the plexus or a syndrome ends the quiz.</p>
+        <p>If the lesions you click match a known syndrome, its name and description appear.</p>
+      </section>
+      <section id="g-plexus"><h3>Plexus diagram</h3>
+        <p>Roots on the left, then trunks, divisions, cords and named branches. Click or press Enter on any segment to lesion it; click again to remove it.</p>
+        <p>Label styles: <b>C5</b> roots in bold; <span style="font-size:12px;font-weight:600;letter-spacing:.7px">TRUNKS AND CORDS</span> in small capitals; nerves in plain text (proximal branches in grey). Anatomical sites where a nerve is commonly lesioned (axilla, spiral groove, elbow, carpal tunnel, Guyon canal) are marked by a short grey tick across the nerve with the site named in <i>italics</i> beneath it.</p>
+        <div class="gkey">
+          <span><svg width="30" height="12"><line x1="2" y1="6" x2="28" y2="6" stroke="var(--accent)" stroke-width="4"/></svg>Intact</span>
+          <span><svg width="30" height="12"><line x1="2" y1="6" x2="28" y2="6" stroke="var(--lesion)" stroke-width="4"/><circle cx="15" cy="6" r="5" fill="var(--lesion)"/></svg>Lesion site (✕)</span>
+          <span><svg width="30" height="12"><line x1="2" y1="6" x2="28" y2="6" stroke="var(--lesion)" stroke-width="4" stroke-opacity=".45"/></svg>Downstream, all fibres lost</span>
+          <span><svg width="30" height="12"><line x1="2" y1="6" x2="28" y2="6" stroke="var(--accent)" stroke-width="4"/><line x1="2" y1="6" x2="28" y2="6" stroke="var(--lesion)" stroke-width="4" stroke-dasharray="4 4"/></svg>Downstream, some fibres lost</span>
+        </div>
+        <p>"Downstream" means every segment whose fibres pass through a lesion. A segment that also carries fibres from an intact root is only partly affected; for example, an upper trunk lesion partly affects the lateral cord because C7 still reaches it through the middle trunk. Hover a segment to see which roots it has lost. Below 100% severity every downstream segment counts as partly affected.</p>
+        <p>The long thoracic nerve (C5–7) and the medial root of the median nerve cross other lines; the gap in the crossed line shows which runs over the top.</p>
+      </section>
+      <section id="g-arm"><h3>Arm figures</h3>
+        <p>A right arm in anatomical position, seen from behind (left figure) and from the front (right figure). Nails and knuckles mark the back view; palm creases mark the front. Hover or tap any point to see its dermatome, cutaneous nerve and whether it is numb, or any muscle to see its grade, roots and nerve.</p>
+        <h4>Sensation</h4>
+        <p><b>Deficit</b> shows numb skin in dark grey. <b>Dermatomes</b> and <b>Nerves</b> colour the map by root or by cutaneous nerve; lost areas are hatched dark so the map stays readable. The shoulder cap (C4) is cervical plexus and the medial upper arm (T2, intercostobrachial) is outside the brachial plexus, so neither changes.</p>
+        <h4>Muscles</h4>
+        <div class="gkey" id="g-ramp"></div>
+        <p>Weak muscles carry their grade number, so colour is never the only cue. The grades darken steadily from 5 to 0, which keeps them in order in greyscale and for colour-blind viewers. Grey muscles are drawn for orientation but not graded. The trapezius is removed from the posterior view to show the rhomboids and spinati. Muscles that cannot be seen from the surface (subscapularis, supinator, EIP, EPL, FDP, FPL, pronator quadratus) are listed as chips under the figures.</p>
+      </section>
+      <section id="g-clues"><h3>Localisation clues</h3>
+        <ul>
+          <li><b>Paraspinals</b> are supplied by the posterior rami, which leave at the root. Denervation means the lesion is at the root.</li>
+          <li><b>SNAPs</b>: the sensory cell body sits in the dorsal root ganglion, outside the cord. A root lesion is proximal to the ganglion (preganglionic), so the SNAP stays normal even when the skin is numb. Plexus and nerve lesions are postganglionic and reduce the SNAP.</li>
+          <li><b>Level markers</b> are muscles whose nerves leave the plexus at a known level: rhomboids (dorsal scapular, C5 root), serratus anterior (long thoracic, C5–7 roots), supraspinatus (suprascapular, upper trunk), clavicular pectoralis (lateral pectoral, lateral cord) and latissimus dorsi (thoracodorsal, posterior cord). If one is weak, the lesion is at or above where its nerve branches off. If it is spared, the lesion is below that branch or on a different path. The most proximal weak marker gives the highest level involved.</li>
+          <li><b>Sensory loss</b> lists the dermatomes and cutaneous nerve territories that are numb, as a text version of the sensory map.</li>
+        </ul>
+      </section>
+      <section id="g-ncs"><h3>Reflexes, NCS and EMG</h3>
+        <p>Root lesions sit proximal to the dorsal root ganglion, so SNAPs stay normal even in numb skin ("Normal (numb skin)"), while the cervical paraspinals denervate. Lesions in the plexus or beyond reduce SNAPs and spare the paraspinals.</p>
+        <p>Each SNAP is listed with the root that mainly carries it: LABC and median digit 2 test C6, superficial radial C6, ulnar digit 5 and dorsal ulnar cutaneous C8, MABC T1. Reflexes grade as 2+ normal, 1+ reduced or 0 absent.</p>
+        <p>Needle EMG lists every limb muscle with any loss of innervation, plus the paraspinals. Fibrillations take about 2–3 weeks to appear after injury; the simulator shows the established picture.</p>
+      </section>
+      <section id="g-model"><h3>How the model works</h3>
+        <ul>
+          <li>Each muscle lists its roots with an approximate weighting and the nerve that carries each root. Every root's route runs root → trunk → anterior or posterior division → cord → nerve segments. A lesion anywhere on a route removes that root's share, and the remaining share sets the MRC grade. Root weightings follow standard teaching tables; real innervation varies between people.</li>
+          <li>Skin patches carry both a dermatome and a peripheral nerve, so root lesions give dermatomal loss and nerve lesions give nerve-territory loss from the same map. Dermatome borders overlap more in patients than drawn here, so a single root lesion usually causes less sensory loss than shown.</li>
+          <li>Median fibres from C6–C7 run in the lateral cord (sensory to the lateral digits, pronator teres, FCR); C8–T1 fibres run in the medial cord (hand muscles). That is why lower trunk lesions spare the median digit 2 SNAP.</li>
+          <li>Muscle outlines are schematic, drawn after standard atlas views of the superficial layer.</li>
+          <li>Not modelled: Horner syndrome with T1 involvement, C7 contributions to the ulnar nerve, Martin-Gruber and other anastomoses, pre- and post-fixed plexuses, conduction block versus axonal loss, APB-predominant wasting in thoracic outlet syndrome, FCU sparing in cubital tunnel syndrome, and the timing of EMG changes.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</dialog>
+<script>
+// Brachial plexus model: every muscle and skin patch is reached by a route
+// root -> trunk -> division -> cord -> nerve segments. A lesion on any segment
+// of the route removes that root's contribution.
+const BP = (() => {
+  const TRUNK = { C5: 'UT', C6: 'UT', C7: 'MT', C8: 'LT', T1: 'LT' };
+  // nerves: cord (or cordByRoot), extra segments beyond the cord, special origins
+  const N = {
+    DSC: { name: 'Dorsal scapular', pre: true, segs: ['DSC'] },
+    LTN: { name: 'Long thoracic', pre: true, segs: ['LTN'] },
+    SSN: { name: 'Suprascapular', ut: true, segs: ['SSN'] },
+    LPN: { name: 'Lateral pectoral', cord: 'LC', segs: ['LPN'] },
+    MPN: { name: 'Medial pectoral', cord: 'MC', segs: ['MPN'] },
+    MCN: { name: 'Musculocutaneous', cord: 'LC', segs: ['MCN'] },
+    SUB: { name: 'Subscapular', cord: 'PC', segs: ['SUB'] },
+    TDN: { name: 'Thoracodorsal', cord: 'PC', segs: ['TDN'] },
+    AXN: { name: 'Axillary', cord: 'PC', segs: ['AXN'] },
+    RADP: { name: 'Radial (axilla)', cord: 'PC', segs: ['RAD1'] },
+    RAD: { name: 'Radial', cord: 'PC', segs: ['RAD1', 'RAD2'] },
+    PIN: { name: 'Posterior interosseous', cord: 'PC', segs: ['RAD1', 'RAD2', 'PIN'] },
+    SRN: { name: 'Superficial radial', cord: 'PC', segs: ['RAD1', 'RAD2', 'SRN'] },
+    MED: { name: 'Median', cordByRoot: { C6: 'LC', C7: 'LC', C8: 'MC', T1: 'MC' }, segs: ['MED1'] },
+    AIN: { name: 'Anterior interosseous', cordByRoot: { C6: 'LC', C7: 'LC', C8: 'MC', T1: 'MC' }, segs: ['MED1', 'AIN'] },
+    MEDW: { name: 'Median (hand)', cordByRoot: { C6: 'LC', C7: 'LC', C8: 'MC', T1: 'MC' }, segs: ['MED1', 'MEDW'] },
+    ULN: { name: 'Ulnar', cord: 'MC', segs: ['ULN1'] },
+    ULNW: { name: 'Ulnar (hand)', cord: 'MC', segs: ['ULN1', 'ULNW'] },
+    MABC: { name: 'Medial antebrachial cutaneous', cord: 'MC', segs: ['MABC'] },
+    MBC: { name: 'Medial brachial cutaneous', cord: 'MC', segs: ['MBC'] },
+    ICB: { name: 'Intercostobrachial (T2)', nonPlexus: true },
+    SCL: { name: 'Supraclavicular (C3–4)', nonPlexus: true }
+  };
+  function route(root, nk) {
+    const n = N[nk];
+    if (n.nonPlexus) return [];
+    const r = ['R_' + root];
+    if (n.pre) return r.concat(n.segs);
+    const t = TRUNK[root];
+    if (n.ut) return r.concat([t], n.segs);
+    const cord = (n.cordByRoot && n.cordByRoot[root]) || n.cord;
+    return r.concat([t, t + (cord === 'PC' ? 'p' : 'a'), cord], n.segs);
+  }
+  // [name, group, contributions [root, weight, nerve], action]
+  const MUSCLES = [
+    ['Rhomboids', 'Shoulder girdle', [['C5', 1, 'DSC']], 'Scapular retraction'],
+    ['Serratus anterior', 'Shoulder girdle', [['C5', .3, 'LTN'], ['C6', .4, 'LTN'], ['C7', .3, 'LTN']], 'Scapular protraction'],
+    ['Supraspinatus', 'Shoulder girdle', [['C5', .7, 'SSN'], ['C6', .3, 'SSN']], 'Shoulder abduction 0–15°'],
+    ['Infraspinatus', 'Shoulder girdle', [['C5', .7, 'SSN'], ['C6', .3, 'SSN']], 'Shoulder external rotation'],
+    ['Deltoid', 'Shoulder girdle', [['C5', .7, 'AXN'], ['C6', .3, 'AXN']], 'Shoulder abduction'],
+    ['Subscapularis', 'Shoulder girdle', [['C5', .5, 'SUB'], ['C6', .5, 'SUB']], 'Shoulder internal rotation'],
+    ['Latissimus dorsi', 'Shoulder girdle', [['C6', .3, 'TDN'], ['C7', .5, 'TDN'], ['C8', .2, 'TDN']], 'Shoulder adduction'],
+    ['Pectoralis major, clavicular', 'Shoulder girdle', [['C5', .5, 'LPN'], ['C6', .5, 'LPN']], 'Shoulder flexion/adduction'],
+    ['Pectoralis major, sternal', 'Shoulder girdle', [['C7', .4, 'LPN'], ['C8', .3, 'MPN'], ['T1', .3, 'MPN']], 'Shoulder adduction'],
+    ['Biceps', 'Elbow', [['C5', .5, 'MCN'], ['C6', .5, 'MCN']], 'Elbow flexion, supination'],
+    ['Brachialis', 'Elbow', [['C5', .5, 'MCN'], ['C6', .5, 'MCN']], 'Elbow flexion'],
+    ['Triceps', 'Elbow', [['C6', .2, 'RADP'], ['C7', .6, 'RADP'], ['C8', .2, 'RADP']], 'Elbow extension'],
+    ['Brachioradialis', 'Elbow', [['C5', .4, 'RAD'], ['C6', .6, 'RAD']], 'Elbow flexion (mid-prone)'],
+    ['Supinator', 'Forearm and wrist', [['C5', .3, 'RAD'], ['C6', .7, 'RAD']], 'Supination (elbow extended)'],
+    ['Pronator teres', 'Forearm and wrist', [['C6', .5, 'MED'], ['C7', .5, 'MED']], 'Pronation'],
+    ['ECRL', 'Forearm and wrist', [['C6', .6, 'RAD'], ['C7', .4, 'RAD']], 'Wrist extension (radial)'],
+    ['ECU', 'Forearm and wrist', [['C7', .6, 'PIN'], ['C8', .4, 'PIN']], 'Wrist extension (ulnar)'],
+    ['FCR', 'Forearm and wrist', [['C6', .4, 'MED'], ['C7', .6, 'MED']], 'Wrist flexion (radial)'],
+    ['FCU', 'Forearm and wrist', [['C8', .7, 'ULN'], ['T1', .3, 'ULN']], 'Wrist flexion (ulnar)'],
+    ['EDC', 'Fingers', [['C7', .6, 'PIN'], ['C8', .4, 'PIN']], 'Finger extension (MCP)'],
+    ['EIP', 'Fingers', [['C7', .4, 'PIN'], ['C8', .6, 'PIN']], 'Index extension'],
+    ['EPL', 'Fingers', [['C7', .5, 'PIN'], ['C8', .5, 'PIN']], 'Thumb IP extension'],
+    ['FDS', 'Fingers', [['C7', .3, 'MED'], ['C8', .5, 'MED'], ['T1', .2, 'MED']], 'PIP flexion'],
+    ['FDP 2–3', 'Fingers', [['C7', .3, 'AIN'], ['C8', .7, 'AIN']], 'DIP flexion, index/middle'],
+    ['FPL', 'Fingers', [['C7', .3, 'AIN'], ['C8', .7, 'AIN']], 'Thumb IP flexion'],
+    ['Pronator quadratus', 'Fingers', [['C7', .3, 'AIN'], ['C8', .7, 'AIN']], 'Pronation (elbow flexed)'],
+    ['FDP 4–5', 'Fingers', [['C8', .8, 'ULN'], ['T1', .2, 'ULN']], 'DIP flexion, ring/little'],
+    ['APB', 'Hand intrinsics', [['C8', .4, 'MEDW'], ['T1', .6, 'MEDW']], 'Thumb abduction'],
+    ['Opponens pollicis', 'Hand intrinsics', [['C8', .4, 'MEDW'], ['T1', .6, 'MEDW']], 'Thumb opposition'],
+    ['First dorsal interosseous', 'Hand intrinsics', [['C8', .4, 'ULNW'], ['T1', .6, 'ULNW']], 'Index abduction'],
+    ['ADM', 'Hand intrinsics', [['C8', .4, 'ULNW'], ['T1', .6, 'ULNW']], 'Little finger abduction'],
+    ['Adductor pollicis', 'Hand intrinsics', [['C8', .4, 'ULNW'], ['T1', .6, 'ULNW']], 'Thumb adduction (Froment)']
+  ].map(([name, group, contrib, action]) => ({ name, group, contrib, action }));
+
+  const REFLEXES = [
+    { name: 'Biceps', roots: ['C5', 'C6'], nerve: 'MCN', label: 'C5–6' },
+    { name: 'Brachioradialis', roots: ['C5', 'C6'], nerve: 'RAD', label: 'C5–6' },
+    { name: 'Triceps', roots: ['C7'], nerve: 'RADP', label: 'C7' },
+    { name: 'Finger flexors', roots: ['C8'], nerve: 'MED', label: 'C8' }
+  ];
+  const SNAPS = [
+    { name: 'Lateral antebrachial cutaneous', root: 'C6', nerve: 'MCN' },
+    { name: 'Median (digit 2)', root: 'C6', nerve: 'MEDW' },
+    { name: 'Superficial radial', root: 'C6', nerve: 'SRN' },
+    { name: 'Ulnar (digit 5)', root: 'C8', nerve: 'ULNW' },
+    { name: 'Dorsal ulnar cutaneous', root: 'C8', nerve: 'ULN' },
+    { name: 'Medial antebrachial cutaneous', root: 'T1', nerve: 'MABC' }
+  ];
+
+  // les: { segId: true }, sev 0..1
+  function intact(les, sev, root, nk, postOnly) {
+    let f = 1;
+    for (const s of route(root, nk)) if (les[s] && !(postOnly && s.startsWith('R_'))) f *= 1 - sev;
+    return f;
+  }
+  function strength(les, sev, m) { let f = 0; for (const [r, w, n] of m.contrib) f += w * intact(les, sev, r, n); return f; }
+  function mrc(f) { return f >= 0.95 ? 5 : f >= 0.7 ? 4 : f >= 0.45 ? 3 : f >= 0.2 ? 2 : f >= 0.05 ? 1 : 0; }
+  function reflex(les, sev, r) { let f = 0; for (const x of r.roots) f += intact(les, sev, x, r.nerve) / r.roots.length; return f; }
+  function snap(les, sev, s) { return intact(les, sev, s.root, s.nerve, true); } // root lesions are preganglionic
+
+  // ---- skin map. Arm drawn hanging in anatomical position; y in drawing units
+  // (shoulder top 24, elbow 330, wrist 570, finger bases 662). t runs across the
+  // limb from 0 (radial/lateral) to 1 (ulnar/medial). digit 1..5 for thumb/fingers,
+  // frac = distance along the finger 0 base..1 tip, radial = point is on the radial half.
+  const Y_CAP = 62, Y_ELB = 330, Y_WR = 570;
+  function skin(surf, y, t, digit, frac, radial) {
+    if (digit === 1) return surf === 'ant' ? ['C6', 'MEDW'] : ['C6', 'SRN'];
+    if (digit) {
+      const uln = digit === 5 || (digit === 4 && !radial);
+      const root = digit <= 2 ? 'C6' : digit === 3 ? 'C7' : 'C8';
+      if (surf === 'ant') return [root, uln ? 'ULNW' : 'MEDW'];
+      if (uln) return ['C8', 'ULN'];
+      if (frac > 0.5) return [root, 'MEDW'];
+      return [root, 'SRN'];
+    }
+    if (y < Y_CAP) return ['C4', 'SCL'];
+    if (y < Y_ELB) { // upper arm
+      if (t < 0.5) return ['C5', y < 230 ? 'AXN' : 'RAD'];
+      if (surf === 'post' && t < 0.75) return [y < 200 ? 'T2' : 'T1', y < 200 ? 'ICB' : 'RADP'];
+      return y < 200 ? ['T2', 'ICB'] : ['T1', 'MBC'];
+    }
+    if (y < Y_WR) { // forearm
+      if (surf === 'post') {
+        if (t < 0.3) return ['C6', 'MCN'];
+        if (t < 0.7) return ['C7', 'RAD'];
+      } else if (t < 0.5) return ['C6', 'MCN'];
+      return [y < 450 ? 'T1' : 'C8', 'MABC'];
+    }
+    // palm / dorsum of hand
+    if (surf === 'ant') return t < 0.33 ? ['C6', 'MED'] : t < 0.6 ? ['C7', 'MED'] : ['C8', 'ULN'];
+    return t < 0.33 ? ['C6', 'SRN'] : t < 0.55 ? ['C7', 'SRN'] : ['C8', 'ULN'];
+  }
+  function skinIntact(les, sev, root, nk) {
+    if (N[nk].nonPlexus) return 1;
+    return intact(les, sev, root, nk);
+  }
+  return { N, route, MUSCLES, REFLEXES, SNAPS, intact, strength, mrc, reflex, snap, skin, skinIntact };
+})();
+if (typeof module !== 'undefined') module.exports = BP;
+
+
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) if (attrs[k] !== null) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const state = { les: {}, sev: 1, preset: 'normal', smode: 'def', amode: 'sens', mystery: false };
+
+// ---------- plexus diagram ----------
+const svg = document.getElementById('plex');
+const SEGNAME = {
+  R_C5: 'C5 root', R_C6: 'C6 root', R_C7: 'C7 root', R_C8: 'C8 root', R_T1: 'T1 root',
+  UT: 'Upper trunk', MT: 'Middle trunk', LT: 'Lower trunk',
+  UTa: 'Upper trunk, anterior division', UTp: 'Upper trunk, posterior division', MTa: 'Middle trunk, anterior division', MTp: 'Middle trunk, posterior division', LTa: 'Lower trunk, anterior division', LTp: 'Lower trunk, posterior division',
+  LC: 'Lateral cord', PC: 'Posterior cord', MC: 'Medial cord',
+  DSC: 'Dorsal scapular nerve', LTN: 'Long thoracic nerve', SSN: 'Suprascapular nerve', LPN: 'Lateral pectoral nerve', MPN: 'Medial pectoral nerve',
+  MCN: 'Musculocutaneous nerve', SUB: 'Subscapular nerves', TDN: 'Thoracodorsal nerve', AXN: 'Axillary nerve',
+  RAD1: 'Radial nerve, axilla', RAD2: 'Radial nerve, spiral groove', PIN: 'Posterior interosseous nerve', SRN: 'Superficial radial nerve',
+  MED1: 'Median nerve, elbow', AIN: 'Anterior interosseous nerve', MEDW: 'Median nerve, carpal tunnel',
+  ULN1: 'Ulnar nerve, elbow', ULNW: 'Ulnar nerve, Guyon canal', MABC: 'Medial antebrachial cutaneous nerve', MBC: 'Medial brachial cutaneous nerve'
+};
+const GEO = [
+  // [id, path, label, labelPos, anchor, style, halo] style: 'root' | 'part' (trunk/cord) | 'nerve' | 'branch'; label parts tagged 's' are anatomical sites
+  ['R_C5', 'M 44 70 L 120 70 L 160 100', 'C5', [34, 75], 'end', 'root'],
+  ['R_C6', 'M 44 130 L 120 130 L 160 100', 'C6', [34, 135], 'end', 'root'],
+  ['R_C7', 'M 44 190 L 160 190', 'C7', [34, 195], 'end', 'root'],
+  ['R_C8', 'M 44 250 L 120 250 L 160 280', 'C8', [34, 255], 'end', 'root'],
+  ['R_T1', 'M 44 310 L 120 310 L 160 280', 'T1', [34, 315], 'end', 'root'],
+  ['UT', 'M 160 100 L 240 100', 'Upper', [200, 90], 'middle', 'part'],
+  ['MT', 'M 160 190 L 240 190', 'Middle', [200, 180], 'middle', 'part'],
+  ['LT', 'M 160 280 L 240 280', 'Lower', [200, 270], 'middle', 'part'],
+  ['UTa', 'M 240 100 L 320 100', '', null],
+  ['UTp', 'M 240 100 L 320 190', '', null],
+  ['MTa', 'M 240 190 L 320 100', '', null],
+  ['MTp', 'M 240 190 L 320 190', '', null],
+  ['LTa', 'M 240 280 L 320 280', '', null],
+  ['LTp', 'M 240 280 L 320 190', '', null],
+  ['LC', 'M 320 100 L 400 100', 'Lateral', [348, 90], 'middle', 'part'],
+  ['PC', 'M 320 190 L 400 190', 'Posterior', [360, 209], 'middle', 'part'],
+  ['MC', 'M 320 280 L 400 280', 'Medial', [360, 270], 'middle', 'part'],
+  ['DSC', 'M 80 70 L 80 34', 'Dorsal scapular', [80, 26], 'middle', 'branch'],
+  ['LTN', 'M 100 70 L 100 392', 'Long thoracic (C5–7)', [100, 410], 'middle', 'branch', 'M 100 238 L 100 262 M 100 298 L 100 322'],
+  ['SSN', 'M 220 100 L 238 52', 'Suprascapular', [240, 44], 'middle', 'branch'],
+  ['LPN', 'M 380 100 L 380 62', 'Lat. pectoral', [380, 54], 'middle', 'branch'],
+  ['SUB', 'M 336 190 L 336 158', 'Subscap.', [336, 151], 'middle', 'branch'],
+  ['TDN', 'M 378 190 L 378 142', 'Thoracodorsal', [380, 134], 'middle', 'branch'],
+  ['MPN', 'M 334 280 L 318 330', 'Med. pectoral', [328, 346], 'end', 'branch'],
+  ['MBC', 'M 362 280 L 366 330', 'MBC', [368, 346], 'middle', 'branch'],
+  ['MABC', 'M 388 280 L 418 330', 'MABC', [422, 346], 'middle', 'branch'],
+  ['MCN', 'M 400 100 L 440 64 L 660 64', 'Musculocutaneous', [668, 68], 'start', 'nerve'],
+  ['AXN', 'M 400 190 L 430 182 L 660 182', 'Axillary', [668, 186], 'start', 'nerve'],
+  ['RAD1', 'M 400 190 L 440 222 L 530 222', 'Radial', [470, 208], 'middle', 'nerve'],
+  ['RAD2', 'M 530 222 L 590 222', '', null],
+  ['SRN', 'M 590 222 L 620 208 L 660 208', 'Superficial radial', [668, 212], 'start', 'nerve'],
+  ['PIN', 'M 590 222 L 620 236 L 660 236', 'PIN', [668, 240], 'start', 'nerve'],
+  ['MED1', 'M 400 100 L 450 136 M 400 280 L 450 136 M 450 136 L 560 136', 'Median', [500, 128], 'middle', 'nerve', 'M 417.4 230 L 438.2 170'],
+  ['AIN', 'M 560 136 L 590 118 L 660 118', 'AIN', [668, 122], 'start', 'nerve'],
+  ['MEDW', 'M 560 136 L 590 152 L 660 152', 'Median', [668, 156], 'start', 'nerve'],
+  ['ULN1', 'M 400 280 L 450 300 L 560 300', 'Ulnar', [480, 292], 'middle', 'nerve'],
+  ['ULNW', 'M 560 300 L 660 300', 'Ulnar', [668, 304], 'start', 'nerve']
+];
+// anatomical sites where a nerve can be compressed: a tick across the nerve with an italic name below it
+const SITES = [['MED1', 538, 136, 'elbow'], ['MEDW', 612, 152, 'carpal tunnel'], ['RAD1', 478, 222, 'axilla'], ['RAD2', 562, 222, 'spiral groove'], ['ULN1', 530, 300, 'elbow'], ['ULNW', 625, 300, 'Guyon canal']];
+for (const [t, x] of [['Roots', 80], ['Trunks', 200], ['Div.', 280], ['Cords', 360], ['Branches', 560]]) {
+  const e = el('text', { x, y: 446, class: 'col', 'text-anchor': 'middle' }, svg); e.textContent = t.toUpperCase();
+}
+const parts = {};
+function xMark(g, x, y) {
+  el('circle', { cx: x, cy: y, r: 8, fill: 'var(--lesion)' }, g);
+  el('path', { d: `M ${x - 3.5} ${y - 3.5} L ${x + 3.5} ${y + 3.5} M ${x + 3.5} ${y - 3.5} L ${x - 3.5} ${y + 3.5}`, stroke: '#fff', 'stroke-width': 2 }, g);
+}
+for (const [id, d, lab, lp, anc, sty, halo] of GEO) {
+  const g = el('g', { class: 'hit', tabindex: 0, role: 'checkbox', 'aria-label': SEGNAME[id] }, svg);
+  if (halo) el('path', { d: halo, fill: 'none', stroke: 'var(--panel)', 'stroke-width': 11, 'stroke-linecap': 'butt' }, g); // shows this line crossing over the others
+  el('path', { d, fill: 'none', stroke: 'transparent', 'stroke-width': 24, 'stroke-linecap': 'round' }, g);
+  const vis = el('path', { d, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', class: 'vis' }, g);
+  const ov = el('path', { d, fill: 'none', stroke: 'var(--lesion)', 'stroke-width': 4, 'stroke-dasharray': '5 5', 'stroke-linecap': 'butt', visibility: 'hidden', 'pointer-events': 'none' }, g);
+  if (lab) {
+    const t = el('text', { x: lp[0], y: lp[1], 'text-anchor': anc, class: 'lab ' + sty }, g);
+    if (Array.isArray(lab)) for (const [txt, k] of lab) { const ts = el('tspan', k === 's' ? { class: 'site' } : {}, t); ts.textContent = txt; }
+    else t.textContent = lab;
+  }
+  const mark = el('g', { visibility: 'hidden', 'pointer-events': 'none' }, g);
+  parts[id] = { g, vis, ov, mark, d, status: '' };
+  g.addEventListener('mouseenter', e => showTip(e, `<b>${SEGNAME[id]}</b><br>${parts[id].status}`));
+  g.addEventListener('mousemove', moveTip); g.addEventListener('mouseleave', hideTip);
+  g.addEventListener('click', () => toggle(id));
+  g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(id); } });
+}
+for (const [id, x, y, t] of SITES) {
+  const sg = el('g', { 'pointer-events': 'none' }, parts[id].g);
+  el('path', { d: `M ${x} ${y - 8} L ${x} ${y + 8}`, stroke: 'var(--muted)', 'stroke-width': 2.2, 'stroke-linecap': 'round' }, sg);
+  el('text', { x, y: y + 23, 'text-anchor': 'middle', class: 'site' }, sg).textContent = t;
+}
+for (const id in parts) { const p = parts[id]; const L = p.vis.getTotalLength(); const pt = p.vis.getPointAtLength(L * (id === 'LTN' ? 0.12 : id === 'MED1' ? 0.82 : 0.5)); xMark(p.mark, pt.x, pt.y); }
+function matchPreset() { // name a hand-built lesion set when it matches a syndrome (Klumpke and TOS share one; severity decides)
+  const key = Object.keys(state.les).sort().join('|');
+  const hits = P.filter(p => p.les.slice().sort().join('|') === key);
+  if (!hits.length) return 'custom';
+  return (hits.find(p => Math.abs((p.sev || 1) - state.sev) < 0.01) || hits[0]).id;
+}
+// crop the plexus viewBox to the drawing so it fills the panel width
+{ const bb = svg.getBBox(), pad = 6; svg.setAttribute('viewBox', `${bb.x - pad} ${bb.y - pad} ${bb.width + 2 * pad} ${bb.height + 2 * pad}`); }
+function toggle(id, v) { if (state.mystery) { state.mystery = false; state.les = {}; } if (v === undefined) v = !state.les[id]; if (v) state.les[id] = true; else delete state.les[id]; state.preset = matchPreset(); refresh(); }
+
+// ---------- presets ----------
+const P = [
+  { id: 'normal', name: 'Normal', les: [], text: "<b>Intact plexus.</b> Click a segment or pick a syndrome." },
+  { id: 'erb', grp: 'Trunks', name: 'Upper trunk (Erb)', les: ['UT'], text: "<b>Upper trunk (Erb).</b> Waiter's tip: weak deltoid, spinati, biceps, brachioradialis, supinator. Biceps/BR reflexes lost. Rhomboids and serratus spared; LABC, median D2, superficial radial SNAPs low." },
+  { id: 'c56', grp: 'Roots', name: 'C5–C6 root avulsion', les: ['R_C5', 'R_C6'], text: "<b>C5–C6 root avulsion.</b> Erb arm plus weak rhomboids and serratus, denervated paraspinals, and normal SNAPs despite numbness (preganglionic)." },
+  { id: 'klumpke', grp: 'Trunks', name: 'Lower trunk (Klumpke)', les: ['LT'], text: "<b>Lower trunk (Klumpke).</b> Claw hand: weak intrinsics, long flexors, FCU. Ulnar and MABC SNAPs low, median D2 normal. Horner if T1 involved." },
+  { id: 'tos', grp: 'Trunks', name: 'Thoracic outlet', les: ['LT'], sev: 0.5, text: "<b>Neurogenic TOS.</b> Partial lower trunk. Low MABC and ulnar SNAPs, low median CMAP, normal median SNAP. Real cases are APB-predominant; this model weights C8 and T1 equally." },
+  { id: 'c7', grp: 'Roots', name: 'C7 radiculopathy', les: ['R_C7'], sev: 0.6, text: "<b>C7 radiculopathy.</b> Weak triceps, wrist/finger extensors, FCR; triceps reflex down; middle finger. SNAPs normal, paraspinals denervated. Severity 60%." },
+  { id: 'c6', grp: 'Roots', name: 'C6 radiculopathy', les: ['R_C6'], sev: 0.6, text: "<b>C6 radiculopathy.</b> Weak biceps, BR, wrist extensors, pronator teres; biceps/BR reflexes down; thumb and index numb. SNAPs normal." },
+  { id: 'c8', grp: 'Roots', name: 'C8 radiculopathy', les: ['R_C8'], sev: 0.6, text: "<b>C8 radiculopathy.</b> Weak finger flexors and extensors, median and ulnar intrinsics; ring/little numb. Normal ulnar SNAP separates it from ulnar neuropathy." },
+  { id: 'pc', grp: 'Cords', name: 'Posterior cord', les: ['PC'], text: "<b>Posterior cord.</b> Weak deltoid, latissimus and all radial muscles. Spinati and rhomboids spared." },
+  { id: 'lc', grp: 'Cords', name: 'Lateral cord', les: ['LC'], text: "<b>Lateral cord.</b> Weak biceps, brachialis, pronator teres, FCR, clavicular pec. Hand spared. LABC and median D2 SNAPs low." },
+  { id: 'mc', grp: 'Cords', name: 'Medial cord', les: ['MC'], text: "<b>Medial cord.</b> Ulnar plus median hand muscles and MABC. Like lower trunk, but EIP and ECU spared." },
+  { id: 'axn', grp: 'Nerves', name: 'Axillary', les: ['AXN'], text: "<b>Axillary nerve.</b> Weak deltoid; numb regimental badge patch." },
+  { id: 'rsg', grp: 'Nerves', name: 'Radial, spiral groove', les: ['RAD2'], text: "<b>Radial, spiral groove.</b> Wrist and finger drop, weak BR, triceps spared. Dorsoradial hand numb." },
+  { id: 'pin', grp: 'Nerves', name: 'PIN', les: ['PIN'], text: "<b>PIN.</b> Finger and thumb drop with radial wrist deviation (ECRL spared). No sensory loss." },
+  { id: 'cts', grp: 'Nerves', name: 'Carpal tunnel', les: ['MEDW'], sev: 0.7, text: "<b>Carpal tunnel.</b> Weak APB and opponens; lateral 3½ digits numb, thenar palm spared. Median D2 SNAP low." },
+  { id: 'ain', grp: 'Nerves', name: 'AIN', les: ['AIN'], text: "<b>AIN.</b> Can't make an \"OK\" sign: weak FPL, FDP 2–3, pronator quadratus. Purely motor." },
+  { id: 'ue', grp: 'Nerves', name: 'Ulnar, elbow', les: ['ULN1'], text: "<b>Ulnar, elbow.</b> Weak FCU, FDP 4–5, ulnar intrinsics (Froment, Wartenberg). Dorsal ulnar hand numb. FCU sparing in cubital tunnel isn't modelled." },
+  { id: 'guyon', grp: 'Nerves', name: 'Ulnar, Guyon canal', les: ['ULNW'], text: "<b>Ulnar, Guyon canal.</b> Intrinsics weak, FCU and FDP 4–5 normal. Dorsal ulnar hand and DUC SNAP spared." },
+  { id: 'ltn', grp: 'Nerves', name: 'Long thoracic', les: ['LTN'], text: "<b>Long thoracic.</b> Medial scapular winging (serratus)." },
+  { id: 'na', grp: 'Multifocal', name: 'Neuralgic amyotrophy', les: ['SSN', 'LTN', 'AIN'], text: "<b>Neuralgic amyotrophy.</b> Pain, then patchy single-nerve weakness: here suprascapular, long thoracic, AIN." }
+];
+const presetsEl = document.getElementById('presets');
+const PGROUPS = ['Roots', 'Trunks', 'Cords', 'Nerves', 'Multifocal'];
+const presetBtns = [document.getElementById('b-normal')];
+presetBtns[0].dataset.id = 'normal'; presetBtns[0].onclick = () => applyPreset('normal');
+const PORDER = { Roots: ['c56', 'c6', 'c7', 'c8'], Trunks: ['erb', 'klumpke', 'tos'], Cords: ['lc', 'pc', 'mc'], Nerves: ['ltn', 'axn', 'rsg', 'pin', 'ain', 'cts', 'ue', 'guyon'], Multifocal: ['na'] };
+for (const g of PGROUPS) {
+  const box = document.createElement('span'); box.className = 'pg'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', g); presetsEl.appendChild(box);
+  const lab = document.createElement('span'); lab.className = 'plab'; lab.textContent = g; box.appendChild(lab);
+  for (const id of PORDER[g]) { const p = P.find(x => x.id === id); const b = document.createElement('button'); b.className = 'btn sm'; b.type = 'button'; b.textContent = p.name; b.dataset.id = p.id; b.onclick = () => applyPreset(p.id); box.appendChild(b); presetBtns.push(b); }
+}
+document.getElementById('b-mystery').onclick = () => {
+  const pool = P.filter(p => p.id !== 'normal' && p.id !== state.preset);
+  const p = pool[Math.floor(Math.random() * pool.length)];
+  applyPreset(p.id, true);
+};
+document.getElementById('b-reveal').onclick = () => { state.mystery = false; refresh(); };
+const sev = document.getElementById('sev');
+function setSev(v) { state.sev = v; sev.value = v; document.getElementById('o-sev').textContent = Math.round(v * 100) + '%'; }
+function applyPreset(id, mystery) { const p = P.find(x => x.id === id); state.les = Object.fromEntries(p.les.map(k => [k, true])); setSev(p.sev || 1); state.preset = id; state.mystery = !!mystery; refresh(); }
+sev.oninput = () => { setSev(+sev.value); if (!state.mystery && state.preset !== 'normal') state.preset = matchPreset(); refresh(); };
+
+// ---------- arm geometry (shared by sensory and muscle views) ----------
+// Drawn in the anterior frame: right arm, anatomical position, lateral (radial) side
+// on the left, trunk on the right. The posterior view is the mirror image.
+const AW = 380, AH = 770;
+const XL = [[84, 86], [110, 87], [150, 92], [195, 101], [230, 103], [280, 103], [320, 101], [345, 96], [385, 96], [440, 104], [500, 111], [545, 114], [575, 113], [605, 108], [640, 104], [662, 104]];
+const XR = [[118, 205], [150, 199], [220, 193], [290, 194], [328, 199], [352, 196], [420, 186], [480, 174], [545, 167], [575, 168], [605, 186], [640, 193], [662, 191]];
+function interp(Pt, y) {
+  const n = Pt.length;
+  if (y <= Pt[0][0]) return Pt[0][1];
+  if (y >= Pt[n - 1][0]) return Pt[n - 1][1];
+  let i = 0; while (Pt[i + 1][0] < y) i++;
+  const [y0, x0] = Pt[i], [y1, x1] = Pt[i + 1];
+  const m = k => { const a = Pt[Math.max(0, k - 1)], b = Pt[Math.min(n - 1, k + 1)]; return (b[1] - a[1]) / (b[0] - a[0]); };
+  const h = y1 - y0, u = (y - y0) / h, m0 = m(i) * h, m1 = m(i + 1) * h, u2 = u * u, u3 = u2 * u;
+  return (2 * u3 - 3 * u2 + 1) * x0 + (u3 - 2 * u2 + u) * m0 + (-2 * u3 + 3 * u2) * x1 + (u3 - u2) * m1;
+}
+const ARM_D = (() => {
+  let d = 'M 205 118 C 196 80 178 40 150 24 C 118 22 92 44 86 84';
+  for (let y = 86; y <= 662; y += 2) d += ` L ${interp(XL, y).toFixed(1)} ${y}`;
+  d += ' L 108 670 L 186 668'; // web of the fingers
+  for (let y = 662; y >= 118; y -= 2) d += ` L ${interp(XR, y).toFixed(1)} ${y}`;
+  return d + ' Z';
+})();
+const TORSO_D = 'M 330 -10 C 328 10 300 18 250 22 C 210 25 175 22 150 24 L 205 118 C 215 160 222 250 226 350 C 270 357 320 357 372 350 L 372 -10 Z';
+const DIG = {
+  1: { b: [112, 598], t: [82, 672], rb: 15, rt: 10.5 },
+  2: { b: [116, 650], t: [111, 733], rb: 10, rt: 8.5 },
+  3: { b: [138, 652], t: [138, 744], rb: 10.5, rt: 8.8 },
+  4: { b: [160, 650], t: [164, 736], rb: 10, rt: 8.5 },
+  5: { b: [181, 645], t: [190, 710], rb: 9, rt: 7.6 }
+};
+function capsuleD(c) {
+  const [bx, by] = c.b, [tx, ty] = c.t, L = Math.hypot(tx - bx, ty - by), dx = (tx - bx) / L, dy = (ty - by) / L, nx = -dy, ny = dx, k = 4 / 3;
+  const p = (x, y) => x.toFixed(1) + ' ' + y.toFixed(1);
+  const B1 = [bx + nx * c.rb, by + ny * c.rb], T1 = [tx + nx * c.rt, ty + ny * c.rt], T2 = [tx - nx * c.rt, ty - ny * c.rt], B2 = [bx - nx * c.rb, by - ny * c.rb];
+  return `M ${p(...B1)} L ${p(...T1)} C ${p(T1[0] + dx * c.rt * k, T1[1] + dy * c.rt * k)} ${p(T2[0] + dx * c.rt * k, T2[1] + dy * c.rt * k)} ${p(...T2)} L ${p(...B2)} C ${p(B2[0] - dx * c.rb * k, B2[1] - dy * c.rb * k)} ${p(B1[0] - dx * c.rb * k, B1[1] - dy * c.rb * k)} ${p(...B1)} Z`;
+}
+function capsuleHit(c, x, y) {
+  const [bx, by] = c.b, vx = c.t[0] - bx, vy = c.t[1] - by;
+  const u = Math.max(0, Math.min(1, ((x - bx) * vx + (y - by) * vy) / (vx * vx + vy * vy)));
+  const px = bx + vx * u, py = by + vy * u;
+  return { dist: Math.hypot(x - px, y - py), r: c.rb + (c.rt - c.rb) * u, cross: vx * (y - by) - vy * (x - bx) };
+}
+const LIMB_D = [ARM_D, ...[1, 2, 3, 4, 5].map(k => capsuleD(DIG[k]))];
+const BODY_D = [TORSO_D, ...LIMB_D];
+// surface details that tell palm from dorsum: creases on the front; nails, knuckles and the olecranon on the back
+function detailD(surf) {
+  const lines = [], nails = [];
+  const at = (c, u) => { const dx = c.t[0] - c.b[0], dy = c.t[1] - c.b[1], L = Math.hypot(dx, dy); return { x: c.b[0] + dx * u, y: c.b[1] + dy * u, ux: dx / L, uy: dy / L, r: c.rb + (c.rt - c.rb) * u }; };
+  const across = (c, u, k, bow) => { const q = at(c, u), nx = -q.uy, ny = q.ux, w = q.r * k; return `M ${(q.x - nx * w).toFixed(1)} ${(q.y - ny * w).toFixed(1)} Q ${(q.x + q.ux * bow).toFixed(1)} ${(q.y + q.uy * bow).toFixed(1)} ${(q.x + nx * w).toFixed(1)} ${(q.y + ny * w).toFixed(1)}`; };
+  const fu = k => (y => (y - DIG[k].b[1]) / (DIG[k].t[1] - DIG[k].b[1])); // finger fraction from a y value
+  if (surf === 'ant') {
+    lines.push('M 118 572 Q 141 578 166 572', 'M 119 582 Q 142 588 168 583');           // wrist creases
+    lines.push('M 108 626 C 122 618 132 602 137 584');                                    // thenar crease
+    lines.push('M 112 628 C 132 624 154 624 178 632');                                    // proximal palmar crease
+    lines.push('M 192 628 C 172 630 152 638 132 650');                                    // distal palmar crease
+    lines.push('M 120 330 Q 150 340 182 331');                                            // elbow crease
+    for (const k of [2, 3, 4, 5]) { const f = fu(k); for (const y of [672, 0]) { if (y) lines.push(across(DIG[k], f(y), .85, 1.5)); } lines.push(across(DIG[k], .58, .8, 1.5), across(DIG[k], .8, .75, 1.5)); }
+    lines.push(across(DIG[1], .74, .8, 1.5));
+  } else {
+    lines.push('M 138 342 Q 150 330 162 342');                                            // olecranon
+    for (const k of [2, 3, 4, 5]) {
+      const q = at(DIG[k], fu(k)(660)); lines.push(`M ${q.x - 7} ${q.y + 2} Q ${q.x} ${q.y - 6} ${q.x + 7} ${q.y + 2}`); // knuckle
+      lines.push(across(DIG[k], .56, .5, -2), across(DIG[k], .6, .45, -2));               // PIP wrinkles
+    }
+    for (const k of [1, 2, 3, 4, 5]) { // nails
+      const c = DIG[k], q = at(c, 1 - (c.rt * 1.15) / Math.hypot(c.t[0] - c.b[0], c.t[1] - c.b[1])), nx = -q.uy, ny = q.ux, a = c.rt * .62, b = c.rt * 1.05;
+      const p1 = [q.x - q.ux * b, q.y - q.uy * b], p2 = [q.x + q.ux * b, q.y + q.uy * b];
+      nails.push(`M ${p1[0].toFixed(1)} ${p1[1].toFixed(1)} C ${(p1[0] + nx * a * 1.33).toFixed(1)} ${(p1[1] + ny * a * 1.33).toFixed(1)} ${(p2[0] + nx * a * 1.33).toFixed(1)} ${(p2[1] + ny * a * 1.33).toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)} C ${(p2[0] - nx * a * 1.33).toFixed(1)} ${(p2[1] - ny * a * 1.33).toFixed(1)} ${(p1[0] - nx * a * 1.33).toFixed(1)} ${(p1[1] - ny * a * 1.33).toFixed(1)} ${p1[0].toFixed(1)} ${p1[1].toFixed(1)} Z`);
+    }
+  }
+  return { lines, nails };
+}
+const DETAIL = { ant: detailD('ant'), post: detailD('post') };
+const DETAIL_INK = 'rgba(95,62,50,.6)';
+
+// ---------- sensory maps (canvas, per pixel) ----------
+const ROOTCOL = { C4: '#b8bcc4', C5: '#e58a6a', C6: '#efc66b', C7: '#8cc49b', C8: '#6ea8de', T1: '#a792d6', T2: '#d6a0c8' };
+const NERVES_SHOWN = ['SCL', 'AXN', 'RAD', 'RADP', 'ICB', 'MBC', 'MCN', 'MABC', 'MED', 'MEDW', 'ULN', 'ULNW', 'SRN'];
+const NCOL = { SCL: '#b8bcc4', AXN: '#e58a6a', RAD: '#c98bd9', RADP: '#a77cc0', SRN: '#d7a8e6', ICB: '#d6c3a0', MBC: '#9fb3c8', MCN: '#efc66b', MABC: '#6fb0c9', MED: '#8cc49b', MEDW: '#5fa877', ULN: '#6e8fde', ULNW: '#4f73c7' };
+const NFULL = { SCL: 'Supraclavicular nerves (cervical plexus)', AXN: 'Upper lateral cutaneous nerve of arm (axillary)', RAD: 'Radial cutaneous branches (lower lateral arm, posterior forearm)', RADP: 'Posterior cutaneous nerve of arm (radial)', ICB: 'Intercostobrachial nerve (T2, not brachial plexus)', MBC: 'Medial brachial cutaneous nerve', MCN: 'Lateral antebrachial cutaneous nerve (musculocutaneous)', MABC: 'Medial antebrachial cutaneous nerve', MED: 'Palmar cutaneous branch of median nerve', MEDW: 'Median nerve, digital branches', ULN: 'Ulnar nerve (palmar and dorsal cutaneous branches)', ULNW: 'Ulnar nerve, digital branches', SRN: 'Superficial radial nerve' };
+const NLABEL = { SCL: 'Supraclavicular', AXN: 'Axillary', RAD: 'Radial (arm/forearm)', RADP: 'Post. cutaneous of arm', ICB: 'Intercostobrachial', MBC: 'Med. brachial cut.', MCN: 'Lat. antebrachial cut.', MABC: 'Med. antebrachial cut.', MED: 'Median palmar cut.', MEDW: 'Median digital', ULN: 'Ulnar (palmar/dorsal)', ULNW: 'Ulnar digital', SRN: 'Superficial radial' };
+const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+// the sensory canvas shows only the limb: a crop of the anterior frame from X0 to X0 + CROPW
+const SC = 2, X0 = 55, CROPW = 160, CW = CROPW * SC, CH = AH * SC;
+function buildZones(surf) {
+  const oc = document.createElement('canvas'); oc.width = CW; oc.height = CH;
+  const c = oc.getContext('2d', { willReadFrequently: true });
+  c.setTransform(SC, 0, 0, SC, -X0 * SC, 0); c.fill(new Path2D(ARM_D));
+  const arm = c.getImageData(0, 0, CW, CH).data;
+  const zone = new Int16Array(CW * CH).fill(-1), alpha = new Uint8Array(CW * CH), keys = [], idx = {};
+  const zid = (root, nk) => { const k = root + '|' + nk; if (!(k in idx)) { idx[k] = keys.length; keys.push([root, nk]); } return idx[k]; };
+  const mir = surf === 'post';
+  for (let py = 0; py < CH; py++) {
+    const y = (py + .5) / SC, xl = interp(XL, y), xr = interp(XR, y);
+    for (let px = 0; px < CW; px++) {
+      const i = py * CW + px, x = X0 + (px + .5) / SC; // anterior-frame coordinates
+      const aArm = arm[i * 4 + 3] / 255;
+      let best = -1, cov = 0;
+      if (aArm > 0) { cov = aArm; best = zid(...BP.skin(surf, y, Math.max(0, Math.min(1, (x - xl) / (xr - xl))), 0)); }
+      if (aArm < 1 && y > 570) {
+        for (let k = 5; k >= 1; k--) {
+          const h = capsuleHit(DIG[k], x, y), cv = Math.max(0, Math.min(1, (h.r - h.dist) * SC + .5));
+          if (cv > 0 && cv > cov) {
+            const tipY = DIG[k].t[1], frac = Math.max(0, Math.min(1, (y - 662) / (tipY - 662)));
+            cov = cv; best = zid(...BP.skin(surf, y, 0, k, frac, h.cross > 0));
+          }
+        }
+      }
+      if (best < 0) continue;
+      const o = py * CW + (mir ? CW - 1 - px : px);
+      zone[o] = best; alpha[o] = Math.round(cov * 255);
+    }
+  }
+  return { zone, alpha, keys, img: document.createElement('canvas') };
+}
+const ZONES = { ant: buildZones('ant'), post: buildZones('post') };
+function drawArm(cv, surf) {
+  const Z = ZONES[surf];
+  if (cv.width !== CW) { cv.width = CW; cv.height = CH; Z.img.width = CW; Z.img.height = CH; }
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark' || (!document.documentElement.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+  const SKIN = [236, 214, 196], LOST = [70, 74, 84];
+  // per-zone colours: [plain pixels, hatch pixels]
+  const cols = Z.keys.map(([root, nk]) => {
+    const f = BP.skinIntact(state.les, state.sev, root, nk);
+    const base = state.smode === 'def' ? SKIN : state.smode === 'der' ? hex(ROOTCOL[root]) : hex(NCOL[nk]);
+    if (f >= 0.999) return [base, base];
+    const k = (1 - f) * (state.smode === 'def' ? 1 : 0.7);
+    const mix = m => [base[0] * (1 - m) + LOST[0] * m, base[1] * (1 - m) + LOST[1] * m, base[2] * (1 - m) + LOST[2] * m];
+    return state.smode === 'def' ? [mix(k), mix(k)] : [mix(k * 0.35), mix(k)];
+  });
+  const ictx = Z.img.getContext('2d'), img = ictx.createImageData(CW, CH), d = img.data;
+  for (let i = 0, n = CW * CH; i < n; i++) {
+    const z = Z.zone[i]; if (z < 0) continue;
+    const px = i % CW, py = (i / CW) | 0, c = cols[z][((px + py) % 10 < 4) ? 1 : 0], j = i * 4;
+    d[j] = c[0]; d[j + 1] = c[1]; d[j + 2] = c[2]; d[j + 3] = Z.alpha[i];
+  }
+  ictx.putImageData(img, 0, 0);
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, CW, CH);
+  // union outline: stroke every body part, then lay the filled pixels over the inner half
+  ctx.setTransform(surf === 'post' ? -SC : SC, 0, 0, SC, surf === 'post' ? (X0 + CROPW) * SC : -X0 * SC, 0);
+  ctx.strokeStyle = dark ? '#8b95a3' : '#6b5a52'; ctx.lineWidth = 2.6; ctx.lineJoin = 'round';
+  for (const dd of LIMB_D) ctx.stroke(new Path2D(dd));
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(Z.img, 0, 0);
+  ctx.setTransform(surf === 'post' ? -SC : SC, 0, 0, SC, surf === 'post' ? (X0 + CROPW) * SC : -X0 * SC, 0);
+  ctx.strokeStyle = DETAIL_INK; ctx.lineWidth = 1.1; ctx.lineCap = 'round';
+  for (const dd of DETAIL[surf].lines) ctx.stroke(new Path2D(dd));
+  ctx.fillStyle = 'rgba(255,250,246,.55)';
+  for (const dd of DETAIL[surf].nails) { const pth = new Path2D(dd); ctx.fill(pth); ctx.stroke(pth); }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+// ---------- muscle view (SVG) ----------
+function smooth(pts) {
+  const n = pts.length; let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+    d += ` C ${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)} ${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)} ${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)} ${p2[0]} ${p2[1]}`;
+  }
+  return d + ' Z';
+}
+// Point helpers: P2(y, t) places a point on the limb at height y, fraction t across it
+// (0 = lateral/radial edge, 1 = medial/ulnar edge). band() builds a muscle between a
+// lateral and a medial keyframed boundary, so limb muscles always fit the outline.
+const P2 = (y, t) => { const xl = interp(XL, y), xr = interp(XR, y); return [+(xl + (xr - xl) * t).toFixed(1), y]; };
+function lin(K, y) { if (y <= K[0][0]) return K[0][1]; for (let i = 0; i < K.length - 1; i++) if (y <= K[i + 1][0]) { const [y0, a] = K[i], [y1, b] = K[i + 1]; return a + (b - a) * (y - y0) / (y1 - y0); } return K[K.length - 1][1]; }
+function band(L, R) {
+  const side = (K, rev) => { const y0 = K[0][0], y1 = K[K.length - 1][0], n = Math.max(2, Math.round((y1 - y0) / 14)), out = []; for (let i = 0; i <= n; i++) { const y = y0 + (y1 - y0) * i / n; out.push(P2(y, lin(K, y))); } return rev ? out.reverse() : out; };
+  return side(L, false).concat(side(R, true));
+}
+const T = pts => pts.map(([y, t]) => P2(y, t));
+// [muscle name from BP.MUSCLES ('~Label' = ungraded, '=Label' = tendon/fascia), points, clip: 'body' | 'limb']
+const MUS_ANT = [
+  ['Serratus anterior', [[216, 200], [236, 222], [258, 246], [270, 262], [252, 270], [270, 292], [248, 296], [266, 320], [242, 324], [262, 346], [228, 350], [225, 290], [220, 240]], 'body'],
+  ['Pectoralis major, sternal', [[374, 84], [376, 200], [376, 300], [340, 304], [292, 278], [256, 242], [226, 200], [206, 176], [180, 166], [150, 156], [154, 132], [220, 112], [300, 96]], 'body'],
+  ['Pectoralis major, clavicular', [[200, 40], [250, 36], [310, 32], [376, 30], [376, 84], [300, 94], [220, 110], [156, 132], [150, 118], [170, 88], [186, 60]], 'body'],
+  ['~Coracobrachialis', band([[130, .6], [215, .72]], [[130, .82], [215, .84]]), 'limb'],
+  ['Brachialis', band([[215, -.1], [300, -.05], [352, .2]], [[215, .3], [262, .9], [300, .9], [352, .72]]), 'limb'],
+  ['Triceps', band([[150, .84], [230, .86], [308, .92]], [[150, 1.1], [308, 1.1]]), 'limb'],
+  ['Biceps', band([[148, .36], [180, .24], [240, .19], [290, .27], [320, .42]], [[148, .62], [180, .72], [240, .8], [290, .76], [320, .6]]), 'limb'],
+  ['=Biceps tendon', band([[312, .44], [352, .47]], [[312, .57], [352, .55]]), 'limb'],
+  ['Deltoid', band([[20, -.4], [215, -.1]], [[20, 1.0], [60, .8], [100, .6], [150, .38], [190, .18], [215, .04]]), 'limb'],
+  ['FDS', band([[395, .3], [470, .3], [545, .34]], [[395, .86], [470, .84], [545, .8]]), 'limb'],
+  ['FCU', band([[332, .82], [400, .86], [480, .82], [522, .83]], [[332, 1.15], [522, 1.12]]), 'limb'],
+  ['=FCU tendon', band([[512, .84], [574, .86]], [[512, .97], [574, .95]]), 'limb'],
+  ['~Palmaris longus', band([[338, .86], [400, .64], [455, .55]], [[338, .97], [400, .78], [455, .64]]), 'limb'],
+  ['=PL tendon', band([[450, .57], [574, .5]], [[450, .62], [574, .55]]), 'limb'],
+  ['FCR', band([[338, .78], [400, .5], [472, .35]], [[338, .9], [400, .67], [472, .46]]), 'limb'],
+  ['=FCR tendon', band([[466, .36], [574, .29]], [[466, .44], [574, .36]]), 'limb'],
+  ['Pronator teres', band([[328, .9], [380, .55], [428, .24]], [[342, 1.02], [392, .68], [442, .3]]), 'limb'],
+  ['Brachioradialis', band([[255, -.2], [566, -.1]], [[255, .16], [300, .22], [350, .32], [400, .32], [460, .24], [500, .16], [530, .1]]), 'limb'],
+  ['=BR tendon', band([[522, .0], [568, .03]], [[522, .12], [568, .12]]), 'limb'],
+  ['=Palmar aponeurosis', [[136, 584], [166, 584], [176, 650], [132, 652]], 'limb'],
+  ['Adductor pollicis', [[112, 642], [124, 650], [140, 646], [154, 632], [154, 622], [140, 628], [124, 636]], 'limb'],
+  ['Opponens pollicis', [[104, 582], [97, 600], [95, 620], [101, 637], [110, 632], [108, 612], [108, 594]], 'limb'],
+  ['APB', [[112, 578], [104, 596], [104, 618], [112, 636], [124, 640], [132, 622], [128, 598], [120, 582]], 'limb'],
+  ['ADM', [[172, 584], [184, 590], [194, 610], [196, 640], [188, 654], [178, 644], [172, 612]], 'limb']
+];
+const MUS_POST = [
+  ['Rhomboids', [[342, 50], [376, 18], [378, 200], [340, 226], [310, 236], [318, 190], [330, 120]], 'body'],
+  ['Infraspinatus', [[176, 48], [230, 54], [290, 64], [336, 74], [332, 120], [322, 170], [300, 184], [268, 170], [236, 140], [210, 110], [192, 80]], 'body'],
+  ['Supraspinatus', [[178, 32], [220, 24], [270, 28], [320, 40], [340, 50], [336, 66], [290, 58], [240, 48], [195, 44]], 'body'],
+  ['~Teres minor (axillary)', [[198, 118], [230, 138], [252, 160], [242, 172], [218, 152], [196, 130]], 'body'],
+  ['~Teres major', [[250, 170], [290, 190], [306, 206], [290, 222], [250, 200], [214, 166], [202, 144], [222, 150]], 'body'],
+  ['Latissimus dorsi', [[378, 196], [378, 364], [300, 364], [230, 364], [224, 300], [220, 250], [214, 200], [206, 150], [220, 170], [250, 205], [290, 236], [320, 236], [350, 220]], 'body'],
+  ['Triceps', band([[140, .55], [200, .04], [250, -.06], [300, .0], [334, .28]], [[120, 1.1], [300, 1.1], [322, .86], [338, .72]]), 'limb'],
+  ['=Triceps tendon', band([[286, .38], [338, .4]], [[286, .66], [338, .64]]), 'limb'],
+  ['Deltoid', band([[20, -.4], [215, -.1]], [[20, 1.05], [60, .95], [110, .72], [160, .42], [200, .2], [215, .04]]), 'limb'],
+  ['FCU', band([[330, .8], [400, .88], [562, .88]], [[330, 1.15], [562, 1.12]]), 'limb'],
+  ['~Anconeus', T([[326, .42], [330, .68], [372, .72], [362, .56]]), 'limb'],
+  ['ECU', band([[340, .52], [400, .66], [470, .7], [548, .72]], [[340, .62], [400, .82], [470, .84], [548, .82]]), 'limb'],
+  ['=ECU tendon', band([[540, .73], [574, .75]], [[540, .8], [574, .82]]), 'limb'],
+  ['~Extensor digiti minimi', band([[345, .44], [400, .58], [470, .6], [545, .6]], [[345, .5], [400, .65], [470, .67], [545, .66]]), 'limb'],
+  ['EDC', band([[335, .3], [380, .38], [450, .4], [540, .42]], [[335, .42], [380, .56], [450, .58], [540, .56]]), 'limb'],
+  ['~ECRB', band([[340, .18], [400, .25], [470, .24], [512, .22]], [[340, .3], [400, .36], [470, .34], [512, .3]]), 'limb'],
+  ['=ECRB tendon', band([[505, .23], [574, .23]], [[505, .29], [574, .28]]), 'limb'],
+  ['ECRL', band([[285, .04], [340, .1], [400, .14], [500, .13]], [[285, .14], [340, .2], [400, .25], [480, .22], [505, .19]]), 'limb'],
+  ['=ECRL tendon', band([[498, .14], [574, .15]], [[498, .19], [574, .2]]), 'limb'],
+  ['Brachioradialis', band([[255, -.2], [470, -.1]], [[255, .14], [340, .12], [400, .13], [470, .09]]), 'limb'],
+  ['~APL / EPB', T([[466, .42], [478, .5], [505, .36], [535, .16], [552, .04], [546, -.04], [520, .12], [490, .3]]), 'limb'],
+  ['First dorsal interosseous', [[114, 600], [108, 616], [106, 634], [108, 650], [114, 660], [122, 654], [124, 634], [121, 612]], 'limb'],
+  ['ADM', [[174, 588], [186, 594], [195, 614], [196, 642], [188, 654], [178, 640], [174, 612]], 'limb']
+];
+const DEEP = ['Subscapularis', 'Supinator', 'EIP', 'EPL', 'FDP 2–3', 'FDP 4–5', 'FPL', 'Pronator quadratus'];
+// weakness ramp: lightness falls steadily from 5 to 0, so grades stay in order in greyscale and for colour-blind viewers
+const GCOL = { 5: '#bcd4e6', 4: '#d9a93a', 3: '#c97a2c', 2: '#a8452a', 1: '#7a2418', 0: '#3f0f0b' };
+const GINK = g => (g <= 2 ? '#fff' : '#1a1a1a');
+function badge(elm, g) { elm.textContent = g; elm.style.background = GCOL[g]; elm.style.color = GINK(g); }
+const NEUTRAL = '#c9c4c0', SKINM = '#f7f1ec', TENDON = '#fbf8f3';
+const MBYNAME = Object.fromEntries(BP.MUSCLES.map(m => [m.name, m]));
+const shapesByName = {}; // name -> [svg path elements]
+const badgesByName = {}; // name -> [svg badge groups] shown on weak muscles
+const pendingBadges = [];
+function buildMuscleSvg(svgEl, defs, surf) {
+  const d = el('defs', {}, svgEl);
+  const cb = el('clipPath', { id: 'cb-' + surf }, d), cl = el('clipPath', { id: 'cl-' + surf }, d);
+  for (const dd of BODY_D) el('path', { d: dd }, cb);
+  for (const dd of LIMB_D) el('path', { d: dd }, cl);
+  const g = el('g', { transform: surf === 'post' ? `translate(${AW} 0) scale(-1 1)` : null }, svgEl);
+  const og = el('g', { fill: 'none', stroke: 'var(--outline)', 'stroke-width': 2.6, 'stroke-linejoin': 'round' }, g);
+  for (const dd of BODY_D) el('path', { d: dd }, og);
+  const sg = el('g', { fill: SKINM }, g);
+  for (const dd of BODY_D) el('path', { d: dd }, sg);
+  // skin details sit under the muscles, so they only show where skin is exposed
+  const dg = el('g', { fill: 'none', stroke: DETAIL_INK, 'stroke-width': 1.1, 'stroke-linecap': 'round', 'pointer-events': 'none' }, g);
+  for (const dd of DETAIL[surf].lines) el('path', { d: dd }, dg);
+  for (const dd of DETAIL[surf].nails) el('path', { d: dd, fill: 'rgba(255,250,246,.6)' }, dg);
+  const gb = el('g', { 'clip-path': `url(#cb-${surf})` }, g), gl = el('g', { 'clip-path': `url(#cl-${surf})` }, g);
+  if (surf === 'post') el('path', { d: 'M 150 30 C 200 40 280 58 340 70', stroke: '#e9e2d6', 'stroke-width': 7, fill: 'none', 'stroke-linecap': 'round' }, gb); // scapular spine
+  for (const [name, pts, clip] of defs) {
+    const kind = name[0];
+    const p = el('path', { d: smooth(pts), class: kind === '~' || kind === '=' ? 'n' : 'm' }, clip === 'body' ? gb : gl);
+    if (kind === '~' || kind === '=') {
+      p.setAttribute('fill', kind === '=' ? TENDON : NEUTRAL);
+      p.setAttribute('stroke', 'rgba(70,40,40,.28)'); p.setAttribute('stroke-width', .6);
+      const nm = kind === '~' ? name.slice(1) + ' (not graded in this model)' : name.slice(1);
+      p.addEventListener('pointermove', e => showTip(e, `<b>${nm}</b>`)); p.addEventListener('pointerleave', hideTip);
+      continue;
+    }
+    (shapesByName[name] = shapesByName[name] || []).push(p);
+    // grade badge at the centre of the shape's bounding box, kept inside the limb, unmirrored
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const [x, y] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    let cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    if (clip === 'limb' && cy > 84) cx = Math.max(interp(XL, cy) + 9, Math.min(interp(XR, cy) - 9, cx));
+    if (clip === 'limb' && name === 'Deltoid') { cx = 112; cy = 110; }
+    if (surf === 'post') cx = AW - cx;
+    pendingBadges.push([name, cx, cy]);
+    p.addEventListener('pointerenter', () => highlight(name, true));
+    p.addEventListener('pointermove', e => showTip(e, muscleTip(name)));
+    p.addEventListener('pointerdown', e => showTip(e, muscleTip(name)));
+    p.addEventListener('pointerleave', () => { highlight(name, false); hideTip(); });
+  }
+  const bg = el('g', { 'pointer-events': 'none', 'font-family': 'IBM Plex Mono, monospace', 'font-size': 17, 'font-weight': 600, 'text-anchor': 'middle' }, svgEl);
+  const placed = [];
+  for (let [name, cx, cy] of pendingBadges.splice(0)) {
+    while (placed.some(([x, y]) => Math.hypot(x - cx, y - cy) < 29)) cy += 30; // keep badges apart
+    placed.push([cx, cy]);
+    const b = el('g', { visibility: 'hidden' }, bg);
+    el('circle', { cx, cy, r: 14, stroke: '#fff', 'stroke-width': 2 }, b);
+    el('text', { x: cx, y: cy + 6 }, b);
+    (badgesByName[name] = badgesByName[name] || []).push(b);
+  }
+  if (surf === 'post') { // extensor tendons over the dorsum of the hand
+    const tg = el('g', { stroke: TENDON, 'stroke-width': 2.6, 'stroke-linecap': 'round', fill: 'none' }, gl);
+    for (const [x0, x1, y1] of [[146, 117, 656], [149, 138, 658], [152, 159, 656], [156, 180, 650]]) el('path', { d: `M ${x0} 562 L ${x1} ${y1}` }, tg);
+  }
+}
+buildMuscleSvg(document.getElementById('mus-ant'), MUS_ANT, 'ant');
+buildMuscleSvg(document.getElementById('mus-post'), MUS_POST, 'post');
+const deepEl = document.getElementById('deep');
+deepEl.innerHTML = '<span class="lab">Deep, not drawn:</span>';
+const deepChips = {};
+for (const n of DEEP) {
+  const c = document.createElement('span'); c.className = 'dchip'; c.innerHTML = `<b class="gb"></b>${n}`;
+  c.addEventListener('mouseenter', () => highlight(n, true)); c.addEventListener('mouseleave', () => highlight(n, false));
+  deepEl.appendChild(c); deepChips[n] = c;
+}
+function updateMuscles() {
+  for (const name in shapesByName) {
+    const m = MBYNAME[name], g = BP.mrc(BP.strength(state.les, state.sev, m));
+    for (const p of shapesByName[name]) p.setAttribute('fill', GCOL[g]);
+    for (const b of badgesByName[name] || []) {
+      b.setAttribute('visibility', g < 5 ? 'visible' : 'hidden');
+      b.querySelector('circle').setAttribute('fill', GCOL[g]); const t = b.querySelector('text'); t.textContent = g; t.setAttribute('fill', GINK(g));
+    }
+  }
+  for (const n in deepChips) {
+    const m = MBYNAME[n], g = BP.mrc(BP.strength(state.les, state.sev, m)), b = deepChips[n].querySelector('b');
+    badge(b, g);
+    deepChips[n].title = `${n}: MRC ${g} · ${rootLabel(m)} · ${nerveLabel(m)}`;
+  }
+}
+function muscleTip(name) { const m = MBYNAME[name], g = BP.mrc(BP.strength(state.les, state.sev, m)); return `<b>${name}</b>: MRC ${g}${g < 5 ? ' <span class="lost">(weak)</span>' : ''}<br>${rootLabel(m)} · ${nerveLabel(m)}<br>${m.action}`; }
+function highlight(name, on) {
+  for (const p of shapesByName[name] || []) p.classList.toggle('hl', on);
+  if (deepChips[name]) deepChips[name].classList.toggle('hl', on);
+  const r = mrowByName[name]; if (r) r.classList.toggle('hl', on);
+}
+
+// ---------- view switching ----------
+const armA = document.getElementById('arm-ant'), armP = document.getElementById('arm-post');
+for (const [id, m] of [['sm-def', 'def'], ['sm-der', 'der'], ['sm-nrv', 'nrv']]) document.getElementById(id).onclick = () => { state.smode = m; for (const b of ['sm-def', 'sm-der', 'sm-nrv']) document.getElementById(b).setAttribute('aria-pressed', String(b === id)); drawArms(); };
+for (const [id, m] of [['av-sens', 'sens'], ['av-musc', 'musc']]) document.getElementById(id).onclick = () => { state.amode = m; for (const b of ['av-sens', 'av-musc']) document.getElementById(b).setAttribute('aria-pressed', String(b === id)); drawArms(); };
+function drawArms() {
+  const musc = state.amode === 'musc';
+  armA.hidden = armP.hidden = musc;
+  document.getElementById('mus-ant').toggleAttribute('hidden', !musc);
+  document.getElementById('mus-post').toggleAttribute('hidden', !musc);
+  document.getElementById('sens-ctl').hidden = musc;
+  deepEl.hidden = !musc;
+  document.getElementById('arm-hint').textContent = musc ? 'Hover or tap a muscle for its grade, roots and nerve. Weak muscles show their grade.' : 'Hover or tap the arm to name the dermatome and nerve.';
+  if (musc) { updateMuscles(); return; }
+  drawArm(armA, 'ant'); drawArm(armP, 'post');
+}
+const SHORTSEG = { R_C5: 'C5 root', R_C6: 'C6 root', R_C7: 'C7 root', R_C8: 'C8 root', R_T1: 'T1 root', UT: 'upper trunk', MT: 'middle trunk', LT: 'lower trunk', UTa: 'anterior division', MTa: 'anterior division', LTa: 'anterior division', UTp: 'posterior division', MTp: 'posterior division', LTp: 'posterior division', LC: 'lateral cord', PC: 'posterior cord', MC: 'medial cord', MCN: 'musculocutaneous', AXN: 'axillary', RAD1: 'radial (axilla)', RAD2: 'radial (spiral groove)', SRN: 'superficial radial', MED1: 'median (elbow)', MEDW: 'median (carpal tunnel)', ULN1: 'ulnar (elbow)', ULNW: 'ulnar (Guyon canal)', MABC: 'MABC', MBC: 'MBC' };
+function skinTip(cv, surf, e) {
+  const r = cv.getBoundingClientRect(), px = Math.floor((e.clientX - r.left) / r.width * CW), py = Math.floor((e.clientY - r.top) / r.height * CH);
+  const z = px >= 0 && px < CW && py >= 0 && py < CH ? ZONES[surf].zone[py * CW + px] : -1;
+  if (z < 0) { hideTip(); return; }
+  const [root, nk] = ZONES[surf].keys[z], f = BP.skinIntact(state.les, state.sev, root, nk);
+  const rootTxt = root === 'C4' ? 'C4 dermatome (cervical plexus)' : root === 'T2' ? 'T2 dermatome' : root + ' dermatome';
+  const st = f < 0.95 ? `<span class="lost">${f < 0.05 ? 'Sensation lost' : 'Sensation reduced'}</span>` : 'Sensation normal';
+  if (state.smode === 'der') { showTip(e, `<b>${rootTxt}</b><br>${st}`); return; }
+  if (state.smode === 'nrv') {
+    const path = BP.N[nk].nonPlexus ? 'Not part of the brachial plexus' : BP.route(root, nk).map(sg => SHORTSEG[sg] || sg).join(' → ');
+    showTip(e, `<b>${NFULL[nk]}</b><br>${path}<br>${st}`); return;
+  }
+  showTip(e, `<b>${rootTxt}</b><br>${NFULL[nk]}<br>${st}`);
+}
+for (const [cv, surf] of [[armA, 'ant'], [armP, 'post']]) {
+  cv.addEventListener('pointermove', e => skinTip(cv, surf, e));
+  cv.addEventListener('pointerdown', e => skinTip(cv, surf, e));
+  cv.addEventListener('pointerleave', hideTip);
+}
+
+// ---------- tables ----------
+const ROOTS = ['C5', 'C6', 'C7', 'C8', 'T1'];
+function rootLabel(m) { const rs = [...new Set(m.contrib.map(c => c[0]))]; rs.sort((a, b) => ROOTS.indexOf(a) - ROOTS.indexOf(b)); return rs.length > 1 ? rs[0] + '–' + rs[rs.length - 1].replace('C', '') : rs[0]; }
+function nerveLabel(m) { const ns = [...new Set(m.contrib.map(c => BP.N[c[2]].name))]; return ns.join(' / ').replace('Radial (axilla)', 'Radial').replace('Median (hand)', 'Median').replace('Ulnar (hand)', 'Ulnar'); }
+const NSHORT = { 'Posterior interosseous': 'PIN', 'Anterior interosseous': 'AIN', 'Lateral pectoral / Medial pectoral': 'Lat. + med. pectoral', 'Musculocutaneous': 'Musculocut.' };
+const mbody = document.querySelector('#mtab tbody');
+const mrows = [], mrowByName = {};
+let lgrp = '';
+for (const m of BP.MUSCLES) {
+  if (m.group !== lgrp) { lgrp = m.group; const g = document.createElement('tr'); g.className = 'grp'; g.innerHTML = `<td colspan="4">${lgrp}</td>`; mbody.appendChild(g); }
+  const tr = document.createElement('tr');
+  tr.title = m.action;
+  const nl = nerveLabel(m);
+  tr.innerHTML = `<td>${m.name}</td><td class="r">${rootLabel(m)}</td><td class="nv" title="${nl}">${NSHORT[nl] || nl}</td><td class="g"><b class="gb"></b></td>`;
+  tr.addEventListener('mouseenter', () => highlight(m.name, true)); tr.addEventListener('mouseleave', () => highlight(m.name, false));
+  mbody.appendChild(tr); mrows.push([m, tr]); mrowByName[m.name] = tr;
+}
+// ---------- downstream effect of lesions on each plexus segment ----------
+let ROUTES = null;
+function allRoutes() {
+  const set = new Map();
+  const add = (r, n) => { if (BP.N[n] && !BP.N[n].nonPlexus) set.set(r + '|' + n, [r, n]); };
+  for (const m of BP.MUSCLES) for (const [r, , n] of m.contrib) add(r, n);
+  for (const x of BP.REFLEXES) for (const r of x.roots) add(r, x.nerve);
+  for (const x of BP.SNAPS) add(x.root, x.nerve);
+  for (const surf of ['ant', 'post']) for (const [r, n] of ZONES[surf].keys) if (BP.N[n]) add(r, n);
+  return [...set.values()].map(([r, n]) => ({ r, n, segs: BP.route(r, n) }));
+}
+function downstream() {
+  ROUTES = ROUTES || allRoutes();
+  const acc = {}; // seg -> {n, lost: total loss, full: all fully lost, roots:Set}
+  for (const rt of ROUTES) {
+    let f = 1;
+    for (const sg of rt.segs) {
+      const a = acc[sg] = acc[sg] || { n: 0, lost: 0, allFull: true, roots: new Set() };
+      const loss = 1 - f; a.n++; a.lost += loss;
+      if (loss < 0.95) a.allFull = false;
+      if (loss > 0.05) a.roots.add(rt.r);
+      if (state.les[sg]) f *= 1 - state.sev;
+    }
+  }
+  const out = {};
+  for (const sg in acc) { const a = acc[sg]; if (a.roots.size) out[sg] = { full: a.allFull, roots: ROOTS.filter(r => a.roots.has(r)) }; }
+  return out;
+}
+// ---------- shared hover tip ----------
+const tipEl = document.getElementById('tip');
+function placeTip(x, y) { const w = tipEl.offsetWidth, h = tipEl.offsetHeight; tipEl.style.left = Math.min(innerWidth - w - 8, x + 14) + 'px'; tipEl.style.top = (y + h + 22 > innerHeight ? y - h - 12 : y + 16) + 'px'; }
+function showTip(e, html) { tipEl.innerHTML = html; tipEl.hidden = false; placeTip(e.clientX, e.clientY); }
+function moveTip(e) { if (!tipEl.hidden) placeTip(e.clientX, e.clientY); }
+function hideTip() { tipEl.hidden = true; }
+// ---------- guide ----------
+const guide = document.getElementById('guide');
+function openGuide(sec) {
+  if (!guide.open) guide.showModal();
+  const t = document.getElementById(sec || 'g-start');
+  for (const b of guide.querySelectorAll('.gnav button')) b.setAttribute('aria-current', String(b.dataset.sec === t.id));
+  t.scrollIntoView({ block: 'start' });
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b) openGuide(b.dataset.open); const n = e.target.closest('.gnav button'); if (n) openGuide(n.dataset.sec); });
+document.getElementById('g-close').onclick = () => guide.close();
+guide.addEventListener('click', e => { if (e.target === guide) guide.close(); });
+document.getElementById('g-ramp').innerHTML = [5, 4, 3, 2, 1, 0].map(g => `<span><i style="background:${GCOL[g]}"></i>MRC ${g}</span>`).join('') + `<span><i style="background:${NEUTRAL}"></i>Not graded</span>`;
+function refresh() {
+  const ds = downstream();
+  for (const id in parts) {
+    const p = parts[id], on = !!state.les[id] && !state.mystery, st = state.mystery ? null : ds[id];
+    p.mark.setAttribute('visibility', on ? 'visible' : 'hidden');
+    p.g.setAttribute('aria-checked', String(on));
+    const full = !on && st && st.full, part = !on && st && !st.full;
+    p.vis.setAttribute('stroke', on || full ? 'var(--lesion)' : 'var(--accent)');
+    p.vis.setAttribute('stroke-opacity', full ? .45 : 1);
+    p.vis.setAttribute('stroke-width', on ? 5 : 4);
+    p.ov.setAttribute('visibility', part ? 'visible' : 'hidden');
+    p.status = state.mystery ? 'Click to lesion (ends the quiz)' : on ? 'Lesion site. Click to remove.'
+      : full ? 'Downstream of the lesion: all fibres lost.' : part ? `Downstream: partly affected (${st.roots.join(', ')} fibres reduced).` : 'Intact. Click to lesion.';
+    p.g.setAttribute('aria-description', p.status);
+  }
+  for (const b of presetBtns) b.setAttribute('aria-pressed', String(!state.mystery && b.dataset.id === state.preset));
+  document.getElementById('b-reveal').hidden = !state.mystery;
+  document.getElementById('b-mystery').setAttribute('aria-pressed', String(state.mystery));
+  const desc = document.getElementById('desc');
+  if (state.mystery) desc.innerHTML = '<b>Mystery lesion.</b> Localise it from the findings, then press Reveal answer.';
+  else if (state.preset === 'custom') { const ks = Object.keys(state.les); desc.innerHTML = ks.length ? '<b>Custom lesion.</b> No preset matches this combination.' : '<b>No lesions.</b>'; }
+  else desc.innerHTML = P.find(p => p.id === state.preset).text;
+  const chips = document.getElementById('chips');
+  chips.innerHTML = '';
+  for (const k of state.mystery ? [] : Object.keys(state.les)) {
+    const c = document.createElement('span'); c.className = 'chip'; c.textContent = SEGNAME[k];
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '×'; b.setAttribute('aria-label', 'Remove ' + SEGNAME[k]); b.onclick = () => toggle(k, false);
+    c.appendChild(b); chips.appendChild(c);
+  }
+  // muscles
+  for (const [m, tr] of mrows) {
+    const f = BP.strength(state.les, state.sev, m), g = BP.mrc(f);
+    tr.classList.toggle('weak', g < 5);
+    badge(tr.querySelector('.gb'), g);
+  }
+  // reflexes
+  document.querySelector('#rtab tbody').innerHTML = BP.REFLEXES.map(r => {
+    const f = BP.reflex(state.les, state.sev, r);
+    const [txt, cls] = f >= 0.9 ? ['2+ normal', 'good'] : f >= 0.45 ? ['1+ reduced', 'bad'] : ['0 absent', 'bad'];
+    return `<tr><td>${r.name}</td><td class="r">${r.label}</td><td style="text-align:right"><span class="pill ${cls}">${txt}</span></td></tr>`;
+  }).join('');
+  // SNAPs
+  document.querySelector('#stab tbody').innerHTML = BP.SNAPS.map(s => {
+    const f = BP.snap(state.les, state.sev, s);
+    const numb = BP.intact(state.les, state.sev, s.root, s.nerve) < 0.95;
+    const [txt, cls] = f >= 0.95 ? [numb ? 'Normal (numb skin)' : 'Normal', 'good'] : f >= 0.4 ? ['Reduced', 'bad'] : ['Absent', 'bad'];
+    return `<tr><td>${s.name}</td><td class="r">${s.root}</td><td style="text-align:right"><span class="pill ${cls}">${txt}</span></td></tr>`;
+  }).join('');
+  // EMG
+  const rootsHit = ROOTS.filter(r => state.les['R_' + r]);
+  const den = mrows.filter(([m]) => BP.strength(state.les, state.sev, m) < 0.95).map(([m]) => m.name);
+  document.querySelector('#etab tbody').innerHTML =
+    `<tr><td>Cervical paraspinals</td><td style="text-align:right"><span class="pill ${rootsHit.length ? 'bad' : 'good'}">${rootsHit.length ? 'Denervated (' + rootsHit.join(', ') + ')' : 'Normal'}</span></td></tr>` +
+    `<tr><td colspan="2" style="font-size:13px">${den.length ? `<b>Denervation in ${den.length} limb muscle${den.length > 1 ? 's' : ''}:</b> ${den.join(', ')}.` : 'No limb muscles denervated.'}</td></tr>`;
+  drawArms();
+  updateClues(rootsHit);
+}
+// ---------- localisation clues + spoken summary ----------
+// muscles whose nerves leave the plexus at a known level: weak = lesion at or above that level
+const LEVEL_MUSCLES = [['Rhomboids', 'dorsal scapular', 'C5 root', 'roots'], ['Serratus anterior', 'long thoracic', 'C5–7 roots', 'roots'], ['Supraspinatus', 'suprascapular', 'upper trunk', 'upper trunk'], ['Pectoralis major, clavicular', 'lateral pectoral', 'lateral cord', 'lateral cord'], ['Latissimus dorsi', 'thoracodorsal', 'posterior cord', 'posterior cord']];
+const SNAPSHORT = { 'Lateral antebrachial cutaneous': 'LABC', 'Median (digit 2)': 'median D2', 'Superficial radial': 'superficial radial', 'Ulnar (digit 5)': 'ulnar D5', 'Dorsal ulnar cutaneous': 'DUC', 'Medial antebrachial cutaneous': 'MABC' };
+let liveTimer = 0;
+function sensoryLoss() {
+  const roots = new Set(), nerves = new Set();
+  for (const surf of ['ant', 'post']) for (const [root, nk] of ZONES[surf].keys) {
+    if (BP.skinIntact(state.les, state.sev, root, nk) < 0.95) { roots.add(root); nerves.add(NLABEL[nk]); }
+  }
+  return { roots: ROOTS.concat(['C4', 'T2']).filter(r => roots.has(r)), nerves: [...nerves] };
+}
+function updateClues(rootsHit) {
+  const snaps = BP.SNAPS.map(s => [s, BP.snap(state.les, state.sev, s), BP.intact(state.les, state.sev, s.root, s.nerve)]);
+  const bad = snaps.filter(([, f]) => f < 0.95).map(([s]) => SNAPSHORT[s.name]);
+  const numbNormal = snaps.filter(([, f, fi]) => f >= 0.95 && fi < 0.95).map(([s]) => SNAPSHORT[s.name]);
+  const sl = sensoryLoss();
+  const weak = BP.MUSCLES.filter(m => BP.strength(state.les, state.sev, m) < 0.95);
+  const para = rootsHit.length ? `<span class="pill bad">Denervated</span> ${rootsHit.join(', ')}` : '<span class="pill good">Normal</span>';
+  const snapTxt = bad.length ? `<span class="pill bad">Abnormal</span> ${bad.join(', ')}` : '<span class="pill good">All normal</span>';
+  const snapNote = numbNormal.length ? `<div style="color:var(--muted);font-size:12.5px">${numbNormal.join(', ')} normal despite numb skin: preganglionic (root) lesion</div>` : '';
+  const lv = LEVEL_MUSCLES.map(([n, nv, from]) => { const g = BP.mrc(BP.strength(state.les, state.sev, MBYNAME[n])); return `<div class="lvl"><b class="gb" style="background:${GCOL[g]};color:${GINK(g)}">${g}</b><span>${n.replace('Pectoralis major, clavicular', 'Pec major (clav.)')} <small>(${nv}, from ${from})</small> — ${g < 5 ? '<b>weak</b>: lesion is at or above here' : 'spared'}</span></div>`; }).join('');
+  const prox = LEVEL_MUSCLES.find(([n]) => BP.strength(state.les, state.sev, MBYNAME[n]) < 0.95);
+  const anyWeak = weak.length > 0;
+  const verdict = !anyWeak ? '' : prox ? `Most proximal weak branch arises from the <b>${prox[3]}</b>.` : 'All branch muscles spared: lesion is distal to the cords (peripheral nerve).';
+  const sens = sl.nerves.length ? `Dermatomes ${sl.roots.join(', ')}. Territories: ${sl.nerves.join(', ')}.` : 'None.';
+  document.getElementById('clues').innerHTML =
+    `<dt>Paraspinals</dt><dd>${para}</dd><dt>SNAPs</dt><dd>${snapTxt}${snapNote}</dd>` +
+    `<dt>Level markers</dt><dd><div style="color:var(--muted);font-size:12.5px;margin-bottom:3px">Nerves that branch off at a known level. Weak = lesion at or above that branch. <button class="lb txt" type="button" data-open="g-clues">More</button></div>${lv}${verdict ? `<div style="margin-top:3px">${verdict}</div>` : ''}</dd><dt>Sensory loss</dt><dd id="sens-sum">${sens}</dd>`;
+  const head = state.mystery ? 'Mystery lesion' : state.preset === 'custom' ? 'Custom lesion' : P.find(p => p.id === state.preset).name;
+  const msg = `${head}. ${weak.length} weak muscle${weak.length === 1 ? '' : 's'}. Paraspinals ${rootsHit.length ? 'denervated' : 'normal'}. SNAPs ${bad.length ? 'abnormal: ' + bad.join(', ') : 'all normal'}. Sensory loss: ${sl.nerves.length ? sl.roots.join(', ') : 'none'}.`;
+  clearTimeout(liveTimer); liveTimer = setTimeout(() => { document.getElementById('live').textContent = msg; }, 500);
+}
+function fitRow() { const w = document.querySelector('.work'); document.documentElement.style.setProperty('--rowH', Math.max(520, innerHeight - (w.getBoundingClientRect().top + scrollY) - 12) + 'px'); }
+fitRow(); addEventListener('resize', fitRow);
+refresh();
+addEventListener('scroll', hideTip, true);
+</script>
+</body>
+</html>
