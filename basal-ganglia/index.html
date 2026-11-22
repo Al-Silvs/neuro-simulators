@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Basal Ganglia Circuit Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0b0f18; --panel:#121827; --line:#222b3f; --txt:#e6ebf5; --mut:#8d97ad; --exc:#5cb8ff; --inh:#ff5a5f; --da:#f2c14e; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:14px; }
+  header { padding:18px 24px 6px; display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 20px; }
+  h1 { font-size:20px; margin:0; font-weight:600; }
+  .home { font-size:13.5px; color:var(--exc); text-decoration:none; white-space:nowrap; }
+  .home:hover { text-decoration:underline; }
+  .home:focus-visible { outline:2px solid var(--exc); outline-offset:2px; border-radius:3px; }
+  .legend { display:flex; gap:16px; color:var(--mut); font-size:12.5px; flex-wrap:wrap; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:-1px; }
+  main { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; padding:10px 24px 24px; }
+  @media (max-width:1100px){ main { grid-template-columns:1fr; } }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; }
+  canvas { display:block; width:100%; height:auto; }
+  .row { display:grid; grid-template-columns:280px 190px minmax(0,1fr); gap:16px; margin-top:16px; }
+  @media (max-width:860px){ .row { grid-template-columns:1fr 190px; } .row > .tr { grid-column:1 / -1; } }
+  .avg { display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .avg .cap { align-self:flex-start; }
+  .gauge { position:relative; width:64px; height:250px; background:#1d2537; border-radius:8px; overflow:hidden; margin:8px 0 10px; }
+  .gauge .fill { position:absolute; left:0; right:0; bottom:0; height:0; background:var(--exc); transition:height .25s linear, background .4s; }
+  .gauge .norm { position:absolute; left:-2px; right:-2px; height:0; border-top:2px dashed #fff; }
+  .gauge-wrap { position:relative; }
+  .gauge-wrap .nl { position:absolute; left:74px; transform:translateY(-50%); font-size:11px; color:#c5cde0; white-space:nowrap; }
+  .gauge-wrap .tick { position:absolute; right:74px; transform:translateY(-50%); font-size:10.5px; color:var(--mut); }
+  #avg-pct { font-size:28px; font-weight:600; font-family:'IBM Plex Mono',monospace; }
+  #avg-sub { color:var(--mut); font-size:12px; margin-top:2px; }
+  #avg-verdict { margin-top:8px; font-weight:600; font-size:13px; }
+  @media (max-width:760px){ .row { grid-template-columns:1fr; } }
+  .cap { color:var(--mut); font-size:12px; margin:0 0 6px; text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+  .status { border-radius:10px; padding:10px 12px; margin-top:8px; border:1px solid var(--line); }
+  .status.normal { background:rgba(92,184,255,.08); border-color:rgba(92,184,255,.4); }
+  .status.hypo { background:rgba(150,150,170,.1); border-color:rgba(170,170,190,.45); }
+  .status.mild { background:rgba(242,193,78,.08); border-color:rgba(242,193,78,.45); }
+  .status.hyper { background:rgba(255,90,95,.1); border-color:rgba(255,90,95,.5); }
+  #status-title { font-weight:600; font-size:16px; }
+  #status-text { color:#c5cde0; margin-top:3px; line-height:1.4; }
+  .meter { margin-top:10px; }
+  .meter .lab { display:flex; justify-content:space-between; font-size:12.5px; color:var(--mut); }
+  .meter .bar { height:7px; background:#1d2537; border-radius:4px; overflow:hidden; margin-top:4px; }
+  .meter .bar div { height:100%; border-radius:4px; transition:width .4s; }
+  aside > * + * { margin-top:14px; }
+  .scen { position:sticky; top:10px; z-index:2; box-shadow:0 0 0 10px var(--bg); }
+  @media (max-width:1100px){ .scen { position:static; box-shadow:none; } }
+  .howto summary { cursor:pointer; margin:0; }
+  .howto[open] summary { margin-bottom:6px; }
+  #presets { display:flex; flex-wrap:wrap; gap:6px; }
+  button { font:inherit; font-size:12.5px; color:var(--txt); background:#1a2234; border:1px solid var(--line); border-radius:8px; padding:6px 10px; cursor:pointer; }
+  button:hover { border-color:#3a4766; }
+  button.on { background:#25406a; border-color:var(--exc); }
+  .pgroup { width:100%; font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.05em; margin:6px 0 0; }
+  .pgroup:first-child { margin-top:0; }
+  #preset-desc { color:#c5cde0; line-height:1.45; margin-top:10px; font-size:13px; }
+  .sl { display:block; margin:10px 0 2px; }
+  .sl-top { display:flex; justify-content:space-between; font-weight:600; font-size:13px; }
+  .sl output { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--exc); }
+  .hint { color:var(--mut); font-size:11.5px; }
+  input[type=range] { width:100%; accent-color:var(--exc); margin:4px 0 0; }
+  .ctrls { display:flex; gap:8px; margin-top:10px; }
+  .howto ol { margin:4px 0 0; padding-left:18px; line-height:1.45; font-size:13px; color:#c5cde0; }
+  .howto li + li { margin-top:4px; }
+  .chk { display:flex; align-items:center; gap:6px; font-size:13px; margin:0 0 10px; color:#c5cde0; }
+  .note { color:var(--mut); font-size:12px; line-height:1.5; padding:0 24px 28px; max-width:1100px; }
+</style>
+</head>
+<body>
+<header>
+  <a class="home" href="../">&larr; All simulators</a>
+  <h1>Basal ganglia motor loop: direct and indirect pathways</h1>
+  <div class="legend">
+    <span><i style="background:var(--exc)"></i>excitatory (glutamate)</span>
+    <span><i style="background:var(--inh)"></i>inhibitory (GABA)</span>
+    <span><i style="background:var(--da)"></i>dopamine</span>
+  </div>
+</header>
+<main>
+  <section>
+    <div class="card"><canvas id="circuit" role="img" aria-label="Animated basal ganglia circuit: cortex to striatal D1 and D2 neurons, direct pathway to GPi/SNr, indirect pathway through GPe and STN, GPi/SNr inhibiting thalamus, thalamus exciting motor cortex, motor cortex to brainstem and spinal cord."></canvas></div>
+    <div class="row">
+      <div class="card">
+        <p class="cap">Movement</p>
+        <canvas id="limb" role="img" aria-label="Arm that reaches toward a target when motor output bursts; the status text below describes the movement state."></canvas>
+        <div id="status" class="status normal"><div id="status-title">Normal</div><div id="status-text"></div></div>
+        <div class="meter"><div class="lab"><span>Response to each command</span><span id="m-phasic-v"></span></div><div class="bar"><div id="m-phasic" style="background:var(--exc)"></div></div></div>
+        <div class="meter"><div class="lab"><span>Output between commands</span><span id="m-tonic-v"></span></div><div class="bar"><div id="m-tonic" style="background:var(--inh)"></div></div></div>
+      </div>
+      <div class="card avg">
+        <p class="cap">Average output</p>
+        <div class="gauge-wrap">
+          <span class="tick" style="top:8px">300%</span><span class="tick" style="top:175px">100%</span><span class="tick" style="top:258px">0</span>
+          <div class="gauge" role="img" aria-label="Average motor output compared with normal"><div class="fill" id="avg-fill"></div><div class="norm" style="bottom:33.333%"></div></div>
+          <span class="nl" style="top:175px">normal</span>
+        </div>
+        <div id="avg-pct">—</div>
+        <div id="avg-sub">of normal</div>
+        <div id="avg-verdict"></div>
+      </div>
+      <div class="card tr">
+        <p class="cap">Activity over time</p>
+        <canvas id="traces" role="img" aria-label="Traces over the last 18 seconds of cortical input, GPi/SNr output and motor output, with the normal circuit dashed for comparison."></canvas>
+      </div>
+    </div>
+  </section>
+  <aside>
+    <div class="card scen">
+      <p class="cap">Scenarios</p>
+      <div id="presets"></div>
+      <div id="preset-desc"></div>
+    </div>
+    <details class="card howto" open>
+      <summary class="cap">How to read it</summary>
+      <ol>
+        <li>Every 7 s the cortex sends a command into the striatum.</li>
+        <li>D1 cells briefly silence GPi/SNr, the thalamic gate opens, motor cortex fires and the arm reaches the target.</li>
+        <li>Between commands GPi/SNr keeps the gate shut, so the arm stays still.</li>
+        <li>Pick a disease: the <b style="color:#ffb347">orange ring</b> marks where it starts; <b style="color:#7ee787">▲</b>/<b style="color:#c792ea">▼</b> show the knock-on changes compared with normal.</li>
+      </ol>
+    </details>
+    <div class="card">
+      <p class="cap">Adjust the circuit</p>
+      <div id="sliders"></div>
+      <label class="chk" style="margin-top:12px"><input type="checkbox" id="s-hyper" checked> Hyperdirect pathway (cortex → STN)</label>
+      <label class="sl"><div class="sl-top"><span>Interval between commands</span><output id="o-period">7.0 s</output></div>
+        <input type="range" min="6000" max="12000" step="250" value="7000" id="s-period"></label>
+      <label class="sl"><div class="sl-top"><span>Random cortical fluctuations</span><output id="o-noise">100%</output></div>
+        <input type="range" min="0" max="2" step="0.05" value="1" id="s-noise"></label>
+      <div class="ctrls"><button id="pause">Pause</button><button id="slow">Slow motion</button></div>
+    </div>
+  </aside>
+</main>
+<p class="note">This is a simplified rate model of the classic box-and-arrow scheme (Albin, Young and Penney 1989; DeLong 1990). Activity is in arbitrary units and timing is slowed down for visibility. The model leaves out beta oscillations and tremor, striatal interneurons, thalamostriatal and GPe–striatal feedback, and the overlap between D1 and D2 pathways, so treat it as a teaching sketch rather than a physiological model.</p>
+<script>
+// Basal ganglia rate model with conduction delays. Units: normalized firing rate; time in ms.
+const NODES = ["cmd", "ctx", "d1", "d2", "snc", "gpe", "stn", "gpi", "thal", "drv", "mc", "out"];
+
+const W = {
+  msnDrive: 1.5, msnOff: 0.15, daMod: 0.7, daModD2: 1.5,
+  gpeBase: 1.0, stnToGpe: 0.4, d2ToGpe: 2.2,
+  stnBase: 0.72, gpeToStn: 0.6,
+  gpiBase: 0.81, stnToGpi: 1.2, d1ToGpi: 1.0, gpeToGpi: 0.3,
+  thalBase: 1.36, ctxToThal: 0, thalNoise: 0.16, gpiToThal: 2.1,
+  ctxToStn: 0.3,
+};
+
+const SLOW = 3; // global time stretch
+// edge delays (ms) used both by the model and by the pulse animation
+const DELAY = {
+  "ctx-d1": 240, "ctx-d2": 240, "ctx-stn": 60,
+  "d1-gpi": 300, "d2-gpe": 240, "gpe-stn": 200, "stn-gpe": 200,
+  "gpe-gpi": 220, "stn-gpi": 160, "gpi-thal": 220, "thal-ctx": 200, "drv-thal": 150, "ctx-out": 200,
+  "snc-d1": 200, "snc-d2": 200,
+};
+for (const k in DELAY) DELAY[k] *= 1.5; // shorter than SLOW so the lag is less obvious
+
+const DEFAULTS = {
+  ctx: 1, d1: 1, d2: 1, gpe: 1, stn: 1, gpi: 1, thal: 1,
+  da: 1, d2block: 0, d2sens: 1, period: 7000, noise: 1, hyper: 1,
+};
+
+const f = x => Math.max(0, Math.min(3, x));
+
+class Sim {
+  constructor(params, seed = 1) {
+    this.p = { ...DEFAULTS, ...params };
+    this.dt = 5;
+    this.t = 0;
+    this.hlen = 1000; // 4 s of history
+    this.hist = {};
+    this.r = {};
+    for (const n of NODES) { this.r[n] = 0; this.hist[n] = new Float32Array(this.hlen); }
+    this.idx = 0;
+    this.noise = 0; this.n2 = 0;
+    this.seed = seed;
+    // warm up to steady state
+    const keepT = 0;
+    for (let i = 0; i < 1800; i++) this.step(true);
+    this.t = keepT;
+  }
+  rand() { // deterministic-ish gaussian
+    this.seed = (this.seed * 16807) % 2147483647;
+    const u = this.seed / 2147483647;
+    this.seed = (this.seed * 16807) % 2147483647;
+    const v = this.seed / 2147483647;
+    return Math.sqrt(-2 * Math.log(u + 1e-9)) * Math.cos(2 * Math.PI * v);
+  }
+  past(node, edge) {
+    const k = Math.round(DELAY[edge] / this.dt);
+    return this.hist[node][(this.idx - k + this.hlen * 10) % this.hlen];
+  }
+  pulse() {
+    const P = this.p.period, Wd = 260 * SLOW;
+    const ph = this.t % P;
+    return ph < Wd ? 0.5 - 0.5 * Math.cos(2 * Math.PI * ph / Wd) : 0;
+  }
+  step(warm = false) {
+    const p = this.p, dt = this.dt, r = this.r;
+    // cortical noise (OU)
+    const nt = 150 * SLOW;
+    this.noise += dt / nt * (-this.noise) + 0.04 * p.noise * Math.sqrt(2 * dt / nt) * this.rand();
+    const nt2 = 200 * SLOW;
+    this.n2 += dt / nt2 * (-this.n2) + W.thalNoise * p.noise * Math.sqrt(2 * dt / nt2) * this.rand();
+    const cmdIn = warm ? 0.2 * p.ctx : p.ctx * (0.2 + this.pulse());
+    const ctxIn = cmdIn + (warm ? 0 : 0.6 * this.n2);
+    const da = p.da;
+    const dD1 = Math.max(0, 1 + W.daMod * (da - 1));
+    // dopamine acting at D2 receptors: reduced by receptor blockade, scaled by receptor sensitivity
+    const daD2 = da * (1 - p.d2block) * p.d2sens;
+    const dD2 = Math.max(0, 1 - W.daModD2 * (daD2 - 1));
+
+    const C_d1 = this.past("cmd", "ctx-d1"), C_d2 = this.past("cmd", "ctx-d2");
+    const target = {
+      cmd: f(cmdIn),
+      ctx: f(ctxIn),
+      snc: f(da),
+      d1: f(p.d1 * (W.msnDrive * dD1 * C_d1 - W.msnOff)),
+      d2: f(p.d2 * (W.msnDrive * dD2 * C_d2 - W.msnOff)),
+      gpe: f(p.gpe * (W.gpeBase + W.stnToGpe * this.past("stn", "stn-gpe")) - W.d2ToGpe * this.past("d2", "d2-gpe")),
+      stn: f(p.stn * (W.stnBase + p.hyper * W.ctxToStn * Math.max(0, this.past("cmd", "ctx-stn") - 0.2 * p.ctx)) - W.gpeToStn * this.past("gpe", "gpe-stn")),
+      gpi: f(p.gpi * (W.gpiBase + W.stnToGpi * this.past("stn", "stn-gpi")) - W.d1ToGpi * this.past("d1", "d1-gpi") - W.gpeToGpi * this.past("gpe", "gpe-gpi")),
+      drv: f(p.thal * (W.thalBase + W.ctxToThal * C_d1 + (warm ? 0 : this.n2))),
+      thal: f(this.past("drv", "drv-thal") - W.gpiToThal * this.past("gpi", "gpi-thal")),
+      mc: f(this.past("thal", "thal-ctx")),
+      out: this.past("mc", "ctx-out"),
+    };
+    const tau = { cmd: 15, ctx: 15, snc: 200, d1: 30, d2: 30, gpe: 30, stn: 20, gpi: 25, thal: 30, drv: 20, mc: 25, out: 30 };
+    for (const n of NODES) r[n] += dt / (tau[n] * SLOW) * (target[n] - r[n]);
+    this.idx = (this.idx + 1) % this.hlen;
+    for (const n of NODES) this.hist[n][this.idx] = r[n];
+    this.t += dt;
+  }
+}
+
+const PRESETS = {
+  normal: { label: "Normal", p: {} },
+  pd: { label: "Parkinson disease", p: { da: 0.6 } },
+  hd: { label: "Huntington disease (early)", p: { d2: 0.15 } },
+  hemiballism: { label: "Hemiballismus (STN lesion)", p: { stn: 0.1 } },
+  lid: { label: "Levodopa-induced dyskinesia", p: { da: 1.9 } },
+  dbs: { label: "Parkinson + STN DBS", p: { da: 0.6, stn: 0.35 } },
+  pallidotomy: { label: "Parkinson + GPi lesion", p: { da: 0.6, gpi: 0.6 } },
+  pdl: { label: "Parkinson + levodopa", group: "drug", p: { da: 0.9 } },
+  aip: { label: "Typical antipsychotic: parkinsonism", group: "drug", p: { d2block: 0.9 } },
+  atyp: { label: "Atypical antipsychotic", group: "drug", p: { d2block: 0.4 } },
+  td: { label: "Tardive dyskinesia", group: "drug", p: { d2block: 0.2, d2sens: 2.2 } },
+};
+
+if (typeof module !== "undefined") module.exports = { Sim, PRESETS, NODES, DELAY, W, DEFAULTS };
+
+// ---------- UI / animation ----------
+const $ = s => document.querySelector(s);
+let sim = new Sim({}, 11);
+let ref = new Sim({}, 11);
+let speed = 1, paused = false, currentPreset = "normal";
+
+const COL = { exc: "#5cb8ff", inh: "#ff5a5f", da: "#f2c14e" };
+const NODE = {
+  ctx:  { x: 590, y: 50,  w: 470, h: 50, label: "Cortex", sub: "sensorimotor & association areas", type: "exc" },
+  mc:   { x: 165, y: 50,  w: 270, h: 50, label: "Motor cortex", sub: "M1 · SMA · premotor", type: "exc" },
+  d1:   { x: 470, y: 170, w: 120, h: 40, label: "D1 MSNs", type: "inh" },
+  d2:   { x: 700, y: 170, w: 120, h: 40, label: "D2 MSNs", type: "inh" },
+  snc:  { x: 560, y: 268, w: 96,  h: 38, label: "SNc", type: "da" },
+  gpe:  { x: 800, y: 300, w: 100, h: 42, label: "GPe", type: "inh" },
+  stn:  { x: 800, y: 430, w: 100, h: 42, label: "STN", type: "exc" },
+  gpi:  { x: 480, y: 430, w: 130, h: 42, label: "GPi / SNr", type: "inh" },
+  thal: { x: 155, y: 300, w: 120, h: 42, label: "Thalamus", type: "exc" },
+  drv:  { x: 335, y: 300, w: 170, h: 48, label: "Excitatory drive", sub: "cerebellum · cortex · brainstem", type: "exc" },
+  out:  { x: 95, y: 505, w: 130, h: 46, label: "Brainstem", sub: "spinal cord", type: "exc" },
+};
+const EDGES = [
+  { id: "ctx-d1",  from: "ctx", type: "exc", pts: [[470, 75], [470, 150]] },
+  { id: "ctx-d2",  from: "ctx", type: "exc", pts: [[700, 75], [700, 150]] },
+  { id: "ctx-stn", from: "ctx", type: "exc", opt: "hyper", pts: [[825, 62], [880, 62], [880, 430], [851, 430]] },
+  { id: "d1-gpi",  from: "d1",  type: "inh", pts: [[470, 190], [470, 409]] },
+  { id: "d2-gpe",  from: "d2",  type: "inh", pts: [[700, 190], [700, 300], [750, 300]] },
+  { id: "gpe-stn", from: "gpe", type: "inh", pts: [[785, 321], [785, 409]] },
+  { id: "stn-gpe", from: "stn", type: "exc", pts: [[815, 409], [815, 321]] },
+  { id: "gpe-gpi", from: "gpe", type: "inh", pts: [[750, 314], [535, 409]] },
+  { id: "stn-gpi", from: "stn", type: "exc", pts: [[750, 436], [545, 436]] },
+  { id: "gpi-thal",from: "gpi", type: "inh", pts: [[415, 430], [155, 430], [155, 321]] },
+  { id: "thal-ctx",from: "thal",type: "exc", pts: [[155, 279], [155, 75]] },
+  { id: "drv-thal",from: "drv", type: "exc", pts: [[250, 300], [216, 300]] },
+  { id: "ctx-out", from: "mc",  type: "exc", pts: [[60, 75], [60, 482]] },
+  { id: "snc-d1",  from: "snc", type: "da",  end: "arrow", pts: [[525, 249], [495, 190]] },
+  { id: "snc-d2",  from: "snc", type: "da",  end: "bar",   pts: [[600, 249], [670, 190]] },
+];
+for (const e of EDGES) {
+  e.len = []; let L = 0;
+  for (let i = 1; i < e.pts.length; i++) { const d = Math.hypot(e.pts[i][0] - e.pts[i-1][0], e.pts[i][1] - e.pts[i-1][1]); e.len.push(d); L += d; }
+  e.L = L; e.dots = [];
+}
+function along(e, frac) {
+  let d = frac * e.L;
+  for (let i = 0; i < e.len.length; i++) {
+    if (d <= e.len[i] || i === e.len.length - 1) {
+      const t = Math.min(1, d / e.len[i]); const a = e.pts[i], b = e.pts[i+1];
+      return [a[0] + (b[0]-a[0]) * t, a[1] + (b[1]-a[1]) * t];
+    }
+    d -= e.len[i];
+  }
+}
+
+// ---------- canvas setup ----------
+const cv = $("#circuit"), cx = cv.getContext("2d");
+const tv = $("#traces"), tx = tv.getContext("2d");
+const lv = $("#limb"), lx = lv.getContext("2d");
+function fit(c, w, h) {
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr;
+  const g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+fit(cv, 960, 540); fit(tv, 520, 300); fit(lv, 300, 210);
+
+function rr(g, x, y, w, h, r) { g.beginPath(); g.roundRect(x, y, w, h, r); }
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n>>16},${(n>>8)&255},${n&255},${a})`; }
+
+function drawCircuit() {
+  const g = cx;
+  g.clearRect(0, 0, 960, 540);
+  // striatum outline
+  g.setLineDash([5, 5]); g.strokeStyle = "rgba(255,255,255,0.22)"; g.lineWidth = 1;
+  rr(g, 360, 132, 420, 78, 10); g.stroke(); g.setLineDash([]);
+  g.fillStyle = "rgba(255,255,255,0.55)"; g.font = "600 13px 'IBM Plex Sans', sans-serif"; g.textAlign = "center";
+  g.fillText("Striatum", 570, 175);
+  // pathway labels
+  g.font = "italic 12px 'IBM Plex Sans', sans-serif"; g.fillStyle = "rgba(255,255,255,0.65)";
+  g.save(); g.translate(458, 330); g.rotate(-Math.PI/2); g.fillText("direct", 0, 0); g.restore();
+  g.save(); g.translate(688, 255); g.rotate(-Math.PI/2); g.fillText("indirect", 0, 0); g.restore();
+  if (sim.p.hyper) { g.save(); g.translate(896, 245); g.rotate(Math.PI/2); g.fillText("hyperdirect", 0, 0); g.restore(); }
+  g.save(); g.translate(48, 300); g.rotate(-Math.PI/2); g.fillText("corticospinal / corticobulbar", 0, 0); g.restore();
+  g.save(); g.translate(143, 180); g.rotate(-Math.PI/2); g.fillText("thalamocortical", 0, 0); g.restore();
+  g.fillText("D1 (+)", 535, 232); g.fillText("D2 (−)", 652, 232);
+
+  // edges
+  for (const e of EDGES) {
+    if (e.opt && !sim.p[e.opt]) continue;
+    const c = COL[e.type];
+    g.strokeStyle = hexA(c, 0.28); g.lineWidth = 2; g.beginPath();
+    e.pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke();
+    const a = e.pts[e.pts.length - 2], b = e.pts[e.pts.length - 1];
+    const ang = Math.atan2(b[1]-a[1], b[0]-a[0]);
+    g.save(); g.translate(b[0], b[1]); g.rotate(ang); g.fillStyle = hexA(c, 0.75); g.strokeStyle = hexA(c, 0.75);
+    const end = e.end || (e.type === "inh" ? "bar" : "arrow");
+    if (end === "bar") { g.lineWidth = 3.5; g.beginPath(); g.moveTo(0, -9); g.lineTo(0, 9); g.stroke(); }
+    else { g.beginPath(); g.moveTo(0, 0); g.lineTo(-10, -6); g.lineTo(-10, 6); g.closePath(); g.fill(); }
+    g.restore();
+  }
+  // dots
+  drawGate(g);
+  drawHighlights(g, performance.now());
+  g.globalCompositeOperation = "lighter";
+  for (const e of EDGES) {
+    if (e.opt && !sim.p[e.opt]) continue;
+    const c = COL[e.type];
+    for (const d of e.dots) {
+      const [x, y] = along(e, d.f);
+      const grd = g.createRadialGradient(x, y, 0, x, y, 7);
+      grd.addColorStop(0, hexA(c, 0.95)); grd.addColorStop(0.35, hexA(c, 0.5)); grd.addColorStop(1, hexA(c, 0));
+      g.fillStyle = grd; g.beginPath(); g.arc(x, y, 7, 0, 7); g.fill();
+    }
+  }
+  g.globalCompositeOperation = "source-over";
+
+  // nodes
+  for (const [k, n] of Object.entries(NODE)) {
+    const r = sim.r[k], c = COL[n.type];
+    const act = Math.min(1, r / 1.4);
+    const x = n.x - n.w/2, y = n.y - n.h/2;
+    g.shadowColor = hexA(c, 0.9); g.shadowBlur = 26 * act;
+    g.fillStyle = "#151c2b"; rr(g, x, y, n.w, n.h, 8); g.fill();
+    g.shadowBlur = 0;
+    g.fillStyle = hexA(c, 0.12 + 0.55 * act); rr(g, x, y, n.w, n.h, 8); g.fill();
+    g.strokeStyle = hexA(c, 0.85); g.lineWidth = 1.5; rr(g, x, y, n.w, n.h, 8); g.stroke();
+    g.fillStyle = "#fff"; g.textAlign = "center"; g.font = "600 14px 'IBM Plex Sans', sans-serif";
+    g.fillText(n.label, n.x, n.y + (n.sub ? -3 : 5));
+    if (n.sub) { g.font = "11px 'IBM Plex Sans', sans-serif"; g.fillStyle = "rgba(255,255,255,0.7)"; g.fillText(n.sub, n.x, n.y + 14); }
+    if (k === "thal") {
+      const inh = Math.min(1, W.gpiToThal * sim.past("gpi", "gpi-thal") / 2.2);
+      const fire = Math.min(1, sim.r.thal / 0.7);
+      // stays blue (excitatory); inhibition shows as a red outline that fades as the thalamus is released
+      const ring = inh * (1 - fire);
+      if (ring > 0.05) { g.strokeStyle = `rgba(255,90,95,${0.35 + 0.65 * ring})`; g.lineWidth = 1.5 + 3.5 * ring;
+        rr(g, x - 3, y - 3, n.w + 6, n.h + 6, 10); g.stroke(); }
+      if (fire > 0.25) { g.strokeStyle = `rgba(92,184,255,${0.8 * fire})`; g.lineWidth = 2; rr(g, x - 6 - 4 * fire, y - 6 - 4 * fire, n.w + 12 + 8 * fire, n.h + 12 + 8 * fire, 12); g.stroke(); }
+      g.fillStyle = "#fff"; g.font = "600 14px 'IBM Plex Sans', sans-serif"; g.textAlign = "center";
+      g.fillText(n.label, n.x, n.y + 5);
+    }
+    // activity bar
+    g.fillStyle = "rgba(255,255,255,0.1)"; g.fillRect(x + 6, y + n.h + 4, n.w - 12, 4);
+    g.fillStyle = c; g.fillRect(x + 6, y + n.h + 4, (n.w - 12) * act, 4);
+    // gain badge
+    const gk = { ctx: "ctx", d1: "d1", d2: "d2", gpe: "gpe", stn: "stn", gpi: "gpi", drv: "thal", snc: "da" }[k];
+    if (gk && Math.abs(sim.p[gk] - 1) > 0.01) {
+      const txt = Math.round(sim.p[gk] * 100) + "%";
+      g.font = "600 11px 'IBM Plex Mono', monospace"; const tw = g.measureText(txt).width + 10;
+      g.fillStyle = "#ffb347"; rr(g, x + n.w - tw + 6, y - 10, tw, 17, 8); g.fill();
+      g.fillStyle = "#1a1300"; g.fillText(txt, x + n.w - tw/2 + 6, y + 3);
+    }
+  }
+}
+
+function drawGate(g) {
+  // the same quantities the model uses: delayed drive vs weighted, delayed GPi/SNr inhibition
+  const drv = sim.past("drv", "drv-thal"), inh = W.gpiToThal * sim.past("gpi", "gpi-thal");
+  const net = drv - inh, x = 252, y = 345, w = 166, max = 3;
+  const bar = (yy, label, val, col) => {
+    g.fillStyle = "rgba(255,255,255,0.7)"; g.font = "11px 'IBM Plex Sans', sans-serif"; g.textAlign = "left";
+    g.fillText(label, x, yy);
+    g.fillStyle = "rgba(255,255,255,0.08)"; g.fillRect(x, yy + 4, w, 7);
+    g.fillStyle = col; g.fillRect(x, yy + 4, w * Math.min(1, val / max), 7);
+  };
+  bar(y, "Excitatory drive", drv, COL.exc);
+  bar(y + 24, "GPi/SNr inhibition", inh, COL.inh);
+
+}
+
+// ---------- highlighting ----------
+const SITE = {
+  pd: { snc: "SNc degeneration" },
+  hd: { d2: "D2 (indirect) MSN loss" },
+  hemiballism: { stn: "STN lesion" },
+  lid: { snc: "excess dopamine (levodopa)" },
+  dbs: { snc: "SNc degeneration", stn: "DBS: STN output reduced" },
+  pallidotomy: { snc: "SNc degeneration", gpi: "partial GPi lesion" },
+  pdl: { snc: "SNc degeneration + levodopa" },
+  aip: { d2: "D2 receptors ~90% blocked" },
+  atyp: { d2: "D2 receptors ~40% blocked" },
+  td: { d2: "supersensitive D2 receptors" },
+};
+const PARAM_NODE = { ctx: "ctx", da: "snc", d1: "d1", d2: "d2", gpe: "gpe", stn: "stn", gpi: "gpi", thal: "drv", d2block: "d2", d2sens: "d2" };
+let flashT = 0;
+const ema = { sim: {}, ref: {} };
+for (const n of NODES) { ema.sim[n] = 0; ema.ref[n] = 0; }
+function updateEma() {
+  const k = sim.dt / 2500;
+  for (const n of NODES) { ema.sim[n] += (sim.r[n] - ema.sim[n]) * k; ema.ref[n] += (ref.r[n] - ema.ref[n]) * k; }
+}
+function drawHighlights(g, now) {
+  const changed = {};
+  for (const [pk, nk] of Object.entries(PARAM_NODE)) if (Math.abs(sim.p[pk] - DEFAULTS[pk]) > 0.01) changed[nk] = true;
+  const labels = currentPreset ? (SITE[currentPreset] || {}) : {};
+  const fresh = Math.max(0, 1 - (now - flashT) / 3500);
+  for (const k of Object.keys(changed)) {
+    const n = NODE[k]; if (!n) continue;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 260);
+    const pad = 6 + 5 * pulse + 14 * fresh;
+    g.strokeStyle = `rgba(255,179,71,${0.55 + 0.4 * pulse})`; g.lineWidth = 2.5 + 2 * fresh;
+    g.setLineDash([6, 4]); rr(g, n.x - n.w/2 - pad, n.y - n.h/2 - pad, n.w + 2*pad, n.h + 2*pad, 12); g.stroke(); g.setLineDash([]);
+    const lab = labels[k];
+    if (lab) {
+      g.font = "600 12px 'IBM Plex Sans', sans-serif"; const tw = g.measureText(lab).width + 14;
+      const side = k === "d1" || k === "d2";
+      const lx = side ? n.x + n.w/2 + 14 : Math.min(950 - tw, Math.max(10, n.x - tw/2));
+      const ly = side ? n.y - 10 : n.y + n.h/2 + 14;
+      g.fillStyle = "#ffb347"; rr(g, lx, ly, tw, 20, 10); g.fill();
+      g.fillStyle = "#1a1300"; g.textAlign = "left"; g.fillText(lab, lx + 7, ly + 14);
+    }
+  }
+}
+let hidden = false, skipCycles = 0;
+function drawRipples(g) {
+  const now = performance.now();
+  ripples = ripples.filter(r => now - r.t < 300);
+  for (const r of ripples) { const t = (now - r.t) / 300;
+    g.strokeStyle = `rgba(255,90,95,${0.5 * (1 - t)})`; g.lineWidth = 1.5; g.beginPath(); g.arc(r.x, r.y, 3 + 9 * t, 0, 2 * Math.PI); g.stroke(); }
+}
+function drawDeltas(g) {
+  if (hidden) return;
+  for (const [k, n] of Object.entries(NODE)) {
+    if (k === "ctx" || k === "out") continue;
+    const a = ema.sim[k], b = ema.ref[k];
+    const diff = a - b, rel = diff / Math.max(0.15, b);
+    if (Math.abs(diff) < 0.06 || Math.abs(rel) < 0.2) continue;
+    const up = diff > 0, big = Math.abs(rel) > 0.6;
+    const left = n.x - n.w/2 > 70;
+    const x = left ? n.x - n.w/2 - 4 : n.x + n.w/2 + 4, y = n.y - n.h/2 - 2;
+    g.fillStyle = up ? "#7ee787" : "#c792ea"; g.font = `700 ${big ? 18 : 14}px 'IBM Plex Sans', sans-serif`; g.textAlign = left ? "right" : "left";
+    g.fillText(up ? (big ? "▲▲" : "▲") : (big ? "▼▼" : "▼"), x, y + 14);
+  }
+}
+
+// ---------- dots ----------
+const SPIKE_RATE = 8.5;
+let ripples = []; // dots per second per unit activity
+function updateDots(dtMs) {
+  for (const e of EDGES) {
+    if (e.opt && !sim.p[e.opt]) { e.dots = []; e.acc = 0; continue; }
+    const D = DELAY[e.id];
+    for (const d of e.dots) d.f += dtMs / D;
+    if (e.type === "inh") for (const d of e.dots) if (d.f >= 1) { const p = e.pts[e.pts.length - 1]; ripples.push({ t: performance.now(), x: p[0], y: p[1] }); }
+    e.dots = e.dots.filter(d => d.f < 1);
+    // integrate-and-fire: a dot leaves every time accumulated activity crosses 1, so dot rate = firing rate exactly
+    const mult = e.type === "da" ? 0.45 : e.id === "gpi-thal" ? 1.2 : 1;
+    const lam = sim.r[e.from] * SPIKE_RATE * mult * dtMs / 1000;
+    e.acc = (e.acc || 0) + lam;
+    while (e.acc >= 1) { e.acc -= 1; e.dots.push({ f: lam > 0 ? (e.acc / lam) * dtMs / D : 0 }); }
+    if (e.dots.length > 80) e.dots.splice(0, e.dots.length - 80);
+  }
+}
+
+// ---------- traces + metrics ----------
+const TR_LEN = 3600; // samples at 5 ms = 18 s
+const trace = { ctx: [], gpi: [], out: [], ref: [] };
+function pushTrace() {
+  trace.ctx.push(sim.r.ctx); trace.gpi.push(sim.r.gpi); trace.out.push(sim.r.out); trace.ref.push(ref.r.out);
+  for (const k in trace) if (trace[k].length > TR_LEN) trace[k].shift();
+}
+const cyc = { peak: 0, rest: [], refPeak: 0, refRest: [] };
+let metrics = null, lastPhase = 0, recent = [];
+function trackCycle() {
+  const P = sim.p.period, ph = sim.t % P;
+  if (ph < lastPhase && skipCycles > 0) { skipCycles--; recent = []; cyc.peak = 0; cyc.rest = []; cyc.refPeak = 0; cyc.refRest = []; }
+  else if (ph < lastPhase) { // new cycle
+    const m = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+    // status uses the average of the last 3 cycles so it doesn't flicker with cycle-to-cycle noise
+    recent.push({ peak: cyc.peak, rest: m(cyc.rest), refPeak: cyc.refPeak, refRest: m(cyc.refRest) });
+    if (recent.length > 3) recent.shift();
+    const av = key => recent.reduce((x, c) => x + c[key], 0) / recent.length;
+    metrics = { peak: av("peak"), rest: av("rest"), refPeak: av("refPeak"), refRest: av("refRest") };
+    cyc.peak = 0; cyc.rest = []; cyc.refPeak = 0; cyc.refRest = [];
+    updateStatus();
+  }
+  lastPhase = ph;
+  if (ph < 1700 * SLOW) { cyc.peak = Math.max(cyc.peak, sim.r.out); cyc.refPeak = Math.max(cyc.refPeak, ref.r.out); }
+  else { cyc.rest.push(sim.r.out); cyc.refRest.push(ref.r.out); }
+}
+function drawTraces() {
+  const g = tx, W = 520, H = 300;
+  g.clearRect(0, 0, W, H);
+  const rows = [
+    { k: "ctx", label: "Cortex", c: "#9aa4b8", y0: 0, h: 70, max: 1.6 },
+    { k: "gpi", label: "GPi / SNr", c: COL.inh, y0: 82, h: 90, max: 2.2 },
+    { k: "out", label: "Motor output", c: COL.exc, y0: 184, h: 96, max: 1.5, ref: true },
+  ];
+  for (const r of rows) {
+    g.fillStyle = "rgba(255,255,255,0.04)"; g.fillRect(92, r.y0, W - 92, r.h);
+    g.fillStyle = r.c; g.font = "600 13px 'IBM Plex Sans', sans-serif"; g.textAlign = "left"; g.fillText(r.label, 4, r.y0 + r.h/2 + 4);
+    const plot = (arr, col, dash, lw) => {
+      g.strokeStyle = col; g.lineWidth = lw; g.setLineDash(dash); g.beginPath();
+      const n = arr.length;
+      for (let i = 0; i < n; i++) {
+        const x = 92 + (W - 92) * (i + TR_LEN - n) / TR_LEN;
+        const y = r.y0 + r.h - Math.min(1, arr[i] / r.max) * (r.h - 4) - 2;
+        i ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.stroke(); g.setLineDash([]);
+    };
+    if (r.ref) plot(trace.ref, "rgba(255,255,255,0.45)", [4, 4], 1.3);
+    plot(trace[r.k], r.c, [], 2);
+  }
+  g.fillStyle = "rgba(255,255,255,0.5)"; g.font = "11px 'IBM Plex Sans', sans-serif"; g.textAlign = "right";
+  g.fillText("dashed = normal · last 18 s", W - 4, 296);
+}
+
+// ---------- average output gauge ----------
+let avgLast = 0;
+function updateAvg(now) {
+  if (now - avgLast < 200) return; avgLast = now;
+  const P = sim.p.period, nCyc = Math.max(1, Math.ceil(10000 / P));
+  const N = Math.min(trace.out.length, Math.round(nCyc * P / sim.dt));
+  const secs = Math.round(N * sim.dt / 1000);
+  if (hidden || N < 200) {
+    $("#avg-fill").style.height = "0%"; $("#avg-pct").textContent = "—";
+    $("#avg-sub").textContent = hidden ? "hidden until Reveal" : "collecting…"; $("#avg-verdict").textContent = ""; return;
+  }
+  let s = 0, r = 0;
+  for (let i = trace.out.length - N; i < trace.out.length; i++) { s += trace.out[i]; r += trace.ref[i]; }
+  const pct = s / Math.max(1e-6, r);
+  $("#avg-fill").style.height = Math.min(100, pct / 3 * 100) + "%";
+  $("#avg-fill").style.background = pct < 0.7 ? "#7d8aa6" : pct > 1.3 ? COL.inh : COL.exc;
+  $("#avg-pct").textContent = Math.round(pct * 100) + "%";
+  $("#avg-sub").textContent = `of normal · last ${secs} s`;
+  const v = $("#avg-verdict");
+  v.textContent = pct < 0.7 ? "Globally reduced" : pct > 1.3 ? "Globally increased" : "Near normal";
+  v.style.color = pct < 0.7 ? "#c5cde0" : pct > 1.3 ? COL.inh : COL.exc;
+}
+
+// ---------- limb ----------
+let limbAng = 0, limbTrail = [], pingArmed = false, pingT = -1e9;
+function drawLimb(dtMs) {
+  const target = Math.min(1.3, sim.r.out / 0.95); // normal burst reaches the target despite cycle-to-cycle noise
+  limbAng += (target - limbAng) * Math.min(1, dtMs / 120);
+  const g = lx; g.clearRect(0, 0, 300, 210);
+  const sx = 60, sy = 80, L1 = 72, L2 = 66;
+  const pose = L => { const a1 = 0.95 - L * 1.05, a2 = a1 - 0.1 - L * 0.3;
+    const ex = sx + L1 * Math.cos(a1), ey = sy + L1 * Math.sin(a1);
+    return [ex, ey, ex + L2 * Math.cos(a2), ey + L2 * Math.sin(a2)]; };
+  const [ex, ey, hx, hy] = pose(limbAng);
+  limbTrail.push([hx, hy]); if (limbTrail.length > 200) limbTrail.shift();
+  const [, , tx_, ty_] = pose(1.0);
+  // flash when the hand reaches the target
+  const now = performance.now();
+  if (limbAng >= 0.93 && !pingArmed) { pingArmed = true; pingT = now; }
+  if (limbAng < 0.6) pingArmed = false;
+  const age = (now - pingT) / 900;
+  if (age < 1) {
+    g.fillStyle = `rgba(126,231,135,${0.55 * (1 - age)})`; g.beginPath(); g.arc(tx_, ty_, 15, 0, 7); g.fill();
+    g.strokeStyle = `rgba(126,231,135,${1 - age})`; g.lineWidth = 3; g.beginPath(); g.arc(tx_, ty_, 15 + 30 * age, 0, 7); g.stroke();
+  }
+  g.strokeStyle = age < 1 ? "#7ee787" : "rgba(255,255,255,0.4)"; g.setLineDash(age < 1 ? [] : [3, 3]); g.lineWidth = 1.5; g.beginPath();
+  g.arc(tx_, ty_, 15, 0, 7); g.stroke(); g.setLineDash([]);
+  g.fillStyle = "rgba(255,255,255,0.5)"; g.font = "11px 'IBM Plex Sans', sans-serif"; g.textAlign = "left";
+  g.fillText("target", tx_ + 20, ty_ + 4);
+  // trail
+  g.strokeStyle = "rgba(92,184,255,0.35)"; g.lineWidth = 2; g.beginPath();
+  limbTrail.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke();
+  // arm
+  g.strokeStyle = "#e8edf6"; g.lineCap = "round"; g.lineWidth = 12;
+  g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.lineTo(hx, hy); g.stroke();
+  g.fillStyle = "#5cb8ff"; g.beginPath(); g.arc(hx, hy, 9, 0, 7); g.fill();
+  g.fillStyle = "#3a4560"; g.beginPath(); g.arc(sx, sy, 10, 0, 7); g.fill();
+}
+
+// ---------- status ----------
+function updateStatus() {
+  const s0 = $("#status");
+  if (hidden || !metrics) { for (const id of ["m-phasic", "m-tonic"]) { $("#" + id).style.width = "0%"; $("#" + id + "-v").textContent = "—"; } }
+  if (hidden) { s0.className = "status"; $("#status-title").textContent = "Hidden"; $("#status-text").textContent = "Predict the movement effect first, then press Reveal."; return; }
+  if (!metrics) { s0.className = "status"; $("#status-title").textContent = "Measuring…"; $("#status-text").textContent = "Waiting for the next full command cycle under the new settings."; return; }
+  const phasic = metrics.peak / Math.max(0.01, metrics.refPeak);
+  const tonic = metrics.rest;
+  $("#m-phasic").style.width = Math.min(100, phasic * 70) + "%";
+  $("#m-phasic-v").textContent = Math.round(phasic * 100) + "% of normal";
+  $("#m-tonic").style.width = Math.min(100, tonic / 0.9 * 100) + "%";
+  $("#m-tonic-v").textContent = tonic < 0.08 ? "suppressed" : tonic < 0.13 ? "slightly raised" : tonic < 0.45 ? "raised" : "high";
+  let cls, title, txt;
+  if (phasic < 0.5) { cls = "hypo"; title = "Hypokinetic"; txt = "Cortical commands barely release the thalamus. Movements are small and slow, or fail to start (akinesia, bradykinesia)."; }
+  else if (tonic > 0.13) { cls = "hyper"; title = "Hyperkinetic"; txt = "GPi/SNr no longer holds the thalamus down between commands, so random cortical activity gets through as unwanted movement (chorea, ballism, dyskinesia)."; }
+  else if (phasic < 0.8) { cls = "mild"; title = "Mildly reduced"; txt = "Commands get through, but the burst is weaker than normal."; }
+  else { cls = "normal"; title = "Normal"; txt = "Each command produces a brief, focused burst of thalamic output, and output stays suppressed between commands."; }
+  const s = $("#status"); s.className = "status " + cls;
+  $("#status-title").textContent = title; $("#status-text").textContent = txt;
+}
+
+// ---------- controls ----------
+const SLIDERS = [
+  { k: "ctx", label: "Cortex", hint: "strength of each cortical command" },
+  { k: "da", label: "Dopamine (SNc)", hint: "excites D1 cells, inhibits D2 cells" },
+  { k: "d1", label: "D1 MSNs · direct", hint: "striatum → GPi/SNr (inhibitory)" },
+  { k: "d2", label: "D2 MSNs · indirect", hint: "striatum → GPe (inhibitory)" },
+  { k: "gpe", label: "GPe", hint: "→ STN and GPi/SNr (inhibitory)" },
+  { k: "stn", label: "STN", hint: "→ GPi/SNr and GPe (excitatory)" },
+  { k: "gpi", label: "GPi / SNr", hint: "output nucleus → thalamus (inhibitory)" },
+  { k: "thal", label: "Thalamic drive", hint: "excitatory input to thalamus (cerebellum, cortex, brainstem)" },
+  { k: "d2block", label: "D2 receptor blockade", hint: "striatal D2 occupancy by an antipsychotic", min: 0, max: 1, fmt: v => Math.round(v * 100) + "% occupied" },
+  { k: "d2sens", label: "D2 receptor sensitivity", hint: "upregulated after chronic blockade", min: 0.5, max: 3, fmt: v => "×" + v.toFixed(1) },
+];
+const box = $("#sliders");
+for (const s of SLIDERS) {
+  const row = document.createElement("label"); row.className = "sl";
+  s.fmt = s.fmt || (v => Math.round(v * 100) + "%");
+  row.innerHTML = `<div class="sl-top"><span>${s.label}</span><output id="o-${s.k}">${s.fmt(DEFAULTS[s.k])}</output></div>
+    <input type="range" min="${s.min ?? 0}" max="${s.max ?? 2}" step="0.01" value="${DEFAULTS[s.k]}" id="s-${s.k}">
+    <div class="hint">${s.hint}</div>`;
+  box.appendChild(row);
+  row.querySelector("input").addEventListener("input", ev => {
+    sim.p[s.k] = +ev.target.value; $("#o-" + s.k).textContent = s.fmt(sim.p[s.k]);
+    metrics = null; skipCycles = 1; markPreset(null);
+  });
+}
+$("#s-period").addEventListener("input", ev => { sim.p.period = ref.p.period = +ev.target.value; $("#o-period").textContent = (+ev.target.value / 1000).toFixed(1) + " s"; });
+$("#s-hyper").addEventListener("change", ev => { sim.p.hyper = ref.p.hyper = ev.target.checked ? 1 : 0; metrics = null; skipCycles = 1; updateStatus(); });
+$("#s-noise").addEventListener("input", ev => { sim.p.noise = ref.p.noise = +ev.target.value; $("#o-noise").textContent = Math.round(+ev.target.value * 100) + "%"; });
+
+const pbox = $("#presets");
+let lastGroup = null;
+for (const [k, v] of Object.entries(PRESETS)) {
+  if (v.group !== lastGroup) { const hd = document.createElement("div"); hd.className = "pgroup"; hd.textContent = v.group === "drug" ? "Drug effects" : "Disease & surgery"; pbox.appendChild(hd); lastGroup = v.group; }
+  const b = document.createElement("button"); b.textContent = v.label; b.dataset.k = k;
+  b.onclick = () => applyPreset(k); pbox.appendChild(b);
+}
+function markPreset(k) {
+  currentPreset = k;
+  document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("on", b.dataset.k === k));
+  $("#preset-desc").innerHTML = hidden ? "<b>Predict first:</b> which nuclei will fire more (▲) or less (▼) than normal, and will movement be reduced or excessive? Then press Reveal." : (k ? DESC[k] : "Custom settings. Choose a preset to reset.");
+  updateStatus();
+}
+function applyPreset(k) {
+  flashT = performance.now();
+  metrics = null; skipCycles = 1;
+  const p = { ...DEFAULTS, period: sim.p.period, noise: sim.p.noise, hyper: sim.p.hyper, ...PRESETS[k].p };
+  for (const s of SLIDERS) { sim.p[s.k] = p[s.k]; $("#s-" + s.k).value = p[s.k]; $("#o-" + s.k).textContent = s.fmt(p[s.k]); }
+  markPreset(k);
+}
+$("#pause").onclick = () => { paused = !paused; $("#pause").textContent = paused ? "Play" : "Pause"; };
+$("#slow").onclick = () => { speed = speed === 1 ? 0.35 : 1; $("#slow").classList.toggle("on", speed < 1); };
+
+const DESC = {
+  normal: "The thalamus is constantly driven to fire by cerebellar, corticothalamic and brainstem input, but GPi/SNr normally holds it down. Each cortical command excites D1 cells, which <b>pause GPi/SNr</b> and open the gate for a brief burst to motor cortex. The indirect pathway then raises GPi/SNr after the pause, so the burst stays short and focused. With the hyperdirect pathway on, cortex also excites STN directly, so GPi/SNr rises briefly <i>before</i> the pause (early excitation → inhibition → late excitation).",
+  pd: "Loss of SNc dopamine weakens D1 (direct) cells and releases D2 (indirect) cells. GPi/SNr output stays high and barely pauses, so the thalamic burst is small: <b>bradykinesia / akinesia</b>. Rest tremor and rigidity are not represented in this model.",
+  hd: "Early Huntington disease preferentially loses the D2 striatal neurons that project to GPe. GPe is disinhibited, STN is suppressed and GPi/SNr output falls, so fluctuating cortical activity leaks through as <b>chorea</b>.",
+  hemiballism: "A lesion of the STN (classically a lacunar infarct) removes the main excitatory drive to GPi/SNr. The thalamus is disinhibited and produces large, flinging involuntary movements of the <b>contralateral</b> limbs.",
+  lid: "Excess dopaminergic stimulation over-drives D1 cells and silences D2 cells. GPi/SNr output collapses and movement becomes excessive: <b>peak-dose dyskinesia</b>.",
+  dbs: "High-frequency STN stimulation behaves functionally like reduced STN output (this is a simplification of how DBS works). GPi/SNr drive falls and the thalamic burst partly recovers.",
+  pdl: "Levodopa is converted to dopamine by the surviving nigrostriatal terminals, restoring dopamine signalling toward normal. D1 drive recovers, D2 cells are inhibited again, GPi/SNr output falls and the movement burst returns. Push the dopamine slider higher to reproduce peak-dose dyskinesia.",
+  aip: "Typical antipsychotics (e.g. haloperidol) block striatal D2 receptors. Once occupancy passes roughly 80%, D2 cells lose dopamine's inhibition, the indirect pathway becomes overactive and GPi/SNr output rises: <b>drug-induced parkinsonism with an intact SNc</b>. The D1 side is untouched here, so the picture is milder than Parkinson disease.",
+  atyp: "Atypical antipsychotics cause fewer extrapyramidal effects. Lower or more transient striatal D2 occupancy (e.g. clozapine, quetiapine) keeps blockade below the parkinsonism threshold; 5-HT2A antagonism, which raises striatal dopamine release, also contributes but is not modelled. Here D2 occupancy is ~40% and movement stays near normal.",
+  td: "After long-term D2 blockade, striatal D2 receptors become <b>supersensitive</b> (the classic explanation; maladaptive plasticity and oxidative injury are also proposed). When the dose is reduced, the supersensitive receptors over-respond to ordinary dopamine, D2 (indirect) cells are suppressed and GPi/SNr output falls: involuntary choreiform movements, typically orofacial.",
+  pallidotomy: "A partial GPi lesion lowers the excessive inhibitory output in Parkinson disease and restores much of the movement burst.",
+};
+
+// ---------- main loop ----------
+let last = performance.now(), acc = 0;
+function frame(now) {
+  let dt = Math.min(50, now - last); last = now;
+  if (!paused) {
+    const simDt = dt * speed;
+    acc += simDt;
+    while (acc >= sim.dt) {
+      sim.step(); ref.step(); updateEma(); pushTrace(); trackCycle();
+      acc -= sim.dt;
+    }
+    updateDots(simDt);
+  }
+  drawCircuit(); drawRipples(cx); drawDeltas(cx); drawTraces(); updateAvg(now); drawLimb(paused ? 0 : dt * speed);
+  requestAnimationFrame(frame);
+}
+markPreset("normal");
+Promise.all(["600 14px 'IBM Plex Sans'", "italic 12px 'IBM Plex Sans'", "600 11px 'IBM Plex Mono'"].map(f => document.fonts.load(f).catch(() => {})))
+  .finally(() => requestAnimationFrame(frame));
+
+</script>
+</body>
+</html>

@@ -81,7 +81,7 @@ footer a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 // To add a simulator: put it in its own folder (folder/index.html), then add one entry to SIMS.
 // `section` must match a name in SECTIONS. Sections with no live simulators are not shown.
 // An entry with live: false is hidden. Delete that line when its folder is published.
-const SECTIONS = ['Neuro-ophthalmology', 'Peripheral nerve and neuromuscular'];
+const SECTIONS = ['Neuro-ophthalmology', 'Movement disorders', 'Peripheral nerve and neuromuscular'];
 
 // Line drawings for each card, 40×40, drawn in the accent colour.
 const GLYPHS = {
@@ -91,6 +91,8 @@ const GLYPHS = {
   eye: '<path d="M4 20c4.5-6.5 9.7-9.5 16-9.5S31.5 13.5 36 20c-4.5 6.5-9.7 9.5-16 9.5S8.5 26.5 4 20z"/><circle cx="14.5" cy="20" r="5"/><circle cx="14.5" cy="20" r="1.8" fill="currentColor" stroke="none"/>',
   // Five roots converging to three trunks, then out to terminal branches
   plexus: '<path d="M4 8h5l7 3M4 14h5l7-3M4 20h18M4 26h5l7 3M4 32h5l7-3M16 11h6M16 29h6"/><path d="M22 11l14-3M22 11l14 9M22 20h14M22 29l14-9M22 29l14 3"/>',
+  // Basal ganglia loop: striatum, GPe, STN, GPi/thalamus as nodes with excitatory and inhibitory links
+  circuit: '<circle cx="8" cy="12" r="3.5"/><circle cx="20" cy="7" r="3.5"/><circle cx="32" cy="14" r="3.5"/><circle cx="14" cy="31" r="3.5"/><circle cx="31" cy="31" r="3.5"/><path d="M11.2 10.6l5.6-2.2M23.4 8.4l5.7 3.6M9.5 15.2l3 12.6M17.5 31h10M32 17.5v10"/>',
   // Compound muscle action potential: stimulus artefact, then a biphasic wave
   cmap: '<path d="M6 21v6" opacity=".6"/><path d="M3 24h8C13 24 14 9 17 9s4 22 7 22c2 0 3-7 5-7h8"/>'
 };
@@ -112,6 +114,14 @@ const SIMS = [
     title: 'Extraocular movements',
     blurb: 'Lesion CN III, IV or VI, the PPRF or the MLF and watch eye position change across gaze, with a 3D view of the muscles.',
     features: ['INO, one-and-a-half, WEBINO', 'Deviation in prism dioptres', 'VOR mode']
+  },
+  {
+    path: 'basal-ganglia/',
+    section: 'Movement disorders',
+    glyph: 'circuit',
+    title: 'Basal ganglia circuit',
+    blurb: 'Change dopamine or lesion a nucleus in the direct and indirect pathways and watch the thalamic gate, the arm movement and the change in each nucleus’s firing.',
+    features: ['Parkinson, Huntington, hemiballismus', 'DBS, levodopa and antipsychotics', 'Predict-then-reveal mode']
   },
   {
     path: 'brachial-plexus/',
