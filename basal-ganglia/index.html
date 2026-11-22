@@ -486,12 +486,14 @@ function drawDeltas(g) {
 }
 
 // ---------- dots ----------
-const SPIKE_RATE = 8.5;
-let ripples = []; // dots per second per unit activity
+const SPIKE_RATE = 10; // dots per second per unit activity (more dots on each path)
+const DOT_TRAVEL = 3; // dots cross a path this many times slower than the model delay (display only, easier on the eyes)
+const DOT_MIN_MS = 900; // shortest on-screen crossing time, so fast paths (hyperdirect) stay readable
+let ripples = [];
 function updateDots(dtMs) {
   for (const e of EDGES) {
     if (e.opt && !sim.p[e.opt]) { e.dots = []; e.acc = 0; continue; }
-    const D = DELAY[e.id];
+    const D = Math.max(DELAY[e.id] * DOT_TRAVEL, DOT_MIN_MS);
     for (const d of e.dots) d.f += dtMs / D;
     if (e.type === "inh") for (const d of e.dots) if (d.f >= 1) { const p = e.pts[e.pts.length - 1]; ripples.push({ t: performance.now(), x: p[0], y: p[1] }); }
     e.dots = e.dots.filter(d => d.f < 1);
