@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clinical Neurology Simulators</title>
-<meta name="description" content="Interactive simulators for clinical neurology: visual pathway, extraocular movements, brachial plexus.">
+<meta name="description" content="Interactive simulators for clinical neurology: visual pathway, brachial plexus, EMG and nerve conduction.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -89,11 +89,17 @@ const SIMS = [
   },
   {
     path: 'brachial-plexus/',
-    live: false,
     title: 'Brachial Plexus Simulator',
     blurb: 'Lesion roots, trunks, divisions, cords or named nerves. Read MRC strength, sensory maps, reflexes and the SNAP and EMG pattern that separates root from plexus from nerve.',
     tags: ['Peripheral nerve', 'Neuromuscular', 'Electrodiagnosis'],
     features: ['Strength table', 'Sensory maps', 'NCS / EMG']
+  },
+  {
+    path: 'emg-ncs/',
+    title: 'EMG & Nerve Conduction Simulator',
+    blurb: 'Draw demyelinating and axonal lesions on the median or ulnar nerve, then read the motor and sensory conduction studies, F waves and needle EMG screen with motor unit potentials.',
+    tags: ['Neuromuscular', 'Electrodiagnosis', 'Peripheral nerve'],
+    features: ['Motor and sensory NCS', 'Needle EMG', 'EAN/PNS criteria']
   }
 ];
 
