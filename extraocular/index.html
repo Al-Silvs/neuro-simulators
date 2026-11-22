@@ -36,12 +36,12 @@
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
-header{padding:20px 20px 8px;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline}
+header{padding:20px 20px 8px;max-width:1360px;margin:0 auto;display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline}
 h1{font-family:var(--font-display);font-weight:600;font-size:28px;margin:0;letter-spacing:.2px;text-wrap:balance}
 header p{margin:0;color:var(--muted);font-size:14px}
 .home{width:100%;font-size:13px;color:var(--accent);text-decoration:none}
 .home:hover{text-decoration:underline}
-main{max-width:1280px;margin:0 auto;padding:8px 20px 32px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+main{max-width:1360px;margin:0 auto;padding:8px 20px 32px;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px}
 @media (max-width:920px){main{grid-template-columns:minmax(0,1fr)}}
 .col{display:flex;flex-direction:column;gap:16px;min-width:0}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
@@ -50,14 +50,14 @@ main{max-width:1280px;margin:0 auto;padding:8px 20px 32px;display:grid;grid-temp
 svg text{font-family:var(--font-body)}
 .face{width:100%;height:auto;display:block;border-radius:8px}
 .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-.view{display:grid;grid-template-columns:minmax(0,1fr) clamp(140px,28%,190px);gap:12px;align-items:center}
+.view{display:grid;grid-template-columns:minmax(0,1fr) clamp(160px,31%,240px);gap:14px;align-items:center}
 .padwrap{min-width:0}
 .stage{min-width:0}
 .tabs{margin-top:8px;gap:8px}
 .stage .note{margin-top:6px}
 [hidden]{display:none!important}
 .padcap{margin:4px 0 0;font-size:12px;color:var(--muted);text-align:center}
-@media (max-width:520px){.view{grid-template-columns:minmax(0,1fr)}.padwrap{width:200px;max-width:100%;margin:0 auto}}
+@media (max-width:520px){.view{grid-template-columns:minmax(0,1fr)}.padwrap{width:240px;max-width:100%;margin:0 auto}}
 .inputs{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .tiltkey{font-size:13px;color:var(--muted);justify-content:space-between;margin:-6px 0 0 118px;max-width:calc(100% - 166px)}
 .pad{width:100%;height:auto;touch-action:none;cursor:crosshair;border-radius:8px;display:block}
@@ -80,7 +80,8 @@ input[type=checkbox]{accent-color:var(--lesion);width:16px;height:16px;margin:0}
 .tile .v{font-family:var(--font-mono);font-size:17px;font-variant-numeric:tabular-nums;font-weight:500}
 .tile.alert{border-color:var(--lesion);background:var(--lesion-soft)}
 #mview{background:var(--bg);border:1px solid var(--line)}
-.mlab{font-size:12px;font-weight:600;fill:var(--ink)}
+.mlab{font-size:16px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--bg);stroke-width:3.5px;stroke-linejoin:round}
+.mfront{filter:drop-shadow(0 0 1.2px rgba(0,0,0,.75))}
 .mlab.below{fill:var(--muted);font-weight:500}
 .findings{margin:10px 0 0;padding-left:18px;font-size:14px;line-height:1.45;height:calc(1.45em * 6 + 4px);overflow-y:auto;overscroll-behavior:contain}
 .findings li{margin:2px 0}
@@ -146,8 +147,8 @@ details ul{padding-left:18px;max-width:80ch}
               <button class="btn" type="button" id="t-mus" aria-pressed="false">Muscles</button>
             </div>
             <div class="seg" role="group" aria-label="Muscle view direction" id="mvctl" hidden>
-              <button class="btn" type="button" id="mv-top" aria-pressed="true">Above</button>
-              <button class="btn" type="button" id="mv-front" aria-pressed="false">Front</button>
+              <button class="btn" type="button" id="mv-front" aria-pressed="true">Front</button>
+              <button class="btn" type="button" id="mv-top" aria-pressed="false">Above</button>
               <button class="btn" type="button" id="mv-side" aria-pressed="false">Side</button>
             </div>
           </div>
@@ -728,7 +729,7 @@ function setStroke(rec, x, lesioned) {
 const mview = document.getElementById('mview');
 const mwrap = document.getElementById('mwrap'), facewrap = document.getElementById('facewrap');
 const tEyes = document.getElementById('t-eyes'), tMus = document.getElementById('t-mus');
-let showMus = false, mvMode = 'top';
+let showMus = false, mvMode = 'front';
 function setEyeView(mus) {
   showMus = mus;
   facewrap.hidden = mus; mwrap.hidden = !mus;
@@ -807,14 +808,14 @@ function buildMV() {
     if (mvMode === 'side') el('path', { d: P([[45, -84], [-150, 0], [55, 76]]), fill: 'none', stroke: 'var(--stem-edge)', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
     if (mvMode === 'front') { const c = loc(s, 4, -2); el('ellipse', { cx: c[0], cy: c[1], rx: 92, ry: 82, fill: 'none', stroke: 'var(--stem-edge)', 'stroke-width': 2.5 }, g); }
     if (mvMode !== 'front') { const ap = toScr(view, s, view.proj([-40, -150, 0])); el('ellipse', { cx: ap[0], cy: ap[1], rx: mvMode === 'top' ? 12 : 6, ry: mvMode === 'top' ? 6 : 12, fill: 'var(--stem)', stroke: 'var(--stem-edge)' }, g); }
-    const back = el('g', { opacity: mvMode === 'front' ? 0.6 : 0.45 }, g);
+    const back = el('g', { opacity: mvMode === 'front' ? 0.7 : 0.6 }, g);
     const cornea = el('circle', { r: 24, fill: 'var(--sclera)', stroke: 'var(--skin-edge)', 'stroke-width': 1.5 }, g);
     const c0 = loc(s, 0, 0);
     el('circle', { cx: c0[0], cy: c0[1], r: R3, fill: 'var(--sclera)', 'fill-opacity': 0.78, stroke: 'var(--skin-edge)', 'stroke-width': 1.5 }, g);
     const iris = el('path', { fill: 'var(--iris)', stroke: 'var(--iris-edge)', 'stroke-width': 1 }, g);
     const pupil = el('path', { fill: 'var(--pupil)' }, g);
     const axis = el('path', { fill: 'none', stroke: 'var(--muted)', 'stroke-dasharray': '2 4', 'stroke-width': 1.5 }, g);
-    const front = el('g', {}, g);
+    const front = el('g', { class: 'mfront' }, g);
     const bands = {};
     for (const k of MKEYS) bands[k] = { b: el('path', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, back), f: el('path', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, front) };
     const tro = toScr(view, s, view.proj(G3.SO.tro));
@@ -833,6 +834,7 @@ function buildMV() {
     cap.textContent = s === 'R' ? "Patient's R eye" : "Patient's L eye";
     MV[s] = { bands, cornea, iris, pupil, axis, labs };
   }
+  mview.setAttribute('aria-label', { top: 'Both orbits viewed from above', front: 'Both eyes viewed from the front', side: 'Each eye viewed from its own side' }[mvMode] + ', showing the six extraocular muscles');
   document.getElementById('mvcap').textContent = view.cap + ' Band width and brightness show motoneuron drive; red bands are denervated. Faded segments run behind the globe.';
   for (const b of ['top', 'front', 'side']) document.getElementById('mv-' + b).setAttribute('aria-pressed', String(b === mvMode));
 }
@@ -840,8 +842,8 @@ for (const b of ['top', 'front', 'side']) document.getElementById('mv-' + b).onc
 function styleBand(p, act, f, thin) {
   const x = clamp(act / 1.5, 0, 1.35), den = f < 0.999;
   p.setAttribute('stroke', den ? 'var(--lesion)' : 'var(--accent)');
-  p.setAttribute('stroke-width', ((4 + 8 * x) * (thin ? 0.45 : 1)).toFixed(1));
-  p.setAttribute('stroke-opacity', (0.25 + 0.75 * Math.min(1, x)).toFixed(2));
+  p.setAttribute('stroke-width', ((5.5 + 9 * x) * (thin ? 0.5 : 1)).toFixed(1));
+  p.setAttribute('stroke-opacity', (0.55 + 0.45 * Math.min(1, x)).toFixed(2));
 }
 function updateMuscles(s, th, ph, ps, e) {
   const view = VIEWS[mvMode], v = MV[s], A = e.A, f = e.f;
