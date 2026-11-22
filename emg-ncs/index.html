@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EMG & Nerve Conduction Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Same visual system as the sibling simulators (plexus, EOM, visual pathway). */
+  --bg:#eef0ee; --panel:#fbfcfb; --ink:#18202b; --muted:#5a6472; --line:#d5d9de; --grid:#e3e7eb;
+  --accent:#1f56c9; --accent-soft:#dbe5fa; --lesion:#c3352a; --lesion-soft:#f7dedb; --ok:#2f7d4f; --warn:#b26a00; --warn-ink:#8a5200; --warn-soft:#fbecd3;
+  --trace:#18202b; --trace2:#1f56c9; --on-accent:#fff; --myelin:#d6e3ff; --smyelin:#d3f0dd; --scope:#0f1a14; --scope-ink:#7ef0a2; --scope-grid:#21352a;
+  --font-display:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440; --grid:#232b36;
+    --accent:#6f9bff; --accent-soft:#1d2a47; --lesion:#ff6a5c; --lesion-soft:#3a1e1c; --ok:#5fc48a; --warn:#f0a640; --warn-ink:#f0a640; --warn-soft:#3a2c14;
+    --trace:#e6e9ee; --trace2:#6f9bff; --on-accent:#0b1220; --myelin:#2b3d66; --smyelin:#1e3d2b; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440; --grid:#232b36;
+  --accent:#6f9bff; --accent-soft:#1d2a47; --lesion:#ff6a5c; --lesion-soft:#3a1e1c; --ok:#5fc48a; --warn:#f0a640; --warn-ink:#f0a640; --warn-soft:#3a2c14;
+  --trace:#e6e9ee; --trace2:#6f9bff; --on-accent:#0b1220; --myelin:#2b3d66; --smyelin:#1e3d2b; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+header{padding:20px 20px 4px;max-width:1360px;margin:0 auto;display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline}
+h1{font-family:var(--font-display);font-weight:600;font-size:28px;margin:0;text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:14px;max-width:80ch}
+nav.tabs{max-width:1360px;margin:10px auto 0;padding:0 20px;display:flex;gap:4px;border-bottom:1px solid var(--line)}
+nav.tabs button{font:inherit;font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:.3px;background:none;border:1px solid transparent;border-bottom:none;padding:8px 16px;border-radius:8px 8px 0 0;color:var(--muted);cursor:pointer;margin-bottom:-1px}
+nav.tabs button[aria-selected="true"]{background:var(--panel);border-color:var(--line);color:var(--ink)}
+nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+main{max-width:1360px;margin:0 auto;padding:14px 20px 32px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(12,minmax(0,1fr))}
+.s12{grid-column:span 12}.s8{grid-column:span 8}.s7{grid-column:span 7}.s6{grid-column:span 6}.s5{grid-column:span 5}.s4{grid-column:span 4}.s3{grid-column:span 3}
+@media (max-width:1150px){.s8,.s7,.s6,.s5,.s4,.s3{grid-column:span 12}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.panel h2{font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:.4px;text-transform:uppercase;margin:0 0 10px;color:var(--muted)}
+.panel h3{font-size:14px;margin:14px 0 6px}
+.row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.between{justify-content:space-between}
+.btn{font:inherit;font-size:13.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 11px;border-radius:7px;cursor:pointer;min-height:38px}
+@media (pointer:coarse){.btn{min-height:44px}input[type=range]{height:44px}}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg .btn{border:0;border-radius:0}
+.seg .btn+.btn{border-left:1px solid var(--line)}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.desc{margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;font-size:14px;min-height:7.5em}
+.desc b{font-weight:600}
+.desc{min-height:0;margin-top:10px}
+.verdict.s5,.desc.s7{margin-top:10px}
+.verdict{margin-top:10px;align-self:start;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--ink);border-radius:0 8px 8px 0;background:var(--panel)}
+.verdict .vl{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-bottom:2px}
+.verdict .vt{font-weight:600;font-size:15px;line-height:1.4}
+.verdict .warnbox{margin-top:8px}
+.pgroups{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:start}
+.pgroups .plabel{font-size:12.5px;color:var(--muted);padding-top:9px;white-space:nowrap}
+@media (max-width:600px){.pgroups{grid-template-columns:minmax(0,1fr)}.pgroups .plabel{padding-top:4px}}
+label.sl{display:grid;grid-template-columns:150px minmax(0,1fr) 64px;gap:8px;align-items:center;font-size:14px;margin-top:8px}
+label.sl output{font-family:var(--font-mono);font-size:12.5px;color:var(--muted);text-align:right;white-space:nowrap}
+input[type=range]{width:100%;height:28px;accent-color:var(--lesion);cursor:pointer}
+input[type=range]:disabled{cursor:default}
+label.sl:has(input:disabled){opacity:.4}
+label.ck{display:inline-flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
+select{font:inherit;font-size:13.5px;padding:4px 6px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-weight:500;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;text-align:left;padding:4px}
+td{padding:4px;border-top:1px solid var(--line);vertical-align:middle}
+td.n{font-family:var(--font-mono);font-size:12.5px;white-space:nowrap}
+td.bad,span.bad{color:var(--lesion);font-weight:600}
+td.dm::after{content:" D";font-size:10px;vertical-align:super;color:var(--lesion)}
+td.bad:not(.dm)::after,dd.bad::after{content:"*";color:var(--lesion)}
+.segtab td{padding:3px 4px}
+.segtab input[type=range]{min-width:70px}
+.segtab td.v{font-family:var(--font-mono);font-size:12px;color:var(--muted);width:42px;text-align:right}
+.pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.pill.bad{border-color:var(--lesion);background:var(--lesion-soft);color:var(--ink);font-weight:400}
+.pill.good{border-color:var(--ok);color:var(--ok)}
+.pill.warn{border-color:var(--warn);background:var(--warn-soft)}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+.ref{font-size:12.5px;color:var(--muted);margin:6px 0 0;font-family:var(--font-mono)}
+.interp{font-size:14.5px}
+.interp .pattern{font-weight:600;font-size:15.5px;margin:0 0 8px}
+.interp ul{margin:4px 0 8px;padding-left:18px}
+.warnbox{padding:8px 12px;border-left:3px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;font-size:14px;margin-top:8px}
+svg.plot{width:100%;height:auto;display:block}
+.nervewrap{overflow-x:auto}
+svg.nerve{width:100%;min-width:760px;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:18px;height:0;border-top:3px solid;display:inline-block}
+.legend i.dot{width:11px;height:11px;border:1px solid rgba(0,0,0,.2);border-radius:3px}
+details{font-size:14px}
+details summary{cursor:pointer;font-weight:500}
+details ul{padding-left:18px;max-width:90ch}
+.xsec{position:relative}
+.xsec canvas{width:100%;height:auto;display:block;border-radius:8px;cursor:pointer;touch-action:none}
+.xsec canvas:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.scope{background:var(--scope);border-radius:8px;padding:6px}
+.scope canvas{width:100%;height:auto;display:block}
+.scopehead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-family:var(--font-mono);font-size:12px;color:var(--muted);margin:6px 0 4px}
+.lib{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.libdesc{font-size:13.5px;margin-top:8px;min-height:4.5em;color:var(--ink)}
+.hidden{display:none!important}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13.5px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-family:var(--font-mono);font-size:13px}
+.subtle{color:var(--muted);font-size:12.5px}
+.guide{margin-top:14px;padding-top:4px;border-top:1px solid var(--line)}
+.guide ol{margin:4px 0 0;padding-left:20px;font-size:14px}
+.guide li{margin-bottom:6px}
+.lb{font:inherit;font-weight:600;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.lb:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.quizck{font-size:13px;color:var(--muted)}
+.reveal{display:none;margin-top:8px}
+body.quiz-ncs #view-ncs .answer:not(.shown),body.quiz-emg #view-emg .answer:not(.shown){filter:blur(7px);user-select:none;pointer-events:none}
+body.quiz-ncs #view-ncs .reveal,body.quiz-emg #view-emg .reveal{display:inline-block}
+body.quiz-ncs #view-ncs .reveal.done,body.quiz-emg #view-emg .reveal.done{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-height:30px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 6px 3px 10px;border-radius:999px;border:1px solid var(--lesion);background:var(--lesion-soft);font-size:13px}
+.chip button{border:0;background:none;color:var(--ink);cursor:pointer;font-size:15px;line-height:1;padding:2px 6px;border-radius:50%}
+.chip button:focus-visible{outline:2px solid var(--accent)}
+svg.nerve .seghit{cursor:pointer}
+svg.nerve .seghit .hl{fill:var(--accent);opacity:0}
+svg.nerve .seghit:hover .hl,svg.nerve .seghit:focus-visible .hl{opacity:.09}
+svg .stim{cursor:pointer}
+svg .stim:hover path,svg .stim:focus-visible path{stroke:var(--accent)}
+svg .stim:hover text,svg .stim:focus-visible text{fill:var(--accent)}
+svg :focus-visible,svg .stim:focus,svg .seghit:focus{outline:none}
+kbd{font-family:var(--font-mono);font-size:11.5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--bg);color:var(--ink)}
+.btn[aria-pressed="true"] kbd{color:var(--ink)}
+.sumgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 28px}
+@media (max-width:900px){.sumgrid{grid-template-columns:minmax(0,1fr)}}
+.sumgrid h3{margin:4px 0 2px;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+
+header{position:relative}
+nav.tabs .gbtn{margin-left:auto;font-family:var(--font-body);font-weight:500;font-size:13.5px;letter-spacing:0;border:1px solid var(--line);border-radius:7px;padding:6px 12px;color:var(--ink);background:var(--panel)}
+nav.tabs .gbtn:hover{border-color:var(--accent)}
+.qbtn{font:600 12px/1 var(--font-body);width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer;vertical-align:middle;margin-left:6px;padding:0;text-transform:none;letter-spacing:0}
+.qbtn:hover,.qbtn:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+dialog#guide{width:min(980px,94vw);max-height:88vh;overflow:hidden;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink)}
+dialog#guide::backdrop{background:rgba(10,14,20,.45)}
+.ghead{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line)}
+.ghead h2{font-family:var(--font-display);font-size:20px;margin:0}
+dialog#guide[open]{display:flex;flex-direction:column;height:88vh}
+.gbody{display:grid;grid-template-columns:200px minmax(0,1fr);flex:1;min-height:0}
+.gnav,.gcontent{min-height:0}
+.gnav{display:flex;flex-direction:column;gap:2px;padding:12px;border-right:1px solid var(--line);overflow:auto}
+.gnav button{font:inherit;font-size:14px;text-align:left;background:none;border:0;border-radius:6px;padding:8px 10px;color:var(--ink);cursor:pointer}
+.gnav button[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.gcontent{overflow:auto;position:relative;padding:4px 22px 22px;font-size:15px}
+.gcontent section{padding-top:14px}
+.gcontent h3{font-family:var(--font-display);font-size:17px;margin:0 0 6px}
+.gcontent h4{font-size:14px;margin:12px 0 4px;color:var(--muted)}
+.gcontent ol,.gcontent ul{padding-left:20px}
+.gcontent li{margin-bottom:6px}
+.glegend{font-size:13.5px;gap:8px 18px}
+.gdl dt{font-weight:600;margin-top:8px}.gdl dd{margin:2px 0 0}
+@media (max-width:700px){.gbody{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}.gnav{flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>EMG &amp; Nerve Conduction Simulator</h1>
+  <p>Change the nerve or muscle and watch the study change: axonal versus demyelinating conduction, and the muscle-fibre events behind each needle EMG finding.</p>
+</header>
+<nav class="tabs" aria-label="Study">
+  <div role="tablist" aria-label="Study" style="display:flex;gap:4px">
+  <button role="tab" id="tab-ncs" aria-selected="true" aria-controls="view-ncs">Nerve conduction</button>
+  <button role="tab" id="tab-emg" aria-selected="false" aria-controls="view-emg">Needle EMG</button>
+  </div>
+  <button class="btn gbtn" type="button" data-open="g-start" style="align-self:center;margin-bottom:6px">Guide and key</button>
+</nav>
+
+<main>
+<!-- ======================= NCS ======================= -->
+<section id="view-ncs" role="tabpanel" aria-labelledby="tab-ncs">
+  <div class="grid">
+    <section class="panel s12">
+      <div class="grid" style="gap:18px">
+        <div class="s8">
+          <div class="row between"><h2 style="margin:0">Nerve: representative axons <button class="qbtn" type="button" data-open="g-nerve" aria-label="Key for the nerve picture">?</button></h2>
+            <div class="seg" role="group" aria-label="Nerve studied"><button class="btn" type="button" id="nv-median" aria-pressed="true">Median → APB</button><button class="btn" type="button" id="nv-ulnar" aria-pressed="false">Ulnar → ADM</button></div>
+          </div>
+          <div class="nervewrap"><svg class="nerve" id="nerve" viewBox="0 0 1000 396" role="img" aria-label="Schematic of the nerve with representative motor and sensory axons"></svg></div>
+          <div class="grid" style="gap:12px;margin-top:4px">
+            <div class="desc s7 answer" id="ncs-desc"></div>
+            <div class="verdict s5" aria-live="polite"><span class="vl">What this study shows</span><div class="vt answer" id="ncs-verdict"></div><button class="btn reveal" type="button" data-tab="ncs">Reveal the answer</button></div>
+          </div>
+          <div id="ncs-warn"></div>
+        </div>
+        <div class="s4">
+          <div class="row between" style="margin-bottom:10px"><h2 style="margin:0">Scenarios</h2><label class="ck quizck"><input type="checkbox" data-tab="ncs"> Predict first (hide the answers)</label></div>
+          <div class="pgroups" id="ncs-presets"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel s4" aria-labelledby="h-les">
+      <h2 id="h-les">Lesion controls <button class="qbtn" type="button" data-open="g-tools" aria-label="Help for this panel">?</button></h2>
+      <p class="subtle" style="margin:0 0 8px">Choose a lesion, set its severity, click a segment of the nerve.</p>
+      <div class="presets" id="tools" role="group" aria-label="Lesion to add">
+        <button class="btn" type="button" data-t="demP">Demyelination, patchy</button>
+        <button class="btn" type="button" data-t="demU">Demyelination, uniform</button>
+        <button class="btn" type="button" data-t="block">Conduction block</button>
+        <button class="btn" type="button" data-t="cut">Cut axons</button>
+        <button class="btn" type="button" data-t="erase">Erase</button>
+      </div>
+      <label class="sl" id="sevrow"><span id="sevlab">Slowing</span> <input type="range" id="c-sev" min="0.1" max="0.8" step="0.05"><output id="o-sev"></output></label>
+      <div class="row between" style="margin-top:14px"><h3 style="margin:0">Lesions on this nerve</h3><button class="btn" type="button" id="eraseall">Erase all lesions</button></div>
+      <div class="chips" id="chips" aria-live="polite"></div>
+      <label class="sl" id="dayrow">Days since the cut <input type="range" id="c-injday" min="0" max="30" step="1" value="30"><output id="o-injday"></output></label>
+      <h3>Diffuse axon loss (whole nerve)</h3>
+      <label class="sl">Motor axon loss <input type="range" id="c-mloss" min="0" max="0.95" step="0.05" value="0"><output id="o-mloss"></output></label>
+      <label class="sl">Sensory axon loss <input type="range" id="c-sloss" min="0" max="0.95" step="0.05" value="0"><output id="o-sloss"></output></label>
+      <label class="ck" style="margin-top:8px"><input type="checkbox" id="c-large"> Largest, fastest axons lost first</label>
+    </section>
+
+    <section class="panel s5" aria-labelledby="h-mot">
+      <div class="row between"><h2 id="h-mot" style="margin:0">Motor conduction <button class="qbtn" type="button" data-open="g-traces" aria-label="Help for this panel">?</button></h2>
+        <div class="seg" role="group" aria-label="Motor gain" id="mgain"><button class="btn" type="button" data-g="1">1</button><button class="btn" type="button" data-g="2">2</button><button class="btn" type="button" data-g="5">5 mV/div</button></div></div>
+      <svg class="plot" id="mplot" viewBox="0 0 540 300" role="img" aria-label="CMAP traces at each stimulation site"></svg>
+      <div style="overflow-x:auto"><table id="mtab"><thead><tr><th>Site</th><th>Latency</th><th>Amp</th><th>Duration</th><th>Segment CV</th><th>Amp drop</th><th>Dur. change</th></tr></thead><tbody></tbody></table></div>
+      <p class="ref" id="mref"></p>
+    </section>
+
+    <section class="panel s3" aria-labelledby="h-fw">
+      <h2 id="h-fw">F waves (wrist) <button class="qbtn" type="button" data-open="g-traces" aria-label="Help for this panel">?</button></h2>
+      <svg class="plot" id="fplot" viewBox="0 0 320 300" role="img" aria-label="F-wave traces"></svg>
+      <dl class="kv" id="fkv"></dl>
+      <div class="row between" style="margin-top:14px"><h2 style="margin:0">Sensory (SNAP)</h2><button class="btn" type="button" id="sstim">⚡ Stimulate</button></div>
+      <div class="row" style="margin-top:6px"><div class="seg" role="group" aria-label="Sensory gain" id="sgain"><button class="btn" type="button" data-g="5">5</button><button class="btn" type="button" data-g="10">10</button><button class="btn" type="button" data-g="20">20 µV/div</button></div></div>
+      <svg class="plot" id="splot" viewBox="0 0 320 140" role="img" aria-label="SNAP trace"></svg>
+      <dl class="kv" id="skv"></dl>
+    </section>
+
+    <section class="panel s12 interp" aria-labelledby="h-int">
+      <h2 id="h-int">EAN/PNS 2021 demyelination criteria</h2>
+      <div id="ncs-interp" class="answer"></div>
+    </section>
+
+  </div>
+</section>
+
+<!-- ======================= EMG ======================= -->
+<section id="view-emg" role="tabpanel" aria-labelledby="tab-emg" class="hidden">
+  <div class="grid">
+    <section class="panel s7" aria-labelledby="h-xs">
+      <div class="row between"><h2 id="h-xs" style="margin:0">Muscle cross-section (2.4 × 1.6 mm) <button class="qbtn" type="button" data-open="g-xs" aria-label="Help for this panel">?</button></h2>
+        <div class="seg" role="group" aria-label="Colouring"><button class="btn" type="button" id="xc-sel" aria-pressed="true">Selected unit</button><button class="btn" type="button" id="xc-unit" aria-pressed="false">All units</button><button class="btn" type="button" id="xc-type" aria-pressed="false">Fibre type</button></div>
+      </div>
+      <div class="xsec" style="margin-top:8px"><canvas id="xs" width="1440" height="960" aria-label="Muscle cross-section. Drag the needle to move it; click a fibre to select its motor unit."></canvas></div>
+    </section>
+    <section class="panel s5">
+      <div class="row between" style="margin-bottom:10px"><h2 style="margin:0">Scenarios</h2><label class="ck quizck"><input type="checkbox" data-tab="emg"> Predict first (hide the answers)</label></div>
+      <div class="pgroups" id="emg-presets"></div>
+      <div class="desc answer" id="emg-desc"></div>
+      <div class="verdict" aria-live="polite"><span class="vl">What this study shows</span><div class="vt answer" id="emg-pattern"></div><button class="btn reveal" type="button" data-tab="emg">Reveal the answer</button></div>
+      <h2 style="margin-top:18px">Lesion controls</h2>
+      <label class="sl">Motor units lost <input type="range" id="e-loss" min="0" max="1" step="0.05" value="0"><output id="o-eloss"></output></label>
+      <label class="ck" style="margin-top:4px"><input type="checkbox" id="e-ongoing"> Ongoing loss over the first year (motor neuron disease)</label>
+      <label class="sl">Units blocked <input type="range" id="e-block" min="0" max="0.9" step="0.05" value="0"><output id="o-eblock"></output></label>
+      <label class="sl">Time since axon loss began <input type="range" id="e-time" min="0" max="16" step="1" value="0"><output id="o-etime"></output></label>
+      <label class="sl">Muscle fibres lost <input type="range" id="e-myo" min="0" max="0.7" step="0.05" value="0"><output id="o-emyo"></output></label>
+      <div class="row" style="margin-top:6px"><label class="ck"><input type="checkbox" id="e-infl"> Fibre necrosis / inflammation</label><label class="ck"><input type="checkbox" id="e-myot"> Unstable fibre membrane (myotonia)</label></div>
+    </section>
+
+    <section class="panel s7" aria-labelledby="h-sc">
+      <div class="row between">
+        <h2 id="h-sc" style="margin:0">EMG screen <button class="qbtn" type="button" data-open="g-screen" aria-label="Help for this panel">?</button></h2>
+        <div class="row">
+          <div class="seg" role="group" aria-label="Recording mode"><button class="btn" type="button" id="m-rest" aria-pressed="true">At rest</button><button class="btn" type="button" id="m-act" aria-pressed="false">Voluntary activation</button></div>
+          <button class="btn" type="button" id="ins" title="Keyboard shortcut: Space">Insert needle <kbd>Space</kbd></button>
+          <button class="btn" type="button" id="snd" aria-pressed="false">🔈 Sound off</button>
+          <button class="btn" type="button" id="pause" aria-pressed="false">Pause</button>
+        </div>
+      </div>
+      <div id="effortrow"><label class="sl">Effort (% of normal max force) <input type="range" id="e-effort" min="0.02" max="1" step="0.01" value="0.05"><output id="o-effort"></output></label></div>
+      <div class="scopehead"><span id="sc-lbl1"></span><span id="sc-gain"></span></div>
+      <div class="scope"><canvas id="sweep" width="1300" height="400" aria-label="Oscilloscope sweep, 100 ms"></canvas></div>
+      <div class="scopehead"><span>Same recording, 2 s strip (200 ms/div)</span><span id="sc-gain2"></span></div>
+      <div class="scope"><canvas id="strip" width="1300" height="170" aria-label="Two-second strip of the recording"></canvas></div>
+      <div id="librow">
+        <div class="lib" id="lib" role="group" aria-label="Spontaneous discharge library"></div>
+        <div class="libdesc" id="libdesc"></div>
+      </div>
+    </section>
+
+    <section class="panel s5" aria-labelledby="h-mu">
+      <h2 id="h-mu">Motor unit potential <button class="qbtn" type="button" data-open="g-screen" aria-label="Help for this panel">?</button></h2>
+      <svg class="plot" id="muplot" viewBox="0 0 480 262" role="img" aria-label="Selected motor unit potential, six consecutive discharges superimposed"></svg>
+      <dl class="kv" id="mukv"></dl>
+    </section>
+
+    <section class="panel s12 interp" aria-labelledby="h-sum">
+      <h2 id="h-sum">Study summary</h2>
+      <div class="sumgrid answer" id="emgsum"></div>
+    </section>
+
+  </div>
+</section>
+</main>
+<dialog id="guide" aria-labelledby="g-title">
+  <div class="ghead"><h2 id="g-title">Guide</h2><button class="btn" type="button" id="g-close" aria-label="Close the guide">Close ✕</button></div>
+  <div class="gbody">
+    <nav class="gnav" aria-label="Guide sections">
+      <button type="button" data-sec="g-start">Getting started</button>
+      <button type="button" data-sec="g-nerve">Nerve picture key</button>
+      <button type="button" data-sec="g-traces">Reading the traces</button>
+      <button type="button" data-sec="g-tools">Lesion tools</button>
+      <button type="button" data-sec="g-xs">Muscle cross-section</button>
+      <button type="button" data-sec="g-screen">EMG screen and motor unit</button>
+      <button type="button" data-sec="g-cmp">Suggested comparisons</button>
+      <button type="button" data-sec="g-models">How the models work</button>
+    </nav>
+    <div class="gcontent">
+      <section id="g-start"><h3>Getting started</h3>
+        <p>Pick a scenario, then read the study the way you would in the lab. Tick <b>Predict first</b> to hide the interpretation until you have made your own call.</p>
+        <p><b>Nerve conduction:</b> click ⚡ on a stimulation site to send an impulse in slow motion and watch the response build. Add lesions with the lesion tools: choose one, set its severity, click a segment of the nerve.</p>
+        <p><b>Needle EMG:</b> press <kbd>Space</kbd> to insert the needle, switch between <b>At rest</b> and <b>Voluntary activation</b>, and click a fibre to see its motor unit.</p>
+      </section>
+      <section id="g-nerve"><h3>Nerve picture key</h3>
+        <div class="legend glegend">            <span><i class="dot" style="background:var(--myelin);border-color:var(--accent)"></i>Myelin (one internode)</span>
+            <span><i style="border-color:var(--warn)"></i>Bare axon: myelin lost</span>
+            <span><span style="color:var(--lesion);font-weight:700">✕</span> Impulse fails (block)</span>
+            <span><span style="color:var(--lesion);font-weight:700">‖</span> Cut</span>
+            <span><span style="color:var(--muted)">•••</span> Degenerated or lost axon</span>
+            <span>⚡ Click to stimulate (green ⚡ = sensory study)</span>
+            <span><i class="dot" style="background:#ffb000;border-radius:50%"></i>Impulse</span><span><i class="dot" style="background:#b26bff;border-radius:50%"></i>F wave returning</span>
+          </div>
+        <p>The picture shows 8 representative motor axons and 6 sensory axons. The count under the picture shows how many of the full 160 motor and 200 sensory axons still conduct from the wrist.</p>
+      </section>
+      <section id="g-traces"><h3>Reading the traces</h3>
+        <p>Click ⚡ on a site, here or on the nerve, to send an impulse in slow motion. The gain stays fixed, so a smaller trace is a smaller response.</p>
+        <p>Blue tick = onset; blue dot = negative peak; the blue bar under each trace is the negative-peak duration, from onset to where the waveform returns through baseline (the measure the EAN/PNS dispersion criterion uses). <span class="bad">Red *</span> marks an abnormal value; <span class="bad">D</span> marks a demyelinating-range value (distal latency above 130% of ULN, or velocity below 75% of LLN).</p>
+        <p><b>F waves:</b> twelve stimuli at the wrist. The grey M wave is not to scale; the blue line marks the shortest F latency, the dashed red line the upper limit.</p>
+        <p><b>SNAP:</b> Stimulate the sensory axons at the wrist and record with ring electrodes on the digit (antidromic). Onset latency gives the velocity (distance ÷ onset latency); peak latency is read at the negative peak; amplitude here is baseline to negative peak (many labs report peak to peak).</p>
+        <p><b>EAN/PNS 2021 criteria:</b> the criteria need abnormalities in at least two nerves (or one nerve plus another demyelinating feature); this simulator studies one nerve at a time. Conduction block counts only when the distal CMAP is at least 20% of LLN.</p>
+      </section>
+      <section id="g-tools"><h3>Lesion tools</h3><dl class="gdl" id="g-tooldefs"></dl></section>
+      <section id="g-xs"><h3>Muscle cross-section</h3>
+        <div class="legend" id="xs-legend"></div>
+        <p>Press <kbd>Space</kbd> (or "Insert needle") to move the needle a little and re-insert it: you see the burst of insertional activity, then the spontaneous activity at the new spot. Drag the red needle to sample further away. Click a fibre to choose which motor unit is shown below; it stays selected while you move the needle. Fibres flash as they fire: yellow for single fibres, orange for whole motor units.</p>
+      </section>
+      <section id="g-screen"><h3>EMG screen and motor unit</h3>
+        <p>The upper screen sweeps 100 ms at a time (10 ms/div); the strip below shows the same 2 seconds at 200 ms/div, so waxing, waning and bursts are easier to see. At rest the gain is 50 µV/div.</p>
+        <p>The motor unit panel superimposes six consecutive discharges (blue) over their average (dark). Sweeps that do not line up mean an unstable unit: immature sprouts with jitter and blocking. Duration is measured where the average first leaves and finally returns to a ±12 µV band around baseline. Those small initial and terminal phases are invisible at the gain that shows the spike, so the panel also draws the average in orange at 20 µV/div, the gain at which duration is read in the lab. The dashed red lines mark where it crosses the band.</p>
+        <p>The study summary compares the units near the needle with the same units in normal muscle (values in brackets).</p>
+      </section>
+      <section id="g-cmp"><h3>Suggested comparisons</h3>
+        <h4>Nerve conduction</h4><ol>
+              <li><button class="lb" data-ncs="axonal">Axonal polyneuropathy</button>, then <button class="lb" data-ncs="cmt">CMT1A</button>, then <button class="lb" data-ncs="cidp">CIDP</button>. Stimulate at the elbow each time: does the amplitude fall, or the velocity, or does the response break up?</li>
+              <li><button class="lb" data-ncs="severe">Severe axon loss</button>: the slowing is real, so why is it not demyelinating?</li>
+              <li><button class="lb" data-ncs="cut">Transection, day 2</button>, then drag "Days since the cut" to 12. What looked like conduction block was axon loss.</li>
+              <li><button class="lb" data-ncs="avul">Root avulsion</button>, then <button class="lb" data-ncs="lt">Lower trunk</button>: the same weak hand, but the SNAP tells you where the lesion is.</li>
+            </ol>
+        <h4>Needle EMG</h4><ol>
+          <li><button class="lb" data-emg="ax1">Week 1</button> → <button class="lb" data-emg="ax4">Week 4</button> → <button class="lb" data-emg="ax13">Month 3</button> → <button class="lb" data-emg="ax52">1 year</button>: when do fibrillations appear, and when do the units change?</li>
+          <li><button class="lb" data-emg="block">Conduction block</button> against <button class="lb" data-emg="ax1">Week 1</button>: why one study in the first fortnight cannot tell them apart.</li>
+          <li><button class="lb" data-emg="myo">Myopathy</button> against <button class="lb" data-emg="ax52">1 year</button>, in Voluntary activation: small and early versus large and reduced.</li>
+          <li><button class="lb" data-emg="infl">Inflammatory myopathy</button>: fibrillations do not always mean a nerve problem.</li>
+        </ol>
+      </section>
+      <section id="g-models"><h3>How the models work, and what they leave out</h3>
+        <h4>Nerve</h4><ul>
+          <li>The nerve holds 160 motor and 200 sensory axons, each with its own conduction velocity (motor about 42–59 m/s). A CMAP is the sum of one waveform per motor unit, shifted by that axon's arrival time; a SNAP is built the same way from shorter, smaller sensory waveforms. Slowing, dispersion, phase cancellation and block all come from that sum, nothing is drawn by hand.</li>
+          <li>The nerve picture shows 8 representative motor axons (largest and fastest at the top) and 6 sensory axons drawn from the same population the traces use, chosen so the share drawn intact matches the share of the whole population intact. Clicking ⚡ sends one impulse per axon at that axon's own speed, slowed 110× for motor and 300× for sensory. It travels both ways: orthodromically to the recording electrode, and antidromically (faint) towards the cord. From the wrist, two motor axons send an F wave (purple) back to the muscle.</li>
+          <li>Axon loss removes axons. With "largest axons lost first" the fastest go first, which slows conduction a little but never into the demyelinating range (velocity below 75% of LLN, distal latency above 130% of ULN).</li>
+          <li>Patchy demyelination slows each axon by a different amount and blocks the worst-affected, which produces conduction block and temporal dispersion. Uniform demyelination slows every axon by the same proportion, so responses stay synchronous.</li>
+          <li>Transected axons conduct normally distal to the cut until Wallerian degeneration: motor responses fall from about day 3 and are gone by day 9; sensory responses fall from about day 6 and are gone by day 11 (Chaudhry and Cornblath, Muscle &amp; Nerve 1992). A cut in the root is preganglionic, so sensory axons keep their cell body in the dorsal root ganglion and the SNAP survives.</li>
+          <li>EAN/PNS 2021 electrodiagnostic criteria for CIDP are checked for this one nerve. The criteria need findings in two nerves, and a few thresholds differ for the tibial nerve and for median neuropathy at the wrist.</li>
+          <li>Reference limits are typical adult values from Preston and Shapiro's tables; each laboratory sets its own. Temperature, age and height are not modelled. Sensory conduction is only measured wrist to digit, so sensory sparing across a proximal motor block (as in MMN) is described but not shown.</li>
+        </ul>
+        <h4>Muscle</h4><ul>
+          <li>About 1,100 fibres belong to 40 motor units in a mosaic, as in normal muscle. A motor unit potential is the sum of every fibre's potential at the needle: a sharp spike that falls off steeply with distance (fibres within about 0.5 mm set the amplitude) plus a broad far-field component (more distant fibres set the initial and terminal phases, so they set the duration).</li>
+          <li>When an axon is lost its fibres are denervated. From week 2 they fibrillate; denervated fibres shrink and become angular, and after about 18 months without reinnervation they are replaced by connective tissue. From about week 5 neighbouring surviving units sprout and adopt them, most within 4 months. New sprouts are slow and unreliable, which makes the potential polyphasic and unstable from shot to shot. Over about 3 months they mature, leaving large, long-duration, stable potentials and fibre-type grouping.</li>
+          <li>Recruitment follows the size principle. Firing rate rises with drive, so when units are missing the remaining ones fire faster before the next is recruited (reduced recruitment). In myopathy each unit generates less force, so more units are needed for a small force (early recruitment).</li>
+          <li>Fibrillation onset depends on distance from the lesion (about 10–14 days near, up to 3–6 weeks for distal muscles after root lesions); the model uses a single 2-week onset. Numbers are qualitative: amplitude and duration depend on muscle, age and needle type, so compare against the normal model rather than fixed limits.</li>
+          <li>Each needle placement (Space, a drag, or a new scenario) adds a burst of insertional activity from fibres the needle injures. The burst is longer when fibres are denervated or necrotic, and shorter when fibres have been replaced by connective tissue. In myotonia, needle movement provokes the myotonic discharges, which then die away; insert again to provoke more.</li>
+          <li>Not modelled: end-plate noise and spikes, nascent units after complete denervation (regrowth from the proximal stump), single-fibre jitter measurement, neuromuscular junction disorders, and the mixed small-and-large units of chronic myopathy.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</dialog>
+
+
+<script>
+// NCS model: a population of motor and sensory axons, each with its own conduction
+// velocity. Each axon passes through nerve segments; a segment can be demyelinated
+// (slower, possibly blocked), blocked outright, or transected (axonotmesis, with
+// Wallerian degeneration over days). CMAPs and SNAPs are the sum of single-unit
+// waveforms shifted by each axon's arrival time, so dispersion, phase cancellation,
+// conduction block and slowing all come from the same arithmetic.
+const NCS = (() => {
+  function rng(seed) {
+    let s = seed >>> 0;
+    return () => {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // Segment lengths in mm, listed distal to proximal. Site k sits at the proximal
+  // end of segment k-1, so stimulating at site k drives conduction through segments 0..k-1.
+  const NERVES = {
+    median: {
+      name: 'Median', muscle: 'APB', residual: 2.1, window: 30,
+      segs: [
+        { id: 'dist', name: 'Wrist → APB', short: 'Wrist → APB', len: 70 },
+        { id: 'fore', name: 'Forearm (elbow → wrist)', short: 'Forearm', len: 230 },
+        { id: 'arm', name: 'Arm (axilla → elbow)', short: 'Arm', len: 150, mult: 1.05 },
+        { id: 'plex', name: 'Plexus (foramen → axilla)', short: 'Plexus', len: 220, mult: 1.1 },
+        { id: 'root', name: 'Root (cord → foramen)', short: 'Root', len: 70, mult: 1.1 }
+      ],
+      sites: [{ id: 'wrist', name: 'Wrist', k: 1 }, { id: 'elbow', name: 'Elbow', k: 2 }, { id: 'axilla', name: 'Axilla', k: 3 }],
+      ref: { amp: 4.0, dl: 4.4, cv: 49, f: 31 },
+      sens: { name: 'Median sensory, digit 2', len: 130, ref: { amp: 20, pl: 3.5, cv: 50 } },
+      cmapTarget: 8.5, snapTarget: 38
+    },
+    ulnar: {
+      name: 'Ulnar', muscle: 'ADM', residual: 1.6, window: 30,
+      segs: [
+        { id: 'dist', name: 'Wrist → ADM', short: 'Wrist → ADM', len: 70 },
+        { id: 'fore', name: 'Forearm (below elbow → wrist)', short: 'Forearm', len: 200 },
+        { id: 'elb', name: 'Across elbow', short: 'Across elbow', len: 100 },
+        { id: 'arm', name: 'Arm (axilla → above elbow)', short: 'Arm', len: 100, mult: 1.05 },
+        { id: 'plex', name: 'Plexus (foramen → axilla)', short: 'Plexus', len: 220, mult: 1.1 },
+        { id: 'root', name: 'Root (cord → foramen)', short: 'Root', len: 70, mult: 1.1 }
+      ],
+      sites: [{ id: 'wrist', name: 'Wrist', k: 1 }, { id: 'be', name: 'Below elbow', k: 2 }, { id: 'ae', name: 'Above elbow', k: 3 }, { id: 'axilla', name: 'Axilla', k: 4 }],
+      ref: { amp: 6.0, dl: 3.3, cv: 49, f: 32 },
+      sens: { name: 'Ulnar sensory, digit 5', len: 110, ref: { amp: 17, pl: 3.1, cv: 50 } },
+      cmapTarget: 10, snapTarget: 30
+    }
+  };
+
+  const NM = 160, NSN = 200, DT = 0.02;
+
+  function build(seed) {
+    const r = rng(seed);
+    const motor = [];
+    for (let i = 0; i < NM; i++) {
+      const u = r();
+      motor.push({
+        cv: 42 + 17 * Math.pow(u, 0.7), rank: 0,
+        amp: (0.5 + 1.1 * u) * (0.75 + 0.5 * r()),
+        rLoss: r(), rInj: r(), rDeg: r(), rF: r(),
+        rPatch: Array.from({ length: 6 }, r), rBlock: Array.from({ length: 6 }, r), rTerm: r()
+      });
+    }
+    const byCv = motor.slice().sort((a, b) => a.cv - b.cv);
+    byCv.forEach((m, i) => { m.rank = i / (NM - 1); });
+    const sens = [];
+    for (let i = 0; i < NSN; i++) {
+      const u = r();
+      sens.push({
+        cv: 40 + 20 * Math.pow(u, 0.8), rank: 0,
+        amp: (0.6 + 0.8 * u) * (0.8 + 0.4 * r()),
+        rLoss: r(), rInj: r(), rDeg: r(), rPatch: r(), rBlock: r()
+      });
+    }
+    const sByCv = sens.slice().sort((a, b) => a.cv - b.cv);
+    sByCv.forEach((m, i) => { m.rank = i / (NSN - 1); });
+    return { motor, sens };
+  }
+  const POP = build(20261119);
+  const VMEAN = POP.motor.reduce((a, m) => a + m.cv, 0) / POP.motor.length;
+  const SVMEAN = POP.sens.reduce((a, m) => a + m.cv, 0) / POP.sens.length;
+
+  // unit waveforms, negative-up (EMG display convention)
+  const gam = (t, tau) => t <= 0 ? 0 : (t / tau) * (t / tau) * Math.exp(2 * (1 - t / tau));
+  // the negative phase departs the baseline briskly (power 1.2), so the response starts visibly
+  // as soon as the first axon's impulse reaches the muscle
+  const gamk = (t, tau, k) => t <= 0 ? 0 : Math.pow(t / tau, k) * Math.exp(k * (1 - t / tau));
+  const motorUnitWave = t => gamk(t, 1.5, 1.2) - 0.42 * gam(t - 2.2, 2.8);
+  const sensUnitWave = t => gam(t, 0.42) - 0.55 * gam(t - 0.55, 0.6);
+
+  function defaults() {
+    return {
+      nerve: 'median', motorLoss: 0, sensLoss: 0, largeFirst: false,
+      dem: {}, patchy: true, block: {},
+      inj: { seg: null, frac: 1, day: 30 }
+    };
+  }
+
+  // demyelination factor for axon (multiplies CV); 0 means the axon fails to conduct
+  function demFactor(p, ax, si, segId) {
+    const d = p.dem[segId] || 0;
+    if (!d) return 1;
+    // uniform: every axon slowed by the same proportion and the spread of velocities narrows,
+    // so arrival times stay synchronous (no block, little dispersion)
+    const f = p.patchy ? 1 - d * (0.5 + 1.0 * ax.rPatch[si]) : (1 - d) * (VMEAN + (ax.cv - VMEAN) * (1 - d)) / ax.cv;
+    return f < 0.18 ? 0 : f;
+  }
+
+  function lostScore(ax, p) { return p.largeFirst ? 0.15 * ax.rLoss + 0.85 * (1 - ax.rank) : ax.rLoss; }
+
+  // motor axon state: per-segment latency contributions; null when it cannot conduct segment
+  function motorAxon(p, nv, ax) {
+    if (lostScore(ax, p) < p.motorLoss) return null;
+    const injured = p.inj.seg !== null && ax.rInj < p.inj.frac;
+    let degDay = 2.5 + 6 * Math.pow(ax.rDeg, 1.3);
+    if (injured && p.inj.day > degDay) return null; // Wallerian degeneration complete for this axon
+    const seg = nv.segs.map((s, si) => {
+      if (injured && s.id === p.inj.seg) return Infinity;
+      if ((p.block[s.id] || 0) > ax.rBlock[si]) return Infinity;
+      const f = demFactor(p, ax, si, s.id);
+      if (!f) return Infinity;
+      return s.len / (ax.cv * (s.mult || 1) * f);
+    });
+    // terminal (residual) latency lengthens with distal demyelination
+    const fd = demFactor(p, ax, 0, 'dist') || 0.18;
+    const resid = nv.residual * (1 + 0.55 * (1 / fd - 1));
+    return { seg, resid };
+  }
+
+  function sensAxon(p, nv, ax) {
+    if (lostScore(ax, p) < p.sensLoss) return null;
+    const injured = p.inj.seg !== null && ax.rInj < p.inj.frac;
+    if (injured && p.inj.seg !== 'root') { // postganglionic: distal axon degenerates
+      if (p.inj.seg === 'dist') return null;
+      const degDay = 5 + 6 * Math.pow(ax.rDeg, 1.4);
+      if (p.inj.day > degDay) return null;
+    }
+    if ((p.block.dist || 0) > ax.rBlock) return null;
+    const d = p.dem.dist || 0;
+    let f = 1;
+    if (d) {
+      f = p.patchy ? 1 - d * (0.5 + 1.0 * ax.rPatch) : (1 - d) * (SVMEAN + (ax.cv - SVMEAN) * (1 - d)) / ax.cv;
+      if (f < 0.18) return null;
+    }
+    return nv.sens.len / (ax.cv * f);
+  }
+
+  function traceFrom(arrivals, wave, window) {
+    const n = Math.round(window / DT) + 1, y = new Float64Array(n);
+    for (const [t0, a] of arrivals) {
+      const i0 = Math.max(0, Math.floor(t0 / DT));
+      for (let i = i0; i < n; i++) {
+        const t = i * DT - t0;
+        if (t > 16) break;
+        y[i] += a * wave(t);
+      }
+    }
+    return y;
+  }
+
+  function measure(y, onset, minAmp) {
+    let pk = 0, ipk = 0;
+    for (let i = 0; i < y.length; i++) if (y[i] > pk) { pk = y[i]; ipk = i; }
+    if (pk < minAmp || onset === null) return null;
+    let iz = ipk;
+    while (iz < y.length - 1 && y[iz] > 0) iz++;
+    let area = 0;
+    const i0 = Math.max(0, Math.floor(onset / DT));
+    for (let i = i0; i < iz; i++) if (y[i] > 0) area += y[i] * DT;
+    return { onset, amp: pk, peakLat: ipk * DT, dur: iz * DT - onset, area };
+  }
+
+  let scale = null;
+  function calibrate() {
+    scale = {};
+    for (const k in NERVES) {
+      const r = run(defaults(), k, true);
+      scale[k] = { m: NERVES[k].cmapTarget / r.rawM, s: NERVES[k].snapTarget / r.rawS };
+    }
+  }
+
+  function run(p, nerveKey, raw) {
+    const nk = nerveKey || p.nerve, nv = NERVES[nk];
+    const sc = raw ? { m: 1, s: 1 } : scale[nk];
+    const axons = POP.motor.map(ax => ({ ax, st: motorAxon(p, nv, ax) }));
+    // motor responses at each site
+    const sites = nv.sites.map(site => {
+      const arr = [];
+      let onset = null;
+      for (const { ax, st } of axons) {
+        if (!st) continue;
+        let L = st.resid, ok = true;
+        for (let j = 0; j < site.k; j++) { if (st.seg[j] === Infinity) { ok = false; break; } L += st.seg[j]; }
+        if (!ok) continue;
+        arr.push([L, ax.amp * sc.m]);
+        if (onset === null || L < onset) onset = L;
+      }
+      const y = traceFrom(arr, motorUnitWave, nv.window);
+      return { site, y, n: arr.length, m: measure(y, onset, raw ? 0 : 0.04) };
+    });
+    // segment conduction velocities between consecutive sites
+    const segCv = [];
+    for (let k = 1; k < sites.length; k++) {
+      const a = sites[k - 1].m, b = sites[k].m;
+      const len = nv.segs[k].len;
+      segCv.push({ from: sites[k - 1].site, to: sites[k].site, len, cv: a && b && b.onset > a.onset ? len / (b.onset - a.onset) : null,
+        drop: a && b ? 1 - b.amp / a.amp : (a && !b ? 1 : null), durInc: a && b ? b.dur / a.dur - 1 : null });
+    }
+    // F waves from wrist stimulation: antidromic to cord, 1 ms turnaround, orthodromic back
+    const fr = rng(7 + Math.round((p.motorLoss + p.sensLoss) * 1000));
+    const fTrials = [], FN = 12;
+    const fAx = [];
+    for (const { ax, st } of axons) {
+      if (!st || st.seg.some(v => v === Infinity)) continue;
+      let L = st.resid;
+      for (let j = 0; j < nv.segs.length; j++) L += st.seg[j];
+      for (let j = 1; j < nv.segs.length; j++) L += st.seg[j];
+      fAx.push([L + 1.0, ax.amp * sc.m]);
+    }
+    let fMin = null, persist = 0;
+    for (let t = 0; t < FN; t++) {
+      const fired = [];
+      for (const a of fAx) if (fr() < 0.025) fired.push([a[0] + 0.3 * fr(), a[1] * (0.8 + 0.4 * fr())]);
+      if (fired.length) { persist++; const mn = Math.min(...fired.map(x => x[0])); if (fMin === null || mn < fMin) fMin = mn; }
+      fTrials.push(fired);
+    }
+    // sensory
+    const sArr = [];
+    let sOn = null;
+    for (const ax of POP.sens) {
+      const L = sensAxon(p, nv, ax);
+      if (L === null) continue;
+      sArr.push([L, ax.amp * sc.s]);
+      if (sOn === null || L < sOn) sOn = L;
+    }
+    const sy = traceFrom(sArr, sensUnitWave, 10);
+    const sm = measure(sy, sOn, raw ? 0 : 2); // below about 2 µV a SNAP is lost in noise
+    if (sm) sm.cv = nv.sens.len / sm.onset;
+    if (raw) return { rawM: sites[0].m.amp, rawS: sm.amp };
+    return { nerve: nk, nv, sites, segCv, f: { trials: fTrials, min: fMin, persist, n: FN, axons: fAx.length }, snap: { y: sy, m: sm, n: sArr.length }, axonStates: axons };
+  }
+
+  // Interpretation against reference limits and EAN/PNS 2021 thresholds (single nerve)
+  function interpret(res, p) {
+    const nv = res.nv, ref = nv.ref, d = res.sites[0].m, out = { flags: [], ean: [], pattern: '' };
+    const dlPct = d ? d.onset / ref.dl : null;
+    const ampLow = !d || d.amp < ref.amp;
+    const fwd = res.segCv[0];
+    const cvs = res.segCv.filter(s => s.cv !== null);
+    const minCv = cvs.length ? Math.min(...cvs.map(s => s.cv)) : null;
+    let demRange = false, nonUniform = false;
+    if (d && dlPct > 1.3) demRange = true;
+    if (minCv !== null && minCv < 0.75 * ref.cv) demRange = true;
+    if (d && dlPct >= 1.5) out.ean.push(`Distal latency ${Math.round((dlPct - 1) * 100)}% above ULN (criterion ≥50%)`);
+    if (minCv !== null && minCv <= 0.7 * ref.cv) out.ean.push(`Conduction velocity ${Math.round((1 - minCv / ref.cv) * 100)}% below LLN (criterion ≥30%)`);
+    const fCrit = d && d.amp < 0.8 * ref.amp ? 1.5 : 1.2;
+    if (res.f.min !== null && res.f.min >= fCrit * ref.f) out.ean.push(`F-wave latency ${Math.round((res.f.min / ref.f - 1) * 100)}% above ULN (criterion ≥${Math.round((fCrit - 1) * 100)}%${fCrit > 1.2 ? ', because distal CMAP <80% of LLN' : ''})`);
+    if (res.f.min === null && d && d.amp >= 0.2 * ref.amp) out.ean.push('F waves absent with distal CMAP ≥20% of LLN (counts only with another demyelinating feature in another nerve)');
+    for (const s of res.segCv) {
+      const prev = res.sites.find(x => x.site === s.from).m;
+      if (s.drop !== null && s.drop >= 0.3 && prev && prev.amp >= 0.2 * ref.amp) {
+        nonUniform = true;
+        out.ean.push(`Conduction block ${s.from.name} → ${s.to.name}: amplitude falls ${Math.round(s.drop * 100)}% (criterion ≥30%)`);
+      }
+      if (s.durInc !== null && s.durInc > 0.3) { nonUniform = true; out.ean.push(`Temporal dispersion ${s.from.name} → ${s.to.name}: duration +${Math.round(s.durInc * 100)}% (criterion >30%)`); }
+    }
+    const sm = res.snap.m, sref = nv.sens.ref;
+    const sLow = !sm || sm.amp < sref.amp;
+    const sSlow = sm && (sm.peakLat > sref.pl || sm.cv < sref.cv);
+    // pattern
+    if (!d) out.pattern = 'No motor response at the wrist.';
+    else if (!demRange && !nonUniform && !ampLow && !(dlPct > 1) && !(minCv < ref.cv) && !(res.f.min > ref.f) && !sLow && !sSlow && res.f.persist >= res.f.n * 0.5) out.pattern = 'Normal study.';
+    else if (nonUniform) out.pattern = 'Demyelinating, non-uniform: conduction block and/or temporal dispersion. Points to an acquired (immune or compressive) process.';
+    else if (demRange) out.pattern = 'Demyelinating range slowing without block or dispersion: uniform demyelination, the pattern of hereditary neuropathy (CMT1).';
+    else if (d && dlPct > 1 && (minCv === null || minCv >= ref.cv) && sSlow) out.pattern = 'Prolonged distal motor and sensory latencies with normal forearm velocity: focal slowing between the wrist and the hand, the pattern of median neuropathy at the wrist.';
+    else if (ampLow && !sLow) out.pattern = 'Low CMAP with a normal SNAP: motor neuron, motor root (preganglionic), or neuromuscular junction/muscle. Not a plexus or peripheral nerve lesion.';
+    else if (ampLow || sLow) out.pattern = 'Axonal: amplitudes reduced; latency and velocity normal or only mildly slowed, not in the demyelinating range.';
+    else if (res.f.min !== null && res.f.min > ref.f || res.f.persist < res.f.n * 0.5) out.pattern = 'Isolated F-wave abnormality with normal distal conduction: proximal (root or plexus) slowing or block, as in early Guillain–Barré syndrome.';
+    else out.pattern = 'Mild slowing only.';
+    if (p.inj.seg !== null && p.inj.day < 10 && p.inj.frac > 0) out.warn = `Day ${p.inj.day} after axon transection: Wallerian degeneration is ${p.inj.day < 3 ? 'not yet underway' : 'incomplete'}, so distal stimulation still gives a ${p.inj.day < 3 ? 'normal' : 'partly preserved'} response and the lesion can be mistaken for conduction block. Repeat after day 10–11 to separate axonotmesis from neurapraxia.`;
+    out.demRange = demRange;
+    return out;
+  }
+
+  calibrate();
+  return { NERVES, POP, defaults, run, interpret, DT, motorUnitWave, sensUnitWave, motorAxon, sensAxon, lostScore };
+})();
+
+</script>
+<script>
+// Needle EMG model: a 2.4 x 1.6 mm cross-section of muscle with ~1200 fibres
+// belonging to 40 motor units in a mosaic. Lesions act on units (axon loss, block)
+// or fibres (myopathic loss, necrosis, membrane instability). Collateral sprouting
+// re-innervates orphaned fibres over weeks from neighbouring surviving units.
+// MUAPs are summed from single-fibre potentials weighted by distance from the needle.
+const EMG = (() => {
+  function rng(seed) {
+    let s = seed >>> 0;
+    return () => {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const W = 2.4, H = 1.6, D0 = 0.055, NU = 40;
+  const FS = 20000;          // samples/s for synthesised signals
+  const PICKUP = 0.45;       // mm: fibres beyond this contribute nothing useful
+
+  function build(seed) {
+    const r = rng(seed);
+    const fibres = [];
+    const dx = 0.062, dy = dx * 0.866;
+    for (let j = 0; dy * j < H - 0.02; j++) for (let i = 0; dx * i < W - 0.02; i++) {
+      const x = 0.03 + dx * i + (j % 2 ? dx / 2 : 0) + (r() - 0.5) * 0.012;
+      const y = 0.03 + dy * j + (r() - 0.5) * 0.012;
+      if (x > W - 0.025) continue;
+      fibres.push({ x, y, d0: D0 * (0.88 + 0.24 * r()), ze: (r() + r() + r() + r() - 2), rMyo: r(), rSize: r(), rInfl: r(), rAdopt: r(), rSprout: r(), rFib: r(), rMyot: r() });
+    }
+    const units = [];
+    for (let u = 0; u < NU; u++) units.push({ id: u, cx: -1.2 + r() * (W + 2.4), cy: -1.2 + r() * (H + 2.4), R: 2.2 + r() * 0.8, type: r() < 0.5 ? 1 : 2, rLoss: r(), rBlock: r(), rFasc: r(), hue: (u * 137.5) % 360, n: 0 });
+    for (const f of fibres) {
+      const cand = units.filter(u => Math.hypot(u.cx - f.x, u.cy - f.y) < u.R);
+      const u = cand.length ? cand[Math.floor(r() * cand.length)] : units[Math.floor(r() * NU)];
+      f.u0 = u.id; u.n++;
+    }
+    // recruitment order: small units first, type 1 before type 2
+    const order = units.slice().sort((a, b) => a.n * (a.type === 2 ? 1.6 : 1) * (0.8 + 0.4 * a.rFasc) - b.n * (b.type === 2 ? 1.6 : 1) * (0.8 + 0.4 * b.rFasc));
+    order.forEach((u, k) => { u.rank = k; });
+    for (const u of units) u.type = u.rank < NU * 0.45 ? 1 : 2;
+    // neighbours within 0.14 mm for collateral sprouting
+    for (const f of fibres) f.nb = [];
+    for (let a = 0; a < fibres.length; a++) for (let b = a + 1; b < fibres.length; b++) {
+      const fa = fibres[a], fb = fibres[b];
+      if (Math.abs(fa.x - fb.x) < 0.14 && Math.hypot(fa.x - fb.x, fa.y - fb.y) < 0.14) { fa.nb.push(b); fb.nb.push(a); }
+    }
+    return { fibres, units };
+  }
+  const M = build(1119);
+
+  function defaults() {
+    return { loss: 0, ongoing: false, block: 0, weeks: 0, myo: 0, infl: false, myotonia: false, nx: 1.2, ny: 0.8 };
+  }
+
+  // ---------- pathology over time ----------
+  const ADOPT_MIN = 4.5, ADOPT_SPAN = 12, MATURE = 14, DEATH = 80, FIB_ON = 2;
+  function state(p) {
+    const { fibres, units } = M;
+    const lostAt = units.map(u => {
+      if (!p.loss || u.rLoss >= p.loss) return Infinity;
+      return p.ongoing ? (u.rLoss / p.loss) * 52 : 0; // MND: losses spread over the first year
+    });
+    const blocked = units.map(u => p.block > 0 && u.rBlock < p.block && !(lostAt[u.id] <= p.weeks));
+    const F = fibres.map(f => ({ owner: f.u0, since: null, re: null, dead: false, myoDead: f.rMyo < p.myo, necrotic: false }));
+    const cap = units.map(u => u.n * 5);
+    const size = units.map(u => u.n);
+    const T = p.weeks;
+    const events = [...new Set(lostAt.filter(x => x <= T))];
+    if (p.loss) {
+      for (let w = 0; w <= T + 1e-9; w += 0.5) {
+        for (let u = 0; u < NU; u++) if (lostAt[u] > w - 0.5 && lostAt[u] <= w) {
+          F.forEach(s => { if (s.owner === u && s.since === null && !s.dead) { s.since = lostAt[u]; s.owner = -1; s.re = null; size[u]--; } });
+        }
+        for (let i = 0; i < F.length; i++) {
+          const s = F[i];
+          if (s.owner !== -1 || s.dead || s.myoDead) continue;
+          if (w - s.since >= DEATH) { s.dead = true; continue; }
+          if (w - s.since < ADOPT_MIN + ADOPT_SPAN * fibres[i].rAdopt) continue;
+          // adopt from an innervated neighbour whose unit still survives and has capacity
+          let best = -1;
+          for (const j of fibres[i].nb) {
+            const o = F[j].owner;
+            if (o >= 0 && lostAt[o] > w && size[o] < cap[o]) { best = o; break; }
+          }
+          if (best >= 0) { s.owner = best; s.re = w; s.since = null; size[best]++; }
+        }
+      }
+    }
+    if (p.infl) F.forEach((s, i) => { if (!s.myoDead && fibres[i].rInfl < 0.03 + 0.12 * p.myo) s.necrotic = true; });
+    // per-fibre derived properties
+    const out = F.map((s, i) => {
+      const f = fibres[i];
+      let d = f.d0;
+      if (p.myo) d *= Math.max(0.35, 1 + p.myo * 1.9 * (f.rSize - 0.5));
+      if (s.owner === -1 && !s.dead) d *= Math.max(0.4, 1 - 0.45 * Math.min(1, (T - s.since) / 16));
+      const mature = s.re === null ? 1 : Math.min(1, (T - s.re) / MATURE);
+      if (s.re !== null) d *= 1 + 0.08 * mature; // reinnervated fibres hypertrophy a little
+      return {
+        owner: s.owner, denervated: s.owner === -1 && !s.dead && !s.myoDead, since: s.since, dead: s.dead || s.myoDead, myoDead: s.myoDead,
+        reinn: s.re !== null, mature, d, necrotic: s.necrotic,
+        fib: (s.owner === -1 && !s.dead && !s.myoDead && T - s.since >= FIB_ON) || s.necrotic
+      };
+    });
+    return { F: out, lostAt, blocked, T, p, events };
+  }
+
+  // ---------- potentials ----------
+  const mexhat = (t, sg) => { const z = t / sg; return (1 - z * z) * Math.exp(-0.5 * z * z); };
+  // single-fibre potential: a sharp near-field spike plus a broad, slowly decaying far-field
+  // component; the far-field parts of distant fibres set the MUAP's initial and terminal phases
+  const TUNE = { a: 0.6, r0: 0.16, s0: 0.14, s1: 0.55, fa: 0.0022, fr: 1.4, fs: 2.5, zs: 1.8, sc: 0.6, ve: 1.4 };
+  function sfapParams(r, d) {
+    const k = Math.pow(d / D0, 1.6);
+    return { amp: TUNE.a * k / (1 + Math.pow(r / TUNE.r0, 2)), sg: TUNE.s0 + TUNE.s1 * r, famp: TUNE.fa * k / (1 + Math.pow(r / TUNE.fr, 2)), fsg: TUNE.fs };
+  }
+  // fibre contributions of unit u: [latency ms, amp mV, sigma ms, jitter sd ms, block prob]
+  function unitFibres(S, u) {
+    const out = [];
+    for (let i = 0; i < M.fibres.length; i++) {
+      const s = S.F[i];
+      if (s.owner !== u || s.dead || s.necrotic) continue;
+      const f = M.fibres[i];
+      const r = Math.hypot(f.x - S.p.nx, f.y - S.p.ny);
+      if (r > 1.6) continue;
+      const { amp, sg, famp, fsg } = sfapParams(r, s.d);
+      const v = 3.8 * Math.pow(s.d / D0, TUNE.ve);
+      // collateral sprouts: long, thin and slow while immature; once mature they still add
+      // endplate scatter, which widens the unit's temporal spread (longer duration)
+      const sprout = s.reinn ? (1 - s.mature) * (1.2 + 3.5 * f.rSprout) + TUNE.sc * (f.rSprout - 0.3) : 0;
+      const lat = 1.0 + Math.abs(ZN - f.ze * TUNE.zs) / v + sprout;
+      out.push([lat, amp, sg, s.reinn ? 0.02 + (1 - s.mature) * 0.35 : 0.02, s.reinn ? (1 - s.mature) * 0.35 : 0, i, famp, fsg]);
+    }
+    return out;
+  }
+  const MUAP_WIN = 30, MDT = 0.05, ZN = 9;
+  function muapTrace(fl, r) {
+    const n = Math.round(MUAP_WIN / MDT), y = new Float64Array(n);
+    for (const [lat, amp, sg, jit, bp, , famp, fsg] of fl) {
+      if (r && r() < bp) continue;
+      const t0 = lat + (r ? (r() + r() + r() - 1.5) * 2 * jit : 0) + 4;
+      let i0 = Math.max(0, Math.floor((t0 - 5 * sg) / MDT)), i1 = Math.min(n, Math.ceil((t0 + 5 * sg) / MDT));
+      for (let k = i0; k < i1; k++) y[k] += amp * mexhat(k * MDT - t0, sg);
+      i0 = Math.max(0, Math.floor((t0 - 4 * fsg) / MDT)); i1 = Math.min(n, Math.ceil((t0 + 4 * fsg) / MDT));
+      for (let k = i0; k < i1; k++) y[k] += famp * mexhat(k * MDT - t0, fsg);
+    }
+    return y;
+  }
+  function measureMuap(y) {
+    let mx = -1e9, mn = 1e9;
+    for (const v of y) { if (v > mx) mx = v; if (v < mn) mn = v; }
+    const pp = mx - mn;
+    if (pp < 0.03) return null;
+    const th = 0.012;
+    let a = 0, b = y.length - 1;
+    while (a < y.length && Math.abs(y[a]) < th) a++;
+    while (b > a && Math.abs(y[b]) < th) b--;
+    // phases = baseline crossings + 1, counting only excursions > 20 µV
+    let phases = 1, sign = 0;
+    for (let k = a; k <= b; k++) {
+      const v = y[k];
+      if (Math.abs(v) < 0.02) continue;
+      const s = v > 0 ? 1 : -1;
+      if (sign && s !== sign) phases++;
+      sign = s;
+    }
+    return { pp, dur: (b - a) * MDT, phases, a: a * MDT, b: b * MDT };
+  }
+  function unitInfo(S, u, seed) {
+    const fl = unitFibres(S, u);
+    const y = muapTrace(fl, null);
+    const m = measureMuap(y);
+    const r = rng(seed || (u * 7919 + 13));
+    const sweeps = [];
+    for (let k = 0; k < 6; k++) sweeps.push(muapTrace(fl, r));
+    // instability: mean absolute difference between consecutive sweeps relative to amplitude
+    let diff = 0;
+    if (m) {
+      for (let k = 1; k < sweeps.length; k++) { let s = 0; for (let i = 0; i < y.length; i++) s += Math.abs(sweeps[k][i] - sweeps[k - 1][i]); diff += s / y.length; }
+      diff = diff / (sweeps.length - 1) / m.pp;
+    }
+    return { u, y, m, sweeps, fl, unstable: diff > 0.012, instab: diff, rise: m ? riseTime(y) : null };
+  }
+  function riseTime(y) { // time from preceding positive peak to main negative peak (displayed upward)
+    let ipk = 0; for (let i = 0; i < y.length; i++) if (y[i] > y[ipk]) ipk = i;
+    let j = ipk; while (j > 0 && y[j - 1] < y[j]) j--;
+    return (ipk - j) * MDT;
+  }
+
+  // ---------- recruitment ----------
+  const RMIN = 6, RMAX = 45, KAPPA = 1, DELTA = 3.2;
+  function unitForce(S, u, rate) {
+    let n = 0;
+    for (let i = 0; i < M.fibres.length; i++) { const s = S.F[i]; if (s.owner === u && !s.dead && !s.necrotic) n += (s.d / D0) * (s.d / D0); }
+    return n * (1 - Math.exp(-rate / 14));
+  }
+  function available(S) { return M.units.filter(u => S.lostAt[u.id] > S.T && !S.blocked[u.id]); }
+  let FMAX = null;
+  function recruit(S, effort) {
+    const av = available(S);
+    const fu = new Map(av.map(u => [u.id, unitForce(S, u.id, 1000)]));
+    const rateAt = (u, D) => D < u.rank * DELTA ? 0 : Math.min(RMAX, RMIN + KAPPA * (D - u.rank * DELTA));
+    const total = D => { let s = 0; for (const u of av) { const r = rateAt(u, D); if (r) s += fu.get(u.id) * (1 - Math.exp(-r / 14)); } return s; };
+    const target = effort * FMAX;
+    const Dmax = NU * DELTA + (RMAX - RMIN) / KAPPA;
+    let lo = 0, hi = Dmax;
+    if (total(hi) <= target) lo = hi;
+    else for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2; if (total(mid) < target) lo = mid; else hi = mid; }
+    const D = effort <= 0 ? -1 : effort >= 0.99 ? Dmax : lo;
+    const firing = av.map(u => ({ u: u.id, rate: rateAt(u, D) })).filter(x => x.rate > 0);
+    // recruitment frequency: rate of the first available unit when the second is recruited
+    const sorted = av.slice().sort((a, b) => a.rank - b.rank);
+    let recFreq = null;
+    if (sorted.length >= 2) recFreq = rateAt(sorted[0], sorted[1].rank * DELTA);
+    const weak = total(Dmax) < FMAX * 0.999 && effort >= total(Dmax) / FMAX;
+    return { firing, recFreq, maxForce: total(Dmax) / FMAX, weak, D };
+  }
+
+  // ---------- signals ----------
+  function fibWave(t, amp, sg) { // initial positive (down) phase then negative (up)
+    return amp * (-0.45 * Math.exp(-0.5 * ((t - 0.35) / 0.18) ** 2) + 1.0 * Math.exp(-0.5 * ((t - 0.85) / (0.22 + sg)) ** 2) - 0.35 * Math.exp(-0.5 * ((t - 1.6) / (0.4 + sg)) ** 2));
+  }
+  function pswWave(t, amp) { // sharp positive (down) then slow return
+    if (t < 0) return 0;
+    const fall = t < 0.6 ? -t / 0.6 : -Math.exp(-(t - 0.6) / 3.2);
+    return amp * fall + (t > 0.6 ? 0.12 * amp * Math.exp(-((t - 6) ** 2) / 8) : 0);
+  }
+  function addWave(buf, t0, fn) {
+    const D = buf.length * 1000 / FS; t0 = ((t0 % D) + D) % D; // wrap: the 2 s buffer loops
+    const i0 = Math.max(0, Math.floor((t0 - 1) * FS / 1000)), i1 = Math.min(buf.length, Math.ceil((t0 + 25) * FS / 1000));
+    for (let i = i0; i < i1; i++) buf[i] += fn(i * 1000 / FS - t0);
+  }
+  function addMuap(buf, t0, y) {
+    const step = MDT * FS / 1000;
+    const i0 = Math.floor(t0 * FS / 1000);
+    for (let k = 0; k < y.length * step; k++) { const i = i0 + k; if (i < 0 || i >= buf.length) continue; const j = k / step, j0 = Math.floor(j); buf[i] += y[j0] + (y[Math.min(y.length - 1, j0 + 1)] - y[j0]) * (j - j0); }
+  }
+  function noise(buf, r, sd) { for (let i = 0; i < buf.length; i++) buf[i] += sd * (r() + r() + r() - 1.5); }
+
+  // Rest: fibrillations, positive sharp waves, fasciculations. With insAt (ms), adds the burst of
+  // insertional activity from needle movement at that time, and any myotonic discharges it provokes.
+  // The rest of the signal is identical with or without insAt, so the two can be swapped seamlessly.
+  function restSignal(S, dur, lib, insAt) {
+    const n = Math.round(dur * FS), buf = new Float64Array(n), r = rng(99 + Math.round(S.T * 10)), ev = [];
+    noise(buf, r, 0.004);
+    const near = [];
+    for (let i = 0; i < M.fibres.length; i++) {
+      const f = M.fibres[i], dist = Math.hypot(f.x - S.p.nx, f.y - S.p.ny);
+      if (dist < 0.4) near.push([dist, i]);
+    }
+    near.sort((a, b) => a[0] - b[0]);
+    if (lib) return librarySignal(S, lib, buf, r, ev, near, dur);
+    const fibs = near.filter(([, i]) => S.F[i].fib).slice(0, 14);
+    for (const [dist, i] of fibs) {
+      const f = M.fibres[i], s = S.F[i];
+      const amp = 0.55 * Math.pow(s.d / D0, 1.6) / (1 + (dist / 0.06) ** 2);
+      const rate = 1 + 13 * f.rFib, ph = r() * 1000 / rate;
+      const psw = dist < 0.07;
+      for (let t = ph; t < dur * 1000; t += 1000 / rate * (1 + 0.01 * (r() - 0.5))) {
+        if (psw) addWave(buf, t, x => pswWave(x, amp * 1.4)); else addWave(buf, t, x => fibWave(x, amp, dist * 0.6));
+        ev.push([t, [i], psw ? 'psw' : 'fib']);
+      }
+    }
+    if (S.p.ongoing && S.p.loss) {
+      const vis = visibleUnits(S).filter(v => !S.blocked[v.u]);
+      const k = Math.min(vis.length, 2);
+      for (let j = 0; j < k; j++) {
+        const v = vis[Math.floor(r() * vis.length)], t = 150 + r() * (dur * 1000 - 300);
+        addMuap(buf, t - 4, v.y); ev.push([t, v.fibres, 'fasc']);
+      }
+    }
+    let insLen = 0;
+    if (insAt !== undefined) {
+      insLen = insertionBurst(S, buf, ev, near, insAt);
+      if (S.p.myotonia) { myotonicBurst(buf, rng(5 + Math.round(insAt)), ev, near, dur, insAt + 40); insLen = Math.max(insLen, 1700); }
+    }
+    return { buf, ev, insLen };
+  }
+  // Needle movement injures fibres and fires a brief burst of spikes. Prolonged when fibres are
+  // denervated or necrotic (unstable membranes), reduced when fibres are replaced by connective tissue.
+  function insertionBurst(S, buf, ev, near, t0) {
+    const r = rng(7 + Math.round(t0)), D = buf.length * 1000 / FS;
+    const live = near.filter(([, i]) => !S.F[i].dead);
+    const nn = Math.max(1, near.length);
+    const unstable = near.filter(([, i]) => S.F[i].denervated || S.F[i].necrotic).length / nn;
+    const deadFrac = near.filter(([, i]) => S.F[i].dead).length / nn;
+    if (!live.length) return 20;
+    const len = (140 + 100 * r() + 700 * unstable) * (1 - 0.6 * deadFrac);
+    let t = 0;
+    while (t < len) {
+      const [dist, i] = live[Math.floor(r() * Math.min(14, live.length))];
+      const a = ((0.08 + 0.3 * r()) / (1 + (dist / 0.12) ** 2) + 0.03) * (t < 12 ? 2.2 : 1) * (1 - 0.6 * deadFrac);
+      const T = (t0 + t) % D, sign = r() < 0.5 ? 1 : -1;
+      if (t > 30 && r() < 0.15 + 0.5 * unstable) addWave(buf, T, x => pswWave(x, a * 1.2));
+      else addWave(buf, T, x => sign * fibWave(x, a, 0.05));
+      ev.push([T, [i], 'ins']);
+      t += 1.2 + 16 * Math.pow(t / len, 1.6) * (0.4 + r());
+    }
+    return len;
+  }
+  function myotonicBurst(buf, r, ev, near, dur, start) {
+    const src = near.slice(0, 18).filter((_, k) => k % 3 === 0).slice(0, 4);
+    src.forEach(([dist, i], k) => {
+      const amp = 0.14 / (1 + (dist / 0.06) ** 2) + 0.03, len = 1500 - 250 * k, t0 = start + 90 * k;
+      let t = t0;
+      while (t < t0 + len) {
+        const ph = (t - t0) / len, env = Math.sin(Math.PI * Math.min(1, ph * 1.1)) ** 0.8;
+        const rate = 18 + 70 * Math.sin(Math.PI * Math.min(1, ph * 1.4)) ** 1.5;
+        const a = amp * (0.25 + 0.75 * env);
+        if (dist < 0.07) addWave(buf, t, x => pswWave(x, a * 1.3)); else addWave(buf, t, x => fibWave(x, a, 0.05));
+        ev.push([t % (dur * 1000), [i], 'myot']);
+        t += 1000 / rate;
+      }
+    });
+  }
+  function librarySignal(S, lib, buf, r, ev, near, dur) {
+    const D = dur * 1000;
+    const nf = near[3][1], dist = near[3][0];
+    if (lib === 'fib') {
+      const amp = 0.12; for (let t = 30; t < D; t += 1000 / 8) { addWave(buf, t, x => fibWave(x, amp, 0.05)); ev.push([t, [nf], 'fib']); }
+      const f2 = near[9][1]; for (let t = 77; t < D; t += 1000 / 3.1) { addWave(buf, t, x => fibWave(x, 0.06, 0.1)); ev.push([t, [f2], 'fib']); }
+    } else if (lib === 'psw') {
+      const f0 = near[0][1]; for (let t = 40; t < D; t += 1000 / 6) { addWave(buf, t, x => pswWave(x, 0.3)); ev.push([t, [f0], 'psw']); }
+    } else if (lib === 'fasc') {
+      const vis = visibleUnits(S);
+      const times = [180, 830, 1460];
+      times.forEach((t, k) => { const v = vis[(k * 3) % vis.length]; addMuap(buf, t - 4, v.y); ev.push([t, v.fibres, 'fasc']); });
+    } else if (lib === 'myot') {
+      myotonicBurst(buf, r, ev, near, dur, 80);
+    } else if (lib === 'crd') {
+      // ephaptic loop: a chain of adjacent fibres re-excite one another; identical complex repeats
+      const chain = [near[0][1]];
+      while (chain.length < 6) { const last = M.fibres[chain[chain.length - 1]]; const nx = last.nb.find(j => !chain.includes(j)); if (nx === undefined) break; chain.push(nx); }
+      // The pacemaker fibre's spike drives each neighbour in turn; the last re-excites the pacemaker,
+      // so the loop time sets the (fixed) rate. Midway one fibre drops out of the loop: the complex
+      // changes shape abruptly and the shorter loop fires slightly faster, as real CRDs can.
+      const comp = chain.map((i, k) => [k * 0.9 + 0.3 * (k % 2), 0.08 + 0.18 * ((k * 37) % 5) / 5, i]);
+      const phases = [[250, 950, comp, 36], [950, 1650, comp.filter((_, k) => k !== 3), 41]];
+      for (const [t0, t1, cc, hz] of phases) for (let t = t0; t < t1; t += 1000 / hz) {
+        cc.forEach(([dt, a, i], k) => { addWave(buf, t + dt, x => fibWave(x, a * (chain.indexOf(i) % 2 ? -1 : 1) * 0.9, 0.04)); ev.push([t + dt, [i], 'crd']); });
+      }
+    } else if (lib === 'myok') {
+      const vis = visibleUnits(S), v = vis[1];
+      for (let b = 120; b < D - 100; b += 520) {
+        const nb = 4 + Math.floor(r() * 4);
+        for (let k = 0; k < nb; k++) { const t = b + k * 25 * (1 + 0.15 * r()); addMuap(buf, t - 4, v.y); ev.push([t, v.fibres, 'myok']); }
+      }
+    }
+    return { buf, ev };
+  }
+
+  // units the needle hears: pp > 50 µV
+  function visibleUnits(S) {
+    const out = [];
+    for (const u of M.units) {
+      if (S.lostAt[u.id] <= S.T) continue;
+      const fl = unitFibres(S, u.id);
+      if (!fl.length) continue;
+      const y = muapTrace(fl, null), m = measureMuap(y);
+      if (m && m.pp > 0.05) out.push({ u: u.id, y, m, fl, fibres: fl.filter(x => x[1] > 0.01).map(x => x[5]) });
+    }
+    return out;
+  }
+
+  // Voluntary activation at a given effort: sum of MUAP trains
+  function activeSignal(S, effort, dur) {
+    const n = Math.round(dur * FS), buf = new Float64Array(n), r = rng(31 + Math.round(effort * 100));
+    noise(buf, r, 0.004);
+    const rec = recruit(S, effort), ev = [];
+    const cache = new Map();
+    for (const { u, rate } of rec.firing) {
+      const fl = unitFibres(S, u);
+      if (!fl.length) continue;
+      let t = r() * 1000 / rate;
+      const unstable = fl.some(x => x[4] > 0.02);
+      const base = cache.get(u) || muapTrace(fl, null); cache.set(u, base);
+      const fibres = fl.filter(x => x[1] > 0.01).map(x => x[5]);
+      while (t < dur * 1000) {
+        const y = unstable ? muapTrace(fl, r) : base;
+        addMuap(buf, t - 4, y);
+        if (fibres.length) ev.push([t, fibres, 'muap', u]);
+        t += (1000 / rate) * (1 + 0.15 * (r() + r() - 1));
+      }
+    }
+    return { buf, ev, rec };
+  }
+
+  function calibrate() {
+    const S = state(defaults());
+    let s = 0;
+    for (const u of M.units) s += unitForce(S, u.id, 1000);
+    FMAX = s * (1 - Math.exp(-RMAX / 14));
+  }
+  calibrate();
+
+  // summary across visible units
+  function summary(S) {
+    const vis = visibleUnits(S).filter(v => !S.blocked[v.u]);
+    const near = vis.filter(v => riseTime(v.y) <= 0.5 || v.m.pp > 0.2);
+    const set = (near.length >= 3 ? near : vis).slice().sort((a, b) => M.units[a.u].rank - M.units[b.u].rank).slice(0, 10);
+    const infos = set.map(v => unitInfo(S, v.u));
+    const mean = k => infos.length ? infos.reduce((a, x) => a + x.m[k], 0) / infos.length : null;
+    const poly = infos.length ? infos.filter(x => x.m.phases > 4).length / infos.length : null;
+    const unstable = infos.filter(x => x.unstable).length;
+    let fibN = 0, fibAny = 0;
+    for (let i = 0; i < M.fibres.length; i++) {
+      const f = M.fibres[i]; if (Math.hypot(f.x - S.p.nx, f.y - S.p.ny) < 0.4 && S.F[i].fib) fibN++;
+    }
+    for (const s of S.F) if (s.fib) fibAny++;
+    const lo = recruit(S, 0.08);
+    return { infos, amp: mean('pp'), dur: mean('dur'), phases: mean('phases'), poly, unstable, fibN, fibAny, lowEffortUnits: lo.firing.filter(x => vis.some(v => v.u === x.u)).length, recFreq: lo.recFreq, vis };
+  }
+
+  function grade(n) { return n === 0 ? '0' : n <= 3 ? '1+' : n <= 12 ? '2+' : n <= 40 ? '3+' : '4+'; }
+
+  return { TUNE, M, W, H, D0, FS, PICKUP, defaults, state, unitInfo, unitFibres, muapTrace, measureMuap, recruit, restSignal, activeSignal, visibleUnits, summary, grade, MDT, MUAP_WIN, riseTime, rng };
+})();
+
+</script>
+<script>
+// ===================== shared helpers =====================
+const $ = id => document.getElementById(id);
+const SVGNS = 'http://www.w3.org/2000/svg';
+function E(tag, attrs, parent, text) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) if (attrs[k] !== null && attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
+  if (text !== undefined) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const fmt = (x, d = 1) => x === null || x === undefined || !isFinite(x) ? '—' : x.toFixed(d);
+const pct = x => Math.round(x * 100) + '%';
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+function pickGain(maxv, options, divs) { for (const g of options) if (maxv / g <= divs) return g; return options[options.length - 1]; }
+function pathFrom(y, dt, x0, pxPerMs, base, pxPerUnit, ymin, ymax, step = 1) {
+  let d = '';
+  for (let i = 0; i < y.length; i += step) {
+    const x = x0 + i * dt * pxPerMs;
+    let yy = base - y[i] * pxPerUnit;
+    if (ymin !== undefined) yy = Math.max(ymin, Math.min(ymax, yy));
+    d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + yy.toFixed(1);
+  }
+  return d;
+}
+
+// tabs
+const TABS = [['tab-ncs', 'view-ncs'], ['tab-emg', 'view-emg']];
+function showTab(id) {
+  for (const [t, v] of TABS) {
+    const on = t === id;
+    $(t).setAttribute('aria-selected', String(on));
+    $(v).classList.toggle('hidden', !on);
+  }
+  emgVisible = id === 'tab-emg';
+  if (emgVisible && !emgReady) { emgReady = true; emgUpdate(); }
+}
+for (const [t] of TABS) $(t).onclick = () => showTab(t);
+document.querySelector('nav.tabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const i = TABS.findIndex(([t]) => $(t).getAttribute('aria-selected') === 'true');
+  const j = (i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length;
+  showTab(TABS[j][0]); $(TABS[j][0]).focus();
+});
+
+// ===================== NERVE CONDUCTION =====================
+const ALLSEG = ['dist', 'fore', 'elb', 'arm', 'plex', 'root'];
+const all = v => Object.fromEntries(ALLSEG.map(k => [k, v]));
+const NCS_PRESETS = [
+  { id: 'normal', group: 'Reference', name: 'Normal', text: '<b>Normal median nerve.</b> Distal latency, amplitude, velocity, F waves and SNAP are inside the reference limits. The CMAP shrinks slightly and broadens with proximal stimulation, because slower axons arrive later and partly cancel faster ones. Pick a scenario or change the controls.' },
+  { id: 'axonal', group: 'Axonal', name: 'Axonal polyneuropathy', set: { motorLoss: .55, sensLoss: .7 }, text: '<b>Length-dependent axonal polyneuropathy</b> (e.g., diabetes). Amplitudes fall in proportion to axon loss, while distal latency, velocity and F latency stay normal because the surviving axons conduct normally. Sensory amplitudes fall first and most; in practice the sural and fibular studies are abnormal before the arms.' },
+  { id: 'severe', group: 'Axonal', name: 'Severe axon loss', set: { motorLoss: .92, sensLoss: .95, largeFirst: true }, text: '<b>Severe axon loss, fastest axons gone.</b> The CMAP is tiny and conduction slows slightly, because onset latency now reflects slower surviving axons. Velocity stays above 75% of LLN and distal latency below 130% of ULN, so this is not demyelinating range. Do not call severe axon loss demyelinating.' },
+  { id: 'mnd', group: 'Axonal', name: 'Motor neuron / root', nerve: 'ulnar', set: { motorLoss: .7 }, text: '<b>Motor neuron disease or a C8–T1 motor root lesion.</b> Low CMAP, normal SNAP. The lesion is in the anterior horn cell or ventral root, proximal to the dorsal root ganglion, so sensory axons are untouched. A presynaptic NMJ disorder (LEMS) or a myopathy can also lower the CMAP with a normal SNAP.' },
+  { id: 'cmt', group: 'Demyelinating', name: 'CMT1A (uniform)', set: { dem: all(.62), patchy: false, motorLoss: .3, sensLoss: .7 }, text: '<b>CMT1A: hereditary, uniform demyelination.</b> Every segment slows to about 20 m/s and distal and F latencies are markedly prolonged, but the CMAP keeps its shape at every site. All axons slow by the same amount, so there is no conduction block and no abnormal temporal dispersion. SNAPs are low or absent.' },
+  { id: 'cidp', group: 'Demyelinating', name: 'CIDP (non-uniform)', set: { dem: { dist: .5, fore: .6, elb: .55, arm: .5, plex: .5, root: .5 }, block: { fore: .2 }, sensLoss: .3 }, text: '<b>CIDP: acquired, non-uniform demyelination.</b> Slowing differs between axons and segments, so the proximal CMAP is smaller and broader (temporal dispersion) and some axons fail to conduct (conduction block). Distal and F latencies are prolonged. The interpretation panel lists which EAN/PNS 2021 criteria this nerve meets.' },
+  { id: 'gbs', group: 'Demyelinating', name: 'Early GBS', set: { dem: { root: .55, plex: .35, dist: .15 }, block: { root: .4 } }, text: '<b>Early Guillain–Barré syndrome</b> (AIDP, first days). Demyelination starts at the roots and distal terminals, so the routine segments look almost normal while F waves are prolonged, sparse or absent. Studies repeated after 1–2 weeks usually show the full demyelinating pattern.' },
+  { id: 'mmn', group: 'Demyelinating', name: 'MMN', set: { block: { fore: .7 } }, text: '<b>Multifocal motor neuropathy.</b> Motor conduction block in the forearm, away from usual compression sites, with a normal distal CMAP and distal latency. In MMN, sensory conduction through the same segment is normal. This model only tests sensory conduction from wrist to finger, which is also normal.' },
+  { id: 'cts', group: 'Focal', name: 'Carpal tunnel', set: { dem: { dist: .45 }, patchy: false, sensLoss: .2 }, text: '<b>Median neuropathy at the wrist.</b> Focal demyelination between wrist and hand prolongs distal motor and sensory latencies, while forearm velocity stays normal. Sensory fibres are usually affected first; more severe cases add axon loss (low CMAP, fibrillations in APB).' },
+  { id: 'une', group: 'Focal', name: 'Ulnar at elbow', nerve: 'ulnar', set: { dem: { elb: .45 }, block: { elb: .3 } }, text: '<b>Ulnar neuropathy at the elbow.</b> Slowing and conduction block are confined to the across-elbow segment, with normal forearm and arm segments. Localising to the elbow relies on the short-segment comparison: across-elbow velocity well below forearm velocity, or an amplitude drop across the elbow.' },
+  { id: 'cut', group: 'Injury and timing', name: 'Transection, day 2', set: { inj: { seg: 'fore', frac: 1, day: 2 } }, text: '<b>Complete axon transection in the forearm, day 2.</b> Distal stimulation is still normal and proximal stimulation gives nothing, which looks the same as conduction block. Drag "Days since injury": the distal CMAP falls from about day 3 and is gone by day 9, and the SNAP follows between days 6 and 11. If the distal response survives past day 11, the lesion was neurapraxia.' },
+  { id: 'np', group: 'Focal', name: 'Neurapraxia', set: { block: { arm: .9 } }, text: '<b>Neurapraxia (pure conduction block)</b>, e.g., compression in the arm. Responses are normal below the lesion and reduced above it at any time after injury, because axons distal to a block do not degenerate. Recovery usually takes weeks, as myelin is repaired.' },
+  { id: 'avul', group: 'Injury and timing', name: 'Root avulsion', nerve: 'ulnar', set: { inj: { seg: 'root', frac: .9, day: 30 } }, text: '<b>C8–T1 root avulsion, day 30.</b> Motor axons have degenerated, so the ulnar CMAP is low. Sensory cell bodies in the dorsal root ganglion lie distal to the avulsion, so peripheral sensory axons survive and the ulnar SNAP is normal even though the hand is numb. Compare with the lower trunk lesion.' },
+  { id: 'lt', group: 'Injury and timing', name: 'Lower trunk', nerve: 'ulnar', set: { inj: { seg: 'plex', frac: .9, day: 30 } }, text: '<b>Lower trunk plexopathy, day 30.</b> Motor findings match the root avulsion, but the lesion is distal to the dorsal root ganglion. Sensory axons degenerate too, and the SNAP is low or absent.' }
+];
+const ncs = { p: NCS.defaults(), preset: 'normal' };
+function presetGroups(el, list, onpick) {
+  const groups = [...new Set(list.map(p => p.group))];
+  for (const g of groups) {
+    const lab = document.createElement('span'); lab.className = 'plabel'; lab.textContent = g; el.appendChild(lab);
+    const row = document.createElement('div'); row.className = 'presets'; row.setAttribute('role', 'group'); row.setAttribute('aria-label', g);
+    for (const pr of list.filter(p => p.group === g)) {
+      const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = pr.name; b.dataset.id = pr.id;
+      b.onclick = () => onpick(pr.id); row.appendChild(b);
+    }
+    el.appendChild(row);
+  }
+}
+const pres = $('ncs-presets');
+presetGroups(pres, NCS_PRESETS, id => applyNcsPreset(id));
+function applyNcsPreset(id) {
+  const pr = NCS_PRESETS.find(x => x.id === id), p = NCS.defaults(), s = pr.set || {};
+  p.nerve = pr.nerve || 'median';
+  for (const k of ['motorLoss', 'sensLoss', 'largeFirst', 'patchy']) if (k in s) p[k] = s[k];
+  p.dem = Object.assign({}, s.dem || {}); p.block = Object.assign({}, s.block || {});
+  if (s.inj) p.inj = Object.assign({}, s.inj);
+  ncs.p = p; ncs.preset = id;
+  syncNcsControls(); ncsRefresh();
+}
+function custom() { ncs.preset = 'custom'; }
+
+// controls
+function bindRange(id, out, get, set, fmtv, onchg) {
+  const el = $(id);
+  el.addEventListener('input', () => { set(+el.value); $(out).textContent = fmtv(+el.value); custom(); onchg(); });
+  return () => { el.value = get(); $(out).textContent = fmtv(get()); };
+}
+const ncsRefreshSoon = () => ncsRefresh();
+const syncers = [
+  bindRange('c-mloss', 'o-mloss', () => ncs.p.motorLoss, v => ncs.p.motorLoss = v, pct, ncsRefreshSoon),
+  bindRange('c-sloss', 'o-sloss', () => ncs.p.sensLoss, v => ncs.p.sensLoss = v, pct, ncsRefreshSoon),
+  bindRange('c-injday', 'o-injday', () => ncs.p.inj.day, v => ncs.p.inj.day = v, v => v >= 30 ? '≥30 d' : 'day ' + v, ncsRefreshSoon)
+];
+$('c-large').onchange = e => { ncs.p.largeFirst = e.target.checked; custom(); ncsRefresh(); };
+for (const [id, v] of [['nv-median', 'median'], ['nv-ulnar', 'ulnar']]) $(id).onclick = () => {
+  if (ncs.p.nerve === v) return;
+  ncs.p.nerve = v;
+  if (ncs.p.inj.seg && !NCS.NERVES[v].segs.some(s => s.id === ncs.p.inj.seg)) ncs.p.inj.seg = null;
+  syncNcsControls(); ncsRefresh();
+};
+
+// ---------- lesion tools: choose a lesion, set severity, click a segment ----------
+const TOOLS = {
+  demP: { sev: 'Slowing', min: .1, max: .8, text: 'Myelin is thinned and lost in patches that differ from axon to axon. Conduction slows by different amounts in different axons, and badly affected axons fail (block): the acquired pattern of CIDP, GBS and compression.' },
+  demU: { sev: 'Slowing', min: .1, max: .8, text: 'Every axon loses myelin to the same degree, so all slow by the same proportion and none block: the hereditary pattern of CMT1. Choosing this makes all demyelination on the nerve uniform.' },
+  block: { sev: 'Axons blocked', min: .1, max: 1, text: 'A share of axons cannot conduct through the segment (a focal patch of myelin loss), but they stay alive. Stimulating below the block gives a normal response.' },
+  cut: { sev: 'Axons cut', min: .1, max: 1, text: 'Axons are severed (axonotmesis). Below the cut they keep conducting until Wallerian degeneration: motor by about day 9, sensory by about day 11. One cut site per nerve.' },
+  erase: { text: 'Click a segment to remove all its lesions.' }
+};
+ncs.tool = 'demP';
+ncs.sev = { demP: .5, demU: .6, block: .5, cut: 1 };
+for (const b of $('tools').querySelectorAll('button')) b.onclick = () => { ncs.tool = b.dataset.t; syncNcsControls(); };
+$('eraseall').onclick = () => { const p = ncs.p; p.dem = {}; p.block = {}; p.inj.seg = null; p.motorLoss = 0; p.sensLoss = 0; p.largeFirst = false; custom(); syncNcsControls(); ncsRefresh(); };
+$('c-sev').addEventListener('input', () => { ncs.sev[ncs.tool] = +$('c-sev').value; $('o-sev').textContent = pct(+$('c-sev').value); });
+function applyTool(segId) {
+  const p = ncs.p, t = ncs.tool, v = ncs.sev[t];
+  if (t === 'erase') { delete p.dem[segId]; delete p.block[segId]; if (p.inj.seg === segId) p.inj.seg = null; }
+  else if (t === 'demP' || t === 'demU') { p.dem[segId] = v; p.patchy = t === 'demP'; }
+  else if (t === 'block') p.block[segId] = v;
+  else if (t === 'cut') { p.inj.seg = segId; p.inj.frac = v; }
+  custom(); syncNcsControls(); ncsRefresh();
+}
+function renderChips() {
+  const p = ncs.p, nv = NCS.NERVES[p.nerve], el = $('chips');
+  el.innerHTML = '';
+  const add = (txt, rm) => {
+    const c = document.createElement('span'); c.className = 'chip'; c.textContent = txt;
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '×'; b.setAttribute('aria-label', 'Remove ' + txt);
+    b.onclick = () => { rm(); custom(); syncNcsControls(); ncsRefresh(); };
+    c.appendChild(b); el.appendChild(c);
+  };
+  for (const s of nv.segs.slice().reverse()) {
+    if (p.dem[s.id]) add(`${s.short}: demyelination, ${p.patchy ? 'patchy' : 'uniform'}, slowing ${pct(p.dem[s.id])}`, () => delete p.dem[s.id]);
+    if (p.block[s.id]) add(`${s.short}: block, ${pct(p.block[s.id])} of axons`, () => delete p.block[s.id]);
+    if (p.inj.seg === s.id) add(`${s.short}: ${pct(p.inj.frac)} of axons cut`, () => { p.inj.seg = null; });
+  }
+  if (!el.children.length) el.innerHTML = '<span class="subtle">None. Pick a lesion above and click the nerve.</span>';
+}
+function syncNcsControls() {
+  const p = ncs.p, T = TOOLS[ncs.tool];
+  syncers.forEach(f => f());
+  $('c-large').checked = p.largeFirst;
+  $('nv-median').setAttribute('aria-pressed', String(p.nerve === 'median')); $('nv-ulnar').setAttribute('aria-pressed', String(p.nerve === 'ulnar'));
+  for (const b of $('tools').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.t === ncs.tool));
+  $('sevrow').classList.toggle('hidden', ncs.tool === 'erase');
+  if (ncs.tool !== 'erase') {
+    const sl = $('c-sev'); sl.min = T.min; sl.max = T.max; sl.value = ncs.sev[ncs.tool];
+    $('sevlab').textContent = T.sev; $('o-sev').textContent = pct(ncs.sev[ncs.tool]);
+  }
+  $('dayrow').classList.toggle('hidden', !p.inj.seg);
+  for (const b of $('mgain').querySelectorAll('button')) b.setAttribute('aria-pressed', String(+b.dataset.g === ncs.mg));
+  for (const b of $('sgain').querySelectorAll('button')) b.setAttribute('aria-pressed', String(+b.dataset.g === ncs.sg));
+  renderChips();
+}
+
+// ---------- nerve picture: myelinated axons ----------
+const IN = 20; // internode spacing in drawing units
+function h3(a, b, c) { let h = Math.imul(a + 1, 73856093) ^ Math.imul(b + 7, 19349663) ^ Math.imul(c + 13, 83492791); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function ovoids(g, x0, x1, y, faint) {
+  for (let x = x0 + 4; x < x1 - 3; x += 9) E('ellipse', { cx: x, cy: y, rx: 3.2, ry: 2, fill: 'var(--muted)', opacity: faint ? .3 : .55 }, g);
+}
+function myelinRun(g, x0, x1, y, h, col, ai, sj, f, bare) {
+  // core axon
+  E('line', { x1: x0, x2: x1, y1: y, y2: y, stroke: 'var(--trace)', 'stroke-width': 1.3, opacity: .75 }, g);
+  for (let k = 0, xs = x0 + 2; xs + IN - 4 <= x1 + 0.5; k++, xs += IN) {
+    const xe = xs + IN - 4;
+    if (bare && xe > bare[0] && xs < bare[1]) continue;
+    // patchy (acquired): some internodes stripped, others thinned, varying between axons;
+    // uniform (hereditary): every internode thinned to the same degree, none stripped
+    if (f < 0.97 && ncs.p.patchy && h3(ai, sj, k) < (1 - f) * 0.9) { // internode stripped: bare axon
+      E('line', { x1: xs, x2: xe, y1: y, y2: y, stroke: 'var(--warn)', 'stroke-width': 2.6, 'stroke-linecap': 'round' }, g);
+      continue;
+    }
+    const hh = h * (f < 0.97 ? (ncs.p.patchy ? 0.45 + 0.55 * f : 0.25 + 0.6 * f) : 1);
+    E('rect', { x: xs, y: y - hh / 2, width: xe - xs, height: hh, rx: hh / 2, fill: col[0], stroke: col[1], 'stroke-width': 1 }, g);
+  }
+  if (bare) {
+    E('line', { x1: bare[0], x2: bare[1], y1: y, y2: y, stroke: 'var(--warn)', 'stroke-width': 2.6, 'stroke-linecap': 'round' }, g);
+    const cx = (bare[0] + bare[1]) / 2;
+    E('path', { d: `M ${cx - 4} ${y - 4} L ${cx + 4} ${y + 4} M ${cx + 4} ${y - 4} L ${cx - 4} ${y + 4}`, stroke: 'var(--lesion)', 'stroke-width': 2.4 }, g);
+  }
+}
+function drawAxonSeg(g, s, y, st, h, col, ai) {
+  const { x0, x1, j } = s, w = x1 - x0;
+  if (st.kind === 'gone') return ovoids(g, x0, x1, y, st.faint);
+  if (st.kind === 'cut') {
+    const m = x0 + w / 2;
+    myelinRun(g, x0, m - 5, y, h, col, ai, j, st.f || 1);
+    if (st.deg) ovoids(g, m + 5, x1, y); else myelinRun(g, m + 5, x1, y, h, col, ai, j + 50, st.f || 1);
+    E('path', { d: `M ${m - 5} ${y - 6} L ${m - 5} ${y + 6} M ${m + 5} ${y - 6} L ${m + 5} ${y + 6}`, stroke: 'var(--lesion)', 'stroke-width': 2.6 }, g);
+    return;
+  }
+  myelinRun(g, x0, x1, y, h, col, ai, j, st.f || 1, st.kind === 'block' ? [x0 + w * 0.32, x0 + w * 0.68] : null);
+}
+function repMotor(p, nv, ax) {
+  if (NCS.lostScore(ax, p) < p.motorLoss) return { lost: true, segs: nv.segs.map(() => ({ kind: 'gone', faint: true })) };
+  const st = NCS.motorAxon(p, nv, ax);
+  const injured = !!p.inj.seg && ax.rInj < p.inj.frac;
+  const ji = injured ? nv.segs.findIndex(s => s.id === p.inj.seg) : -1;
+  const segs = nv.segs.map((s, j) => {
+    const nominal = s.len / (ax.cv * (s.mult || 1));
+    const f = st && st.seg[j] !== Infinity ? nominal / st.seg[j] : 1 - (p.dem[s.id] || 0) * 0.7;
+    if (j === ji) return { kind: 'cut', deg: !st, f };
+    if (ji >= 0 && !st && j < ji) return { kind: 'gone' };
+    if (st && st.seg[j] === Infinity) return { kind: 'block', f: 1 - (p.dem[s.id] || 0) * 0.7 };
+    return f < 0.97 ? { kind: 'dem', f } : { kind: 'ok' };
+  });
+  return { st, segs, deg: ji >= 0 && !st };
+}
+function repSens(p, nv, ax) {
+  if (NCS.lostScore(ax, p) < p.sensLoss) return { lost: true, segs: nv.segs.map(() => ({ kind: 'gone', faint: true })) };
+  const L = NCS.sensAxon(p, nv, ax);
+  const injured = !!p.inj.seg && ax.rInj < p.inj.frac;
+  const ji = injured ? nv.segs.findIndex(s => s.id === p.inj.seg) : -1;
+  const post = ji >= 0 && p.inj.seg !== 'root';
+  const segs = nv.segs.map((s, j) => {
+    const f = s.id === 'dist' && L !== null ? (nv.sens.len / ax.cv) / L : 1 - (p.dem[s.id] || 0) * (0.5 + ax.rPatch);
+    if (j === ji) return { kind: 'cut', deg: post && L === null, f };
+    if (post && L === null && j < ji) return { kind: 'gone' };
+    if (s.id === 'dist' && L === null && !injured) return { kind: 'block', f: 1 };
+    return f < 0.97 ? { kind: 'dem', f } : { kind: 'ok' };
+  });
+  return { L, segs, deg: post && L === null };
+}
+
+// Representative axons are chosen at evenly spaced quantiles of the same random numbers that decide
+// diffuse loss and transection, so the share drawn intact matches the share of the population intact.
+function pickReps(pop, N, p, perm) {
+  const used = new Set(), out = [];
+  for (let i = 0; i < N; i++) {
+    const u = (i + 0.5) / N, v = (perm[i] + 0.5) / N;
+    let best = null, bd = 1e9;
+    for (const ax of pop) { if (used.has(ax)) continue; const d = (NCS.lostScore(ax, p) - u) ** 2 + (ax.rInj - v) ** 2; if (d < bd) { bd = d; best = ax; } }
+    used.add(best); out.push(best);
+  }
+  return out.sort((a, b) => b.cv - a.cv);
+}
+function drawNerve(res) {
+  const svg = $('nerve'), p = ncs.p, nv = res.nv;
+  svg.innerHTML = '';
+  const segsLR = nv.segs.map((s, j) => ({ ...s, j })).reverse();
+  const total = segsLR.reduce((a, s) => a + s.len, 0);
+  const X0 = 96, X1 = 862;
+  let x = X0;
+  for (const s of segsLR) { s.x0 = x; s.x1 = x + (X1 - X0) * s.len / total; x = s.x1; }
+  const byJ = j => segsLR.find(s => s.j === j);
+  const siteX = k => nv.segs[k - 1] ? byJ(k - 1).x0 : X0;
+  // segment hit areas (click to apply the current lesion tool)
+  for (const s of segsLR) {
+    const g = E('g', { class: 'seghit', tabindex: 0, role: 'button', 'aria-label': `${s.name}: apply ${ncs.tool === 'erase' ? 'erase' : 'lesion'}` }, svg);
+    E('title', {}, g, `${s.name}: click to ${ncs.tool === 'erase' ? 'remove its lesions' : 'apply the selected lesion'}`);
+    E('rect', { class: 'hl', x: s.x0 + 1, y: 62, width: s.x1 - s.x0 - 2, height: 246, rx: 6 }, g);
+    const dem = p.dem[s.id] || 0, cut = p.inj.seg === s.id, blk = p.block[s.id] || 0;
+    if (dem || cut || blk) E('rect', { x: s.x0 + 1, y: 62, width: s.x1 - s.x0 - 2, height: 246, rx: 6, fill: cut || blk ? 'var(--lesion-soft)' : 'var(--warn-soft)', opacity: .45, 'pointer-events': 'none' }, g);
+    g.addEventListener('click', () => applyTool(s.id));
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyTool(s.id); } });
+    E('line', { x1: s.x1, x2: s.x1, y1: 62, y2: 310, stroke: 'var(--line)', 'stroke-dasharray': '3 4', 'pointer-events': 'none' }, svg);
+    const short = { dist: 'Wrist → ' + nv.muscle, fore: 'Forearm', elb: 'Elbow', arm: 'Arm', plex: 'Plexus', root: 'Root' }[s.id];
+    E('text', { x: (s.x0 + s.x1) / 2, y: 328, 'text-anchor': 'middle', 'font-size': 14, fill: 'var(--ink)', 'font-weight': 500 }, svg, short);
+    const tags = [];
+    if (dem) tags.push('demyel ' + pct(dem));
+    if (blk) tags.push('block ' + pct(blk));
+    if (cut) tags.push('cut, day ' + p.inj.day);
+    if (tags.length) E('text', { x: (s.x0 + s.x1) / 2, y: 346, 'text-anchor': 'middle', 'font-size': 12.5, 'font-weight': 500, fill: cut || blk ? 'var(--lesion)' : 'var(--warn-ink)' }, svg, tags.join(' · '));
+  }
+  // cord, muscle, digit
+  E('rect', { x: 16, y: 62, width: 64, height: 246, rx: 12, fill: 'var(--grid)', stroke: 'var(--line)' }, svg);
+  E('text', { x: 48, y: 190, 'text-anchor': 'middle', 'font-size': 14, fill: 'var(--muted)' }, svg, 'Cord');
+  E('rect', { id: 'musc', x: 872, y: 66, width: 108, height: 150, rx: 14, fill: 'var(--lesion-soft)', stroke: 'var(--line)' }, svg);
+  E('text', { x: 926, y: 138, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 600, fill: 'var(--ink)' }, svg, nv.muscle);
+  E('text', { x: 926, y: 158, 'text-anchor': 'middle', 'font-size': 13, fill: 'var(--muted)' }, svg, 'record CMAP');
+  E('rect', { id: 'digit', x: 872, y: 232, width: 108, height: 72, rx: 12, fill: 'var(--grid)', stroke: 'var(--line)' }, svg);
+  E('text', { x: 926, y: 264, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 600, fill: 'var(--ink)' }, svg, nv.sens.name.split(', ')[1].replace('digit', 'Digit'));
+  E('text', { x: 926, y: 282, 'text-anchor': 'middle', 'font-size': 13, fill: 'var(--muted)' }, svg, 'record SNAP');
+  // axons
+  const NMR = 8, motors = pickReps(NCS.POP.motor, NMR, p, [5, 2, 7, 0, 3, 6, 1, 4]);
+  const reps = [], sreps = [];
+  E('text', { x: 92, y: 76, 'font-size': 13, fill: 'var(--muted)' }, svg, 'Motor axons (fastest, most myelin at top)');
+  const MCOL = ['var(--myelin)', 'var(--accent)'], SCOL = ['var(--smyelin)', 'var(--ok)'];
+  for (let r = 0; r < NMR; r++) {
+    const ax = motors[r], y = 92 + r * 16.5, rep = repMotor(p, nv, ax), h = 9 - 4 * r / (NMR - 1);
+    const g = E('g', { 'pointer-events': 'none' }, svg);
+    if (rep.lost) ovoids(g, 80, 872, y, true);
+    else {
+      E('line', { x1: 80, x2: X0, y1: y, y2: y, stroke: 'var(--trace)', 'stroke-width': 1.3, opacity: .75 }, g);
+      for (const s of segsLR) drawAxonSeg(g, s, y, rep.segs[s.j], h, MCOL, r);
+      if (rep.deg) ovoids(g, X1, 872, y); else E('line', { x1: X1, x2: 872, y1: y, y2: y, stroke: 'var(--trace)', 'stroke-width': 1.3, opacity: .75 }, g);
+    }
+    reps.push({ ax, y, rep });
+  }
+  const drgX = byJ(nv.segs.findIndex(s => s.id === 'root')).x1;
+  E('text', { x: 200, y: 236, 'font-size': 13, fill: 'var(--muted)' }, svg, 'Sensory axons');
+  const NSR = 6, sens = pickReps(NCS.POP.sens, NSR, p, [3, 0, 4, 1, 5, 2]);
+  for (let r = 0; r < NSR; r++) {
+    const ax = sens[r], y = 248 + r * 10.5, rep = repSens(p, nv, ax), h = 6.5 - 2.5 * r / (NSR - 1);
+    const g = E('g', { 'pointer-events': 'none' }, svg);
+    if (rep.lost) ovoids(g, 80, 872, y, true);
+    else {
+      E('line', { x1: 80, x2: X0, y1: y, y2: y, stroke: 'var(--trace)', 'stroke-width': 1.3, opacity: .75 }, g);
+      for (const s of segsLR) drawAxonSeg(g, s, y, rep.segs[s.j], h, SCOL, r + 20);
+      if (rep.deg) ovoids(g, X1, 872, y); else E('line', { x1: X1, x2: 872, y1: y, y2: y, stroke: 'var(--trace)', 'stroke-width': 1.3, opacity: .75 }, g);
+    }
+    sreps.push({ ax, y, rep });
+  }
+  E('ellipse', { cx: drgX, cy: 272, rx: 13, ry: 33, fill: 'var(--smyelin)', stroke: 'var(--ok)', 'stroke-width': 1.5, opacity: .9, 'pointer-events': 'none' }, svg);
+  E('text', { x: drgX - 16, y: 300, 'text-anchor': 'end', 'font-size': 12.5, fill: 'var(--ok)', 'font-weight': 600, 'pointer-events': 'none' }, svg, 'DRG');
+  // stimulation sites: click to fire
+  for (const site of nv.sites) {
+    const sx = siteX(site.k);
+    const g = E('g', { class: 'stim', tabindex: 0, role: 'button', 'aria-label': `Stimulate at ${site.name}` }, svg);
+    E('title', {}, g, `Stimulate at ${site.name}`);
+    E('rect', { x: sx - 34, y: 4, width: 68, height: 58, fill: 'transparent' }, g);
+    E('path', { d: `M ${sx + 4} 30 L ${sx - 5} 45 L ${sx + 2} 45 L ${sx - 4} 60`, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.4, 'stroke-linejoin': 'round' }, g);
+    E('text', { x: sx, y: 22, 'text-anchor': 'middle', 'font-size': 14, fill: 'var(--ink)', 'font-weight': 500 }, g, site.name);
+    g.addEventListener('click', () => startPulse('motor', site.k));
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startPulse('motor', site.k); } });
+  }
+  E('g', { id: 'pulses', 'pointer-events': 'none' }, svg);
+  E('text', { x: 860, y: 368, 'text-anchor': 'end', 'font-size': 12.5, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg,
+    `axons conducting from the wrist: motor ${res.sites[0].n}/${NCS.POP.motor.length} · sensory ${res.snap.n}/${NCS.POP.sens.length}`);
+  E('text', { id: 'simclock', x: 96, y: 388, 'font-size': 13, fill: 'var(--accent)', 'font-family': 'var(--font-mono)' }, svg, '');
+  // sensory stimulator: same wrist site, ring electrodes on the digit
+  {
+    const sx = siteX(1), g = E('g', { class: 'stim', tabindex: 0, role: 'button', 'aria-label': 'Stimulate sensory axons at the wrist' }, svg);
+    E('title', {}, g, 'Sensory study: stimulate at the wrist, record from the digit');
+    E('rect', { x: sx - 60, y: 214, width: 66, height: 30, fill: 'transparent' }, g);
+    E('path', { d: `M ${sx - 2} 218 L ${sx - 8} 229 L ${sx - 3} 229 L ${sx - 8} 242`, fill: 'none', stroke: 'var(--ok)', 'stroke-width': 2.2, 'stroke-linejoin': 'round' }, g);
+    E('text', { x: sx - 14, y: 234, 'text-anchor': 'end', 'font-size': 12.5, fill: 'var(--ok)', 'font-weight': 600 }, g, 'SNAP');
+    g.addEventListener('click', () => startPulse('sens'));
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startPulse('sens'); } });
+  }
+  ncs.geo = { segsLR, byJ, siteX, X0, X1, reps, sreps, drgX };
+}
+
+// ---------- motor traces: fixed gain, so amplitude changes are real ----------
+ncs.mg = 5; ncs.sg = 10;
+for (const b of $('mgain').querySelectorAll('button')) b.onclick = () => { ncs.mg = +b.dataset.g; syncNcsControls(); drawMotor(ncs.res); };
+for (const b of $('sgain').querySelectorAll('button')) b.onclick = () => { ncs.sg = +b.dataset.g; syncNcsControls(); drawSnap(ncs.res); };
+function drawMotor(res) {
+  const svg = $('mplot'), n = res.sites.length, rowH = 92, top = 8, H = top + n * rowH + 28;
+  svg.setAttribute('viewBox', `0 0 540 ${H}`);
+  svg.innerHTML = ''; ncs.mtr = [];
+  const X0 = 92, W = 440, win = res.nv.window, ppm = W / win, g = ncs.mg, div = 30;
+  const defs = E('defs', {}, svg);
+  for (let i = 0; i <= win; i += 3) E('line', { x1: X0 + i * ppm, x2: X0 + i * ppm, y1: top, y2: top + n * rowH, stroke: 'var(--grid)' }, svg);
+  res.sites.forEach((s, k) => {
+    const base = top + k * rowH + rowH - 12, rt = top + k * rowH;
+    const row = E('g', { id: 'mrow' + k }, svg);
+    E('line', { x1: X0, x2: X0 + W, y1: base, y2: base, stroke: 'var(--line)' }, row);
+    for (let d = 1; d * div < rowH - 16; d++) E('line', { x1: X0, x2: X0 + W, y1: base - d * div, y2: base - d * div, stroke: 'var(--grid)', 'stroke-dasharray': '2 4' }, row);
+    const lab = E('g', { class: 'stim', tabindex: 0, role: 'button', 'aria-label': `Stimulate at ${s.site.name}` }, row);
+    E('title', {}, lab, `Stimulate at ${s.site.name}`);
+    E('rect', { x: 0, y: base - 46, width: 86, height: 50, fill: 'transparent' }, lab);
+    E('text', { x: 4, y: base - 28, 'font-size': 13.5, 'font-weight': 600, fill: 'var(--ink)' }, lab, '⚡ ' + s.site.name);
+    E('text', { x: 4, y: base - 10, 'font-size': 12.5, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, lab, s.m ? `${fmt(s.m.amp)} mV` : 'no response');
+    lab.addEventListener('click', () => startPulse('motor', s.site.k));
+    lab.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startPulse('motor', s.site.k); } });
+    const tr = E('g', {}, row);
+    const draw = n => pathFrom(n === undefined ? s.y : s.y.slice(0, n), NCS.DT, X0, ppm, base, div / g, rt + 2, base + 10, 2);
+    const path = E('path', { d: draw(), fill: 'none', stroke: 'var(--trace)', 'stroke-width': 1.6, 'stroke-linejoin': 'round', 'data-base': base }, tr);
+    const marks = E('g', {}, tr);
+    if (s.m) {
+      const xo = X0 + s.m.onset * ppm;
+      E('line', { x1: xo, x2: xo, y1: base + 2, y2: base + 9, stroke: 'var(--accent)', 'stroke-width': 2 }, marks);
+      E('circle', { cx: X0 + s.m.peakLat * ppm, cy: Math.max(rt + 2, base - s.m.amp * div / g), r: 3, fill: 'var(--accent)' }, marks);
+      // negative-peak duration: onset to the return through baseline
+      const xe = X0 + (s.m.onset + s.m.dur) * ppm;
+      E('path', { d: `M ${xo} ${base + 5} L ${xe} ${base + 5} M ${xe} ${base + 1} L ${xe} ${base + 9}`, stroke: 'var(--accent)', 'stroke-width': 1.5, fill: 'none', opacity: .8 }, marks);
+    }
+    ncs.mtr[k] = { path, marks, draw, m: s.m };
+  });
+  E('line', { id: 'mcursor', x1: 0, x2: 0, y1: top, y2: top + n * rowH, stroke: 'var(--accent)', 'stroke-width': 1.5, visibility: 'hidden' }, svg);
+  E('text', { x: 4, y: H - 6, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g} mV/div · 3 ms/div · tick = onset · dot = negative peak · bar = duration`);
+  ncs.mgeo = { X0, ppm, win };
+}
+
+function drawSnap(res) {
+  const svg = $('splot'), s = res.snap, sr = res.nv.sens.ref;
+  svg.innerHTML = '';
+  const X0 = 8, W = 304, win = 10, ppm = W / win, base = 100, div = 22, g = ncs.sg;
+  for (let i = 0; i <= win; i++) E('line', { x1: X0 + i * ppm, x2: X0 + i * ppm, y1: 10, y2: 118, stroke: 'var(--grid)' }, svg);
+  E('line', { x1: X0, x2: X0 + W, y1: base, y2: base, stroke: 'var(--line)' }, svg);
+  const tr = E('g', {}, svg);
+  const draw = n => pathFrom(n === undefined ? s.y : s.y.slice(0, n), NCS.DT, X0, ppm, base, div / g, 6, 122);
+  const path = E('path', { d: draw(), fill: 'none', stroke: 'var(--trace)', 'stroke-width': 1.6 }, tr);
+  const marks = E('g', {}, tr);
+  if (s.m) {
+    E('line', { x1: X0 + s.m.onset * ppm, x2: X0 + s.m.onset * ppm, y1: base + 2, y2: base + 9, stroke: 'var(--accent)', 'stroke-width': 2 }, marks);
+    E('circle', { cx: X0 + s.m.peakLat * ppm, cy: Math.max(6, base - s.m.amp * div / g), r: 3, fill: 'var(--accent)' }, marks);
+  }
+  ncs.str = { path, marks, draw, m: s.m };
+  E('line', { id: 'scursor', x1: 0, x2: 0, y1: 10, y2: 118, stroke: 'var(--accent)', 'stroke-width': 1.5, visibility: 'hidden' }, svg);
+  E('text', { x: X0, y: 136, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g} µV/div · 1 ms/div · ${res.nv.sens.len / 10} cm antidromic`);
+  ncs.sgeo = { X0, ppm, win };
+  const m = s.m;
+  $('skv').innerHTML = `<dt>${res.nv.sens.name}</dt><dd></dd>` + (m ?
+    `<dt>Amplitude</dt><dd class="${m.amp < sr.amp ? 'bad' : ''}">${fmt(m.amp)} µV</dd><dt>Peak latency</dt><dd class="${m.peakLat > sr.pl ? 'bad' : ''}">${fmt(m.peakLat, 2)} ms</dd><dt>Velocity</dt><dd class="${m.cv < sr.cv ? 'bad' : ''}">${fmt(m.cv, 0)} m/s</dd>` :
+    `<dt>Response</dt><dd class="bad">absent</dd>`) + `<dt>Reference</dt><dd>≥${sr.amp} µV · ≤${sr.pl} ms · ≥${sr.cv} m/s</dd>`;
+}
+$('sstim').onclick = () => startPulse('sens');
+
+// ---------- slow-motion impulses ----------
+// Each representative axon's impulse moves segment by segment with that axon's own latency,
+// both orthodromically (to the recording electrode) and antidromically (towards the cord).
+// A block stops it mid-segment. From the wrist, two motor axons send an F wave back.
+const SLOW = { motor: 110, sens: 300 }; // real ms per simulated ms
+let anim = null, anim_mini = null;
+function nominal(ax, s) { return s.len / (ax.cv * (s.mult || 1)); }
+function startPulse(kind, k) {
+  if (anim) endPulse();
+  const G = ncs.geo, nv = ncs.res.nv, n = nv.segs.length;
+  const paths = [];
+  let arrive = Infinity, tEnd;
+  if (kind === 'motor') {
+    const sx = G.siteX(k);
+    G.reps.forEach(({ ax, y, rep }, ri) => {
+      const st = rep.st;
+      if (rep.lost || !st) return;
+      // orthodromic
+      let t = 0, pts = [[0, sx]], stop = null;
+      for (let j = k - 1; j >= 0; j--) {
+        const s = G.byJ(j);
+        if (st.seg[j] === Infinity) { const tm = nominal(ax, s) / 2; t += tm; pts.push([t, (s.x0 + s.x1) / 2]); stop = true; break; }
+        t += st.seg[j]; pts.push([t, s.x1]);
+      }
+      // terminal branches and neuromuscular transmission take the residual latency: the impulse
+      // crawls into the muscle box over that time, arriving exactly as this axon's response begins
+      if (!stop) { pts.push([t + st.resid, 900]); arrive = Math.min(arrive, t + st.resid); }
+      paths.push({ pts, y, stop, col: '#ffb000' });
+      // antidromic
+      t = 0; pts = [[0, sx]]; stop = null;
+      for (let j = k; j < n; j++) {
+        const s = G.byJ(j);
+        if (st.seg[j] === Infinity) { const tm = nominal(ax, s) / 2; t += tm; pts.push([t, (s.x0 + s.x1) / 2]); stop = true; break; }
+        t += st.seg[j]; pts.push([t, s.x0]);
+      }
+      if (!stop) pts.push([t + 0.2, 80]);
+      paths.push({ pts, y, stop, col: '#ffb000', faint: true });
+      // F wave: the anterior horn cell re-fires and the impulse runs all the way back
+      if (k === 1 && !stop && (ri === 2 || ri === 5)) {
+        let tf = t + 0.2 + 1.0; const fp = [[tf, 80]];
+        for (let j = n - 1; j >= 0; j--) { const s = G.byJ(j); tf += st.seg[j]; fp.push([tf, s.x1]); }
+        fp.push([tf + st.resid, 900]);
+        paths.push({ pts: fp, y, stop: false, col: '#b26bff', delay: true });
+      }
+    });
+    tEnd = nv.window;
+    for (const pth of paths) tEnd = Math.max(tEnd, pth.pts[pth.pts.length - 1][0] + (pth.stop ? 3 : 1));
+  } else {
+    const sx = G.siteX(1), wrist = G.byJ(0);
+    G.sreps.forEach(({ ax, y, rep }) => {
+      if (rep.lost || rep.deg) return; // nothing left to conduct at the wrist
+      const L = rep.L;
+      if (L !== null) { paths.push({ pts: [[0, sx], [L * 0.96, wrist.x1], [L, 884]], y, stop: false, col: '#ffb000' }); arrive = Math.min(arrive, L); }
+      else if (!rep.deg) paths.push({ pts: [[0, sx], [nv.sens.len / ax.cv / 2, (wrist.x0 + wrist.x1) / 2]], y, stop: true, col: '#ffb000' });
+      // antidromic towards the DRG (sensory slowing proximal to the wrist is not modelled)
+      let t = 0, stop = false; const pts = [[0, sx]];
+      for (let j = 1; j < n; j++) {
+        const s = G.byJ(j);
+        if (s.id === 'root') break;
+        if (rep.segs[j].kind === 'cut') { t += s.len / ax.cv / 2; pts.push([t, (s.x0 + s.x1) / 2]); stop = true; break; }
+        t += s.len / ax.cv; pts.push([t, s.x0]);
+      }
+      paths.push({ pts, y, stop, col: '#ffb000', faint: true });
+    });
+    tEnd = 10;
+    for (const pth of paths) tEnd = Math.max(tEnd, pth.pts[pth.pts.length - 1][0] + (pth.stop ? 3 : 0.5));
+  }
+  const layer = $('pulses'); layer.innerHTML = '';
+  for (const pth of paths) {
+    pth.dot = E('circle', { r: pth.faint ? 3.5 : 5, cy: pth.y, cx: pth.pts[0][1], fill: pth.col, stroke: '#7a4b00', 'stroke-width': 1, opacity: 0 }, layer);
+    if (pth.stop) { const last = pth.pts[pth.pts.length - 1]; pth.flash = E('circle', { cx: last[1], cy: pth.y, r: 6, fill: 'none', stroke: 'var(--lesion)', 'stroke-width': 2.5, opacity: 0 }, layer); pth.tStop = last[0]; }
+  }
+  anim = { kind, k, paths, arrive, tEnd, start: performance.now(), slow: SLOW[kind] };
+  // live mini-trace on the nerve picture, so the response builds where you are looking
+  const nsvg = $('nerve'), old = $('mini'); if (old) old.remove();
+  const mini = E('g', { id: 'mini', 'pointer-events': 'none' }, nsvg);
+  // drawn inside the recording site itself: the muscle box for a CMAP, the digit box for a SNAP
+  const box = kind === 'motor' ? { x: 876, y: 70, w: 100, h: 142, base: 196 } : { x: 876, y: 236, w: 100, h: 64, base: 292 };
+  E('rect', { x: box.x, y: box.y, width: box.w, height: box.h, rx: 10, fill: 'var(--panel)', stroke: 'var(--accent)', 'stroke-width': 1.5 }, mini);
+  E('line', { x1: box.x + 4, x2: box.x + box.w - 4, y1: box.base, y2: box.base, stroke: 'var(--line)' }, mini);
+  E('text', { x: box.x + box.w - 6, y: box.y + 15, 'text-anchor': 'end', 'font-size': 11.5, fill: 'var(--muted)' }, mini, kind === 'motor' ? 'CMAP' : 'SNAP');
+  const src = kind === 'motor' ? ncs.res.sites[k - 1].y : ncs.res.snap.y, win = kind === 'motor' ? ncs.res.nv.window : 10;
+  const ref = kind === 'motor' ? ncs.res.nv.cmapTarget : ncs.res.nv.snapTarget; // healthy size fills the box
+  const mpath = E('path', { fill: 'none', stroke: 'var(--trace)', 'stroke-width': 1.6 }, mini);
+  // from the wrist the mini trace runs long enough to catch the F wave, drawn at 20x the gain
+  // after 18 ms (as an F-wave recording does), with the M wave left at its own scale
+  const fArr = kind === 'motor' && k === 1 ? anim.paths.filter(q => q.col === '#b26bff').map(q => q.pts[q.pts.length - 1][0]) : [];
+  anim.fArr = fArr;
+  const mwin = fArr.length ? Math.max(win, Math.max(...fArr) + 6) : win;
+  let fy = null;
+  if (fArr.length) { const N = Math.round(mwin / NCS.DT); fy = new Float64Array(N); for (const fa of fArr) for (let i = Math.max(0, Math.floor(fa / NCS.DT)); i < N && i * NCS.DT - fa < 14; i++) fy[i] += NCS.motorUnitWave(i * NCS.DT - fa); }
+  const fpath = fy ? E('path', { fill: 'none', stroke: '#8a4fd6', 'stroke-width': 1.6 }, mini) : null;
+  const flab = fy ? E('text', { x: 0, y: box.y + 30, 'font-size': 11.5, 'font-weight': 700, fill: '#8a4fd6', visibility: 'hidden' }, mini, 'F') : null;
+  anim_mini = { mpath, src, win: mwin, box, scale: (kind === 'motor' ? 95 : 40) / ref, fy, fpath, flab };
+  if (fArr.length) { // marker on the wrist row of the main traces, and a cursor across the F-wave panel
+    const R = ncs.mtr[0], g = ncs.mgeo, fa = Math.min(...fArr), xf = g.X0 + Math.min(fa, g.win - 0.5) * g.ppm;
+    const by = +R.path.getAttribute('data-base');
+    anim.fmark = E('g', { visibility: 'hidden' }, R.path.parentNode);
+    E('line', { x1: xf, x2: xf, y1: by - 22, y2: by + 4, stroke: '#8a4fd6', 'stroke-width': 2 }, anim.fmark);
+    E('text', { x: xf - 4, y: by - 12, 'text-anchor': 'end', 'font-size': 12, 'font-weight': 700, fill: '#8a4fd6' }, anim.fmark, fa > g.win ? `F wave at ${fmt(fa)} ms →` : `F wave ${fmt(fa)} ms`);
+  }
+  const rows = ncs.res.sites.length;
+  for (let r = 0; r < rows; r++) $('mrow' + r).setAttribute('opacity', kind === 'motor' && r !== k - 1 ? .3 : 1);
+  requestAnimationFrame(stepPulse);
+}
+function stepPulse() {
+  if (!anim) return;
+  const a = anim, t = (performance.now() - a.start) / a.slow;
+  for (const p of a.paths) {
+    const pts = p.pts, last = pts[pts.length - 1];
+    if (t < pts[0][0] || t > last[0]) p.dot.setAttribute('opacity', 0);
+    else {
+      let i = 1; while (i < pts.length - 1 && pts[i][0] < t) i++;
+      const [t0, x0] = pts[i - 1], [t1, x1] = pts[i];
+      p.dot.setAttribute('cx', x0 + (x1 - x0) * Math.min(1, (t - t0) / Math.max(1e-6, t1 - t0)));
+      p.dot.setAttribute('opacity', p.faint ? .6 : 1);
+    }
+    if (p.flash) { const d = t - p.tStop; p.flash.setAttribute('opacity', d > 0 && d < 3 ? 1 - d / 3 : 0); p.flash.setAttribute('r', 6 + Math.max(0, d) * 4); }
+  }
+  const target = a.kind === 'motor' ? $('musc') : $('digit');
+  const resp = t > a.arrive && t < a.arrive + 6;
+  target.setAttribute('stroke', resp ? 'var(--accent)' : 'var(--line)'); target.setAttribute('stroke-width', resp ? 3 : 1);
+  // build the trace as simulated time passes
+  const nPts = Math.max(1, Math.round(Math.min(t, a.kind === 'motor' ? ncs.mgeo.win : 10) / NCS.DT));
+  const R = a.kind === 'motor' ? ncs.mtr[a.k - 1] : ncs.str;
+  R.path.setAttribute('d', R.draw(nPts)); R.marks.setAttribute('visibility', R.m && t > R.m.peakLat ? 'visible' : 'hidden');
+  if (anim_mini) {
+    const M = anim_mini, ppmM = (M.box.w - 8) / M.win, tM = Math.min(t, M.win), nAll = Math.round(tM / NCS.DT);
+    const mEnd = M.fy ? Math.round(18 / NCS.DT) : M.src.length;
+    M.mpath.setAttribute('d', pathFrom(M.src.slice(0, Math.min(nAll, mEnd, M.src.length)), NCS.DT, M.box.x + 4, ppmM, M.box.base, M.scale, M.box.y + 2, M.box.y + M.box.h - 2, 2));
+    if (M.fy && nAll > mEnd) {
+      const seg = M.fy.slice(mEnd, nAll);
+      M.fpath.setAttribute('d', pathFrom(seg, NCS.DT, M.box.x + 4 + 18 * ppmM, ppmM, M.box.base, 22, M.box.y + 2, M.box.y + M.box.h - 2, 2));
+    }
+    if (M.flab && t >= Math.min(...a.fArr)) { M.flab.setAttribute('x', M.box.x + 4 + Math.min(...a.fArr) * ppmM - 3); M.flab.setAttribute('visibility', 'visible'); }
+  }
+  if (a.fArr && a.fArr.length) {
+    if (a.fmark) a.fmark.setAttribute('visibility', t >= Math.min(...a.fArr) ? 'visible' : 'hidden');
+    const fc = $('fcursor'); if (fc) { const x = 8 + Math.min(t, 60) * 304 / 60; fc.setAttribute('x1', x); fc.setAttribute('x2', x); fc.setAttribute('visibility', t <= 60 ? 'visible' : 'hidden'); }
+  }
+  if (a.kind === 'motor') {
+    const g = ncs.mgeo, xc = g.X0 + Math.min(t, g.win) * g.ppm;
+    const cur = $('mcursor'); cur.setAttribute('x1', xc); cur.setAttribute('x2', xc); cur.setAttribute('visibility', t <= g.win ? 'visible' : 'hidden');
+  } else {
+    const g = ncs.sgeo, xc = g.X0 + Math.min(t, g.win) * g.ppm;
+    const cur = $('scursor'); cur.setAttribute('x1', xc); cur.setAttribute('x2', xc); cur.setAttribute('visibility', t <= g.win ? 'visible' : 'hidden');
+  }
+  $('simclock').textContent = `${a.kind === 'motor' ? 'Stimulating at ' + ncs.res.nv.sites[a.k - 1].name : 'Sensory stimulation at the wrist'} · t = ${fmt(Math.min(t, a.tEnd))} ms (slowed ${a.slow}×)`;
+  if (t > a.tEnd) { endPulse(); return; }
+  requestAnimationFrame(stepPulse);
+}
+function endPulse() {
+  if (!anim) return;
+  const a = anim; anim = null;
+  for (const p of a.paths) { p.dot.setAttribute('opacity', 0); if (p.flash) p.flash.setAttribute('opacity', 0); }
+  const fc = $('fcursor'); if (fc) fc.setAttribute('visibility', 'hidden');
+  for (let r = 0; r < ncs.res.sites.length; r++) { $('mrow' + r).setAttribute('opacity', 1); const R = ncs.mtr[r]; R.path.setAttribute('d', R.draw()); R.marks.setAttribute('visibility', 'visible'); }
+  ncs.str.path.setAttribute('d', ncs.str.draw()); ncs.str.marks.setAttribute('visibility', 'visible');
+  $('mcursor').setAttribute('visibility', 'hidden'); $('scursor').setAttribute('visibility', 'hidden');
+  setTimeout(() => { if (!anim) { const l = $('pulses'); if (l) l.innerHTML = ''; $('simclock').textContent = ''; const m = $('mini'); if (m) m.remove(); anim_mini = null; } }, 2500);
+}
+
+function ncsTables(res, it) {
+  const nv = res.nv, ref = nv.ref, tb = $('mtab').querySelector('tbody');
+  tb.innerHTML = res.sites.map((s, k) => {
+    const m = s.m, sc = k ? res.segCv[k - 1] : null;
+    const latCls = k === 0 && m && m.onset > ref.dl ? (m.onset > 1.3 * ref.dl ? 'bad dm' : 'bad') : '';
+    const ampCls = k === 0 && (!m || m.amp < ref.amp) ? 'bad' : '';
+    const cvCls = sc && sc.cv !== null && sc.cv < ref.cv ? (sc.cv < 0.75 * ref.cv ? 'bad dm' : 'bad') : '';
+    const dropCls = sc && sc.drop !== null && sc.drop >= 0.3 ? 'bad' : '';
+    const durCls = sc && sc.durInc !== null && sc.durInc > 0.3 ? 'bad' : '';
+    return `<tr><td>${s.site.name}</td><td class="n ${latCls}">${m ? fmt(m.onset) + ' ms' : 'NR'}</td><td class="n ${ampCls}">${m ? fmt(m.amp) + ' mV' : '—'}</td><td class="n">${m ? fmt(m.dur) + ' ms' : '—'}</td>` +
+      `<td class="n ${cvCls}">${sc ? (sc.cv !== null ? fmt(sc.cv, 0) + ' m/s' : '—') : ''}</td><td class="n ${dropCls}">${sc && sc.drop !== null ? Math.round(sc.drop * 100) + '%' : ''}</td><td class="n ${durCls}">${sc && sc.durInc !== null ? (sc.durInc >= 0 ? '+' : '') + Math.round(sc.durInc * 100) + '%' : ''}</td></tr>`;
+  }).join('');
+  $('mref').innerHTML = `Reference: amp ≥${ref.amp} mV · distal latency ≤${ref.dl} ms · CV ≥${ref.cv} m/s · F ≤${ref.f} ms.`;
+}
+
+function drawF(res) {
+  const svg = $('fplot'), f = res.f, nv = res.nv;
+  svg.innerHTML = '';
+  const X0 = 8, W = 304, win = 60, ppm = W / win, rowH = 20.5, top = 8, g = 0.1, div = 14, FAMP = 2.5;
+  for (let i = 0; i <= win; i += 5) E('line', { x1: X0 + i * ppm, x2: X0 + i * ppm, y1: top, y2: top + f.n * rowH, stroke: 'var(--grid)' }, svg);
+  const M = res.sites[0].y, dt = 0.05, N = Math.round(win / dt);
+  f.trials.forEach((tr, k) => {
+    const base = top + k * rowH + 14, y = new Float64Array(N);
+    const mw = new Float64Array(N), mmax = Math.max(1e-6, ...M);
+    for (let i = 0; i < N; i++) { const t = i * dt, j = Math.round(t / NCS.DT); mw[i] = j < M.length ? M[j] / mmax : 0; }
+    for (const [L, a] of tr) for (let i = Math.max(0, Math.floor(L / dt)); i < N && i * dt - L < 14; i++) y[i] += FAMP * a * NCS.motorUnitWave(i * dt - L);
+    const iM = Math.round(18 / dt);
+    E('path', { d: pathFrom(mw.slice(0, iM), dt, X0, ppm, base, 11), fill: 'none', stroke: 'var(--muted)', 'stroke-width': 1 }, svg);
+    E('path', { d: pathFrom(y.slice(iM), dt, X0 + 18 * ppm, ppm, base, div / g, base - rowH + 1, base + 6), fill: 'none', stroke: 'var(--trace)', 'stroke-width': 1.3 }, svg);
+  });
+  const ux = X0 + nv.ref.f * ppm;
+  E('line', { x1: ux, x2: ux, y1: top, y2: top + f.n * rowH, stroke: 'var(--lesion)', 'stroke-dasharray': '3 3', opacity: .8 }, svg);
+  E('text', { x: ux + 3, y: top + f.n * rowH + 15, 'font-size': 13, fill: 'var(--lesion)' }, svg, 'ULN');
+  if (f.min !== null) {
+    const mx = X0 + f.min * ppm;
+    E('line', { x1: mx, x2: mx, y1: top, y2: top + f.n * rowH, stroke: 'var(--accent)', 'stroke-width': 1.5 }, svg);
+    E('text', { x: mx - 3, y: top + f.n * rowH + 15, 'text-anchor': 'end', 'font-size': 13, fill: 'var(--accent)' }, svg, 'min');
+  }
+  E('text', { x: X0, y: 296, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g} mV/div · 5 ms/div · M wave grey`);
+  E('line', { id: 'fcursor', x1: 0, x2: 0, y1: top, y2: top + f.n * rowH, stroke: '#8a4fd6', 'stroke-width': 2, visibility: 'hidden' }, svg);
+  const ref = nv.ref.f, lat = f.min;
+  $('fkv').innerHTML = `<dt>Minimum latency</dt><dd class="${lat === null || lat > ref ? 'bad' : ''}">${lat === null ? 'absent' : fmt(lat) + ' ms'}</dd><dt>Persistence</dt><dd class="${f.persist < f.n / 2 ? 'bad' : ''}">${f.persist}/${f.n}</dd><dt>Reference</dt><dd>≤${ref} ms</dd>`;
+}
+
+function ncsInterp(res, it) {
+  $('ncs-verdict').textContent = it.pattern;
+  $('ncs-warn').innerHTML = it.warn ? `<div class="warnbox">${it.warn}</div>` : '';
+  let h = `<div><b>Motor criteria met in this nerve:</b>`; /* explanation lives in the Guide */
+  h += it.ean.length ? `<ul>${it.ean.map(x => `<li>${x}</li>`).join('')}</ul>` : ' none.';
+  h += `</div><p class="note">Single nerve only; the criteria need two. <button class="lb" type="button" data-open="g-traces">How the criteria are applied</button></p>`;
+  $('ncs-interp').innerHTML = h;
+}
+
+function ncsRefresh() {
+  if (anim) { anim = null; }
+  const res = NCS.run(ncs.p), it = NCS.interpret(res, ncs.p);
+  ncs.res = res;
+  drawNerve(res); drawMotor(res); drawF(res); drawSnap(res); ncsTables(res, it); ncsInterp(res, it);
+  for (const b of pres.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.id === ncs.preset));
+  const pr = NCS_PRESETS.find(x => x.id === ncs.preset);
+  $('ncs-desc').innerHTML = pr ? pr.text : '<b>Custom combination.</b> Compare the waveforms, the table and the interpretation. Click a scenario to reset.';
+}
+syncNcsControls(); ncsRefresh();
+
+// ===================== NEEDLE EMG =====================
+const WEEKS = [0, 0.5, 1, 2, 3, 4, 6, 8, 10, 13, 17, 22, 26, 39, 52, 78, 104];
+const WLAB = ['day 0', 'day 3', 'week 1', 'week 2', 'week 3', 'week 4', 'week 6', 'week 8', 'week 10', 'month 3', 'month 4', 'month 5', 'month 6', 'month 9', '1 year', '18 months', '2 years'];
+const EMG_PRESETS = [
+  { id: 'normal', group: 'Reference', name: 'Normal', text: '<b>Normal muscle.</b> Fibres of about 40 motor units are intermingled (a mosaic). At rest the screen is silent. With minimal effort a few small units fire at 5–10 Hz, and a second unit joins before the first passes about 10 Hz. At full effort the baseline disappears (full interference pattern).' },
+  { id: 'ax1', group: 'Axon loss over time', name: 'Week 1', set: { loss: .6 }, t: 2, text: '<b>Partial axon loss, week 1.</b> 60% of motor units have lost their axon. Their fibres (dark, angular) are denervated but do not fibrillate yet. The only finding is reduced recruitment: fewer units, each firing faster. Conduction block gives the same picture, so timing matters.' },
+  { id: 'ax4', group: 'Axon loss over time', name: 'Week 4', set: { loss: .6 }, t: 5, text: '<b>Partial axon loss, week 4.</b> Denervated fibres now fire on their own: fibrillation potentials and positive sharp waves at rest. Surviving units still look normal because sprouting has barely started. Recruitment is reduced.' },
+  { id: 'ax13', group: 'Axon loss over time', name: 'Month 3', set: { loss: .6 }, t: 9, text: '<b>Partial axon loss, month 3.</b> Surviving units are adopting orphaned fibres through collateral sprouts. New sprouts conduct slowly and unreliably, so units become longer, polyphasic and unstable between discharges (compare the six superimposed sweeps). Fibrillations fall as fibres are reinnervated.' },
+  { id: 'ax52', group: 'Axon loss over time', name: '1 year (reinnervated)', set: { loss: .6 }, t: 14, text: '<b>Old axon loss, reinnervation complete (1 year).</b> No fibrillations; units are large, long-duration and stable; recruitment is reduced. Switch the cross-section to "Fibre type" to see fibre-type grouping, the biopsy correlate.' },
+  { id: 'complete', group: 'Axon loss over time', name: 'Complete, week 4', set: { loss: 1 }, t: 5, text: '<b>Complete denervation, week 4.</b> Fibrillations everywhere and no voluntary units. With no surviving units nearby, collateral sprouting cannot happen; recovery depends on axons regrowing from the lesion, which first appear as small, polyphasic "nascent" units (not modelled).' },
+  { id: 'block', group: 'Other neurogenic', name: 'Conduction block', set: { block: .6 }, t: 5, text: '<b>Conduction block (neurapraxia or demyelination), week 4.</b> Blocked units cannot be recruited, but their axons and fibres are intact: no fibrillations, normal units, reduced recruitment. Compare with axon loss at week 4.' },
+  { id: 'mnd', group: 'Other neurogenic', name: 'Motor neuron disease', set: { loss: .75, ongoing: true }, t: 13, text: '<b>Motor neuron disease.</b> Units are lost continuously, so active denervation (fibrillations, positive sharp waves) coexists with reinnervation (large units) and immature, unstable sprouts. Fasciculations appear at rest. When an enlarged unit dies, its whole group of fibres atrophies together (grouped atrophy).' },
+  { id: 'myo', group: 'Muscle', name: 'Myopathy', set: { myo: .45 }, text: '<b>Chronic myopathy without necrosis</b> (e.g., a dystrophy). Fibres are lost at random from every unit and the survivors vary in size. Each unit has fewer fibres, so potentials are small, short and polyphasic, and more units must fire for a given force (early recruitment). No fibrillations.' },
+  { id: 'infl', group: 'Muscle', name: 'Inflammatory myopathy', set: { myo: .45, infl: true }, text: '<b>Inflammatory or necrotizing myopathy.</b> The same small, short, polyphasic units with early recruitment, plus fibrillations: necrosis separates fibre segments from their end-plate, and those segments behave like denervated fibres.' },
+  { id: 'dm1', group: 'Muscle', name: 'Myotonic dystrophy', set: { myo: .25, myotonia: true }, text: '<b>Myotonic dystrophy type 1.</b> Needle movement provokes myotonic discharges (press Space to re-insert; turn on sound for the revving-engine noise). Units are mildly myopathic, usually most marked in distal muscles.' },
+  { id: 'mc', group: 'Muscle', name: 'Myotonia congenita', set: { myotonia: true }, text: '<b>Myotonia congenita</b> (CLCN1 chloride channel). Needle movement provokes myotonic discharges (press Space to re-insert), with normal motor units: the fibre membrane is hyperexcitable, but fibres are not lost.' }
+];
+const LIB = [
+  { id: null, name: 'From scenario', text: '' },
+  { id: 'fib', name: 'Fibrillation', text: '<b>Fibrillation potential:</b> one denervated muscle fibre firing on its own. Brief (1–5 ms), small (usually 20–200 µV), biphasic or triphasic with an initial positive (downward) phase, and very regular (0.5–15 Hz). Sounds like rain on a tin roof. Seen with denervation and in necrotizing or inflammatory myopathy.' },
+  { id: 'psw', name: 'Positive sharp wave', text: '<b>Positive sharp wave:</b> same generator as a fibrillation. The needle has injured the fibre, so the action potential reaches but does not pass the tip: a sharp positive (downward) deflection with a slow negative return. Regular; same significance as fibrillations.' },
+  { id: 'fasc', name: 'Fasciculation', text: '<b>Fasciculation potential:</b> spontaneous discharge of a whole motor unit, arising anywhere along the motor neuron or its axon. Motor unit shape, irregular, slow. Common in healthy people; in motor neuron disease and other neurogenic disorders they occur with other signs of denervation.' },
+  { id: 'myot', name: 'Myotonic discharge', text: '<b>Myotonic discharge:</b> single fibres firing repeatedly because the membrane is unstable (chloride or sodium channel dysfunction). Fibrillation- or positive-wave-shaped spikes whose rate and amplitude wax and wane (roughly 20–150 Hz). Sounds like a revving engine or dive bomber. Myotonic dystrophy, myotonia congenita, paramyotonia; also some myopathies.' },
+  { id: 'crd', name: 'Complex repetitive discharge', text: '<b>Complex repetitive discharge:</b> a group of adjacent fibres in which one fibre drives its neighbours (ephaptic transmission) and the loop re-excites itself. The loop time sets a fixed rate (roughly 5–100 Hz), so the same complex repeats identically; it starts and stops abruptly. If a fibre drops out of the loop, the shape and rate change in one step (here at about 0.95 s). Sounds like a machine. Chronic neurogenic or myopathic disorders.' },
+  { id: 'myok', name: 'Myokymic discharge', text: '<b>Myokymic discharge:</b> bursts of the same motor unit firing repeatedly, the bursts recurring in a regular rhythm. Sounds like marching soldiers. Radiation plexopathy; facial myokymia with brainstem lesions (multiple sclerosis, tumour) or Guillain–Barré syndrome.' }
+];
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const em = { p: EMG.defaults(), ti: 0, preset: 'normal', mode: 'rest', effort: 0.05, lib: null, sel: null, color: 'sel', sound: false, paused: REDUCED };
+let emgVisible = false, emgReady = false, S = null, SM = null, REF = null, refKey = '';
+let restSig = null, actSig = null, curSig = null, xsBase = null, unitInfoCur = null, ins = null;
+
+const ep = $('emg-presets');
+presetGroups(ep, EMG_PRESETS, id => applyEmgPreset(id));
+const libEl = $('lib');
+for (const L of LIB) { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = L.name; b.dataset.id = L.id || ''; b.onclick = () => { em.lib = L.id; em.mode = 'rest'; syncEmgControls(); computeSignals(); }; libEl.appendChild(b); }
+
+function applyEmgPreset(id) {
+  const pr = EMG_PRESETS.find(x => x.id === id), nx = em.p.nx, ny = em.p.ny;
+  em.p = Object.assign(EMG.defaults(), pr.set || {}, { nx, ny });
+  em.ti = pr.t || 0; em.preset = id; em.lib = null; em.sel = null;
+  syncEmgControls(); emgUpdate(true);
+}
+function emgCustom() { em.preset = 'custom'; }
+const emgUpdateSoon = debounce(() => emgUpdate(), 120);
+const insertSoon = debounce(() => emgUpdate(true), 150);
+function bindE(id, out, get, set, f) {
+  const el = $(id);
+  el.addEventListener('input', () => { set(+el.value); $(out).textContent = f(+el.value); emgCustom(); syncPresetButtons(); emgUpdateSoon(); });
+  return () => { el.value = get(); $(out).textContent = f(get()); };
+}
+const esync = [
+  bindE('e-loss', 'o-eloss', () => em.p.loss, v => em.p.loss = v, pct),
+  bindE('e-block', 'o-eblock', () => em.p.block, v => em.p.block = v, pct),
+  bindE('e-time', 'o-etime', () => em.ti, v => em.ti = v, v => WLAB[v]),
+  bindE('e-myo', 'o-emyo', () => em.p.myo, v => em.p.myo = v, pct)
+];
+for (const [id, k] of [['e-ongoing', 'ongoing'], ['e-infl', 'infl'], ['e-myot', 'myotonia']]) $(id).onchange = e => { em.p[k] = e.target.checked; emgCustom(); syncPresetButtons(); emgUpdate(); };
+const effEl = $('e-effort');
+effEl.addEventListener('input', () => { em.effort = +effEl.value; $('o-effort').textContent = pct(em.effort); actSoon(); });
+const actSoon = debounce(() => { if (S) { actSig = EMG.activeSignal(S, em.effort, 2); if (em.mode === 'act') useSignal(actSig); } }, 80);
+for (const [id, m] of [['m-rest', 'rest'], ['m-act', 'act']]) $(id).onclick = () => { em.mode = m; ins = null; syncEmgControls(); useSignal(m === 'act' ? actSig : restSig); };
+for (const [id, c] of [['xc-sel', 'sel'], ['xc-unit', 'unit'], ['xc-type', 'type']]) $(id).onclick = () => { em.color = c; syncEmgControls(); renderXsBase(); };
+$('pause').onclick = () => { em.paused = !em.paused; if (!em.paused) clock.resume(); else clock.pause(); syncEmgControls(); };
+$('snd').onclick = () => { em.sound = !em.sound; syncEmgControls(); if (em.sound) audio.start(curSig); else audio.stop(); };
+
+function syncPresetButtons() { for (const b of ep.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.id === em.preset)); }
+function syncEmgControls() {
+  esync.forEach(f => f());
+  $('e-ongoing').checked = em.p.ongoing; $('e-infl').checked = em.p.infl; $('e-myot').checked = em.p.myotonia;
+  effEl.value = em.effort; $('o-effort').textContent = pct(em.effort);
+  $('m-rest').setAttribute('aria-pressed', String(em.mode === 'rest')); $('m-act').setAttribute('aria-pressed', String(em.mode === 'act'));
+  for (const c of ['sel', 'unit', 'type']) $('xc-' + c).setAttribute('aria-pressed', String(em.color === c));
+  $('effortrow').classList.toggle('hidden', em.mode !== 'act');
+  $('librow').classList.toggle('hidden', em.mode !== 'rest');
+  $('pause').textContent = em.paused ? 'Play' : 'Pause'; $('pause').setAttribute('aria-pressed', String(em.paused));
+  $('snd').textContent = em.sound ? '🔊 Sound on' : '🔈 Sound off'; $('snd').setAttribute('aria-pressed', String(em.sound));
+  for (const b of libEl.children) b.setAttribute('aria-pressed', String((b.dataset.id || null) === em.lib));
+  $('libdesc').innerHTML = LIB.find(L => L.id === em.lib).text;
+  syncPresetButtons();
+  const pr = EMG_PRESETS.find(x => x.id === em.preset);
+  $('emg-desc').innerHTML = pr ? pr.text : '<b>Custom combination.</b> Read the screen, the motor unit potential and the summary together. Click a scenario to reset.';
+}
+
+function emgUpdate(insert) {
+  em.p.weeks = WEEKS[em.ti];
+  S = EMG.state(em.p);
+  SM = EMG.summary(S);
+  const key = em.p.nx.toFixed(2) + ',' + em.p.ny.toFixed(2);
+  if (key !== refKey) {
+    const RS = EMG.state(Object.assign(EMG.defaults(), { nx: em.p.nx, ny: em.p.ny }));
+    REF = EMG.summary(RS); REF.maxVis = EMG.recruit(RS, 1).firing.filter(x => REF.vis.some(v => v.u === x.u)).length; REF.S = RS; refKey = key;
+  }
+  // compare each sampled unit with the same unit in normal muscle, so sampling bias does not masquerade as change
+  const same = SM.infos.map(i => EMG.unitInfo(REF.S, i.u)).filter(i => i.m);
+  SM.refAmp = same.length ? same.reduce((s, i) => s + i.m.pp, 0) / same.length : REF.amp;
+  SM.refDur = same.length ? same.reduce((s, i) => s + i.m.dur, 0) / same.length : REF.dur;
+  SM.refPoly = same.length ? same.filter(i => i.m.phases > 4).length / same.length : REF.poly;
+  const visIds = SM.vis.filter(v => !S.blocked[v.u]).map(v => v.u);
+  // keep the chosen unit wherever the needle goes; re-pick only if it has been lost or blocked
+  const selGone = em.sel === null || S.lostAt[em.sel] <= S.T || S.blocked[em.sel] || !S.F.some(s => s.owner === em.sel && !s.dead);
+  if (selGone) {
+    const byAmp = SM.infos.slice(0, 5).sort((x, y) => x.m.pp - y.m.pp);
+    em.sel = byAmp.length ? byAmp[Math.floor(byAmp.length / 2)].u : (visIds[0] ?? null);
+  }
+  unitInfoCur = em.sel !== null ? EMG.unitInfo(S, em.sel) : null;
+  renderXsBase(); drawMuap(); emgTable();
+  computeSignals(insert);
+}
+function computeSignals(insert) {
+  if (!S) return;
+  restSig = EMG.restSignal(S, 2, em.lib);
+  actSig = EMG.activeSignal(S, em.effort, 2);
+  ins = null;
+  if (insert && !em.lib && em.mode === 'rest') {
+    const t = (clock.now() + 15) % 2000, sig = EMG.restSignal(S, 2, null, t);
+    ins = { sig, left: sig.insLen + 60, last: clock.now() };
+    useSignal(sig);
+  } else useSignal(em.mode === 'act' ? actSig : restSig);
+  syncEmgControls();
+}
+// Space / button: advance the needle a short way in a random direction and re-insert
+function insertNeedle() {
+  touched = true;
+  const a = Math.random() * Math.PI * 2, d = 0.1 + Math.random() * 0.1;
+  em.p.nx = Math.max(0.15, Math.min(EMG.W - 0.15, em.p.nx + Math.cos(a) * d));
+  em.p.ny = Math.max(0.15, Math.min(EMG.H - 0.15, em.p.ny + Math.sin(a) * d));
+  if (em.lib) em.lib = null;
+  emgUpdate(true);
+}
+$('ins').onclick = () => insertNeedle();
+const isTyping = t => t && (t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && !['range', 'checkbox'].includes(t.type)));
+document.addEventListener('keydown', e => {
+  if (!emgVisible || e.key !== ' ' || isTyping(e.target) || e.ctrlKey || e.metaKey || e.altKey || $('guide').open) return;
+  e.preventDefault();
+  if (!e.repeat) insertNeedle();
+}, true);
+// stop Space from also clicking a focused button or toggling a focused checkbox
+document.addEventListener('keyup', e => { if (emgVisible && e.key === ' ' && !isTyping(e.target) && !$('guide').open) e.preventDefault(); }, true);
+
+// ---------- cross-section ----------
+const xs = $('xs'), xctx = xs.getContext('2d'), PXMM = xs.width / EMG.W;
+const shapes = EMG.M.fibres.map((f, i) => { const r = EMG.rng(i * 31 + 7); return Array.from({ length: 7 }, (_, k) => [k / 7 * Math.PI * 2 + (r() - .5) * .5, .88 + r() * .2]); });
+function fibrePath(ctx, f, rad, shape, angular) {
+  ctx.beginPath();
+  const pts = angular ? shape.filter((_, k) => k % 2 === 0) : shape;
+  pts.forEach(([a, k], i) => { const x = f.x * PXMM + Math.cos(a) * rad * k, y = f.y * PXMM + Math.sin(a) * rad * k; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+  ctx.closePath();
+}
+function isDark() { return cssv('--bg').toLowerCase() === '#11151b'; }
+function renderXsBase() {
+  if (!S) return;
+  const c = document.createElement('canvas'); c.width = xs.width; c.height = xs.height;
+  const ctx = c.getContext('2d'), dark = isDark();
+  const BG = dark ? '#241d22' : '#fbf5f1';
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, c.width, c.height);
+  const SEL = dark ? '#6f9bff' : '#1f56c9', NEU = dark ? '#6b5560' : '#e3c4b9', NEUB = dark ? '#3d3338' : '#f0e2dc';
+  EMG.M.fibres.forEach((f, i) => {
+    const s = S.F[i];
+    if (s.dead) return;
+    const rad = s.d / 2 * PXMM * 0.92;
+    let fill;
+    if (s.necrotic) fill = dark ? '#8a4d5a' : '#f3c3cd';
+    else if (s.denervated) fill = dark ? '#5b6270' : '#4c525c';
+    else if (em.color === 'sel') fill = s.owner === em.sel ? SEL : S.blocked[s.owner] ? NEUB : NEU;
+    else if (em.color === 'type') fill = EMG.M.units[s.owner].type === 1 ? (dark ? '#8f7fd0' : '#5d4c9c') : (dark ? '#4a4266' : '#ddd5ef');
+    else { const u = EMG.M.units[s.owner]; fill = S.blocked[s.owner] ? `hsl(${u.hue} 12% ${dark ? 38 : 78}%)` : `hsl(${u.hue} ${dark ? 45 : 58}% ${dark ? 45 : 64}%)`; }
+    fibrePath(ctx, f, s.denervated ? rad * 0.95 : rad, shapes[i], s.denervated);
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.lineWidth = 1.2; ctx.strokeStyle = dark ? 'rgba(0,0,0,.45)' : 'rgba(80,40,40,.25)'; ctx.stroke();
+    if (s.necrotic) { ctx.fillStyle = dark ? '#c9a2ff' : '#5b2a86'; for (let k = 0; k < 4; k++) { const a = k * 1.7 + i; ctx.beginPath(); ctx.arc(f.x * PXMM + Math.cos(a) * rad * .5, f.y * PXMM + Math.sin(a) * rad * .5, 2.6, 0, 7); ctx.fill(); } }
+  });
+  // outline the selected unit in the other colourings
+  if (em.sel !== null && em.color !== 'sel') {
+    ctx.lineWidth = 3.2; ctx.strokeStyle = dark ? '#ffffff' : '#18202b';
+    EMG.M.fibres.forEach((f, i) => { const s = S.F[i]; if (s.owner === em.sel && !s.dead) { fibrePath(ctx, f, s.d / 2 * PXMM * 0.92, shapes[i], false); ctx.stroke(); } });
+  }
+  // scale bar
+  ctx.fillStyle = dark ? 'rgba(17,21,27,.8)' : 'rgba(255,255,255,.85)'; ctx.fillRect(c.width - 60 - PXMM * 0.5, c.height - 76, PXMM * 0.5 + 40, 56);
+  ctx.fillStyle = dark ? '#e6e9ee' : '#18202b'; ctx.fillRect(c.width - 40 - PXMM * 0.5, c.height - 34, PXMM * 0.5, 6);
+  ctx.font = '500 22px "IBM Plex Sans", sans-serif'; ctx.textAlign = 'right'; ctx.fillText('0.5 mm', c.width - 40, c.height - 44);
+  xsBase = c;
+  const lg = $('xs-legend');
+  const sw = (bg, t) => `<span><i class="dot" style="background:${bg}"></i>${t}</span>`;
+  const anyBlocked = S.blocked.some(Boolean);
+  const head = em.color === 'sel' ? sw(SEL, 'Selected motor unit (plotted below)') + sw(NEU, 'Other units') + (anyBlocked ? sw(NEUB, 'Blocked unit') : '')
+    : em.color === 'type' ? sw(dark ? '#8f7fd0' : '#5d4c9c', 'Type 1') + sw(dark ? '#4a4266' : '#ddd5ef', 'Type 2') + '<span>Outlined = selected unit</span>'
+    : '<span>Each colour = one motor unit · outlined = selected unit</span>' + (anyBlocked ? sw(`hsl(200 12% ${dark ? 38 : 78}%)`, 'Blocked unit') : '');
+  lg.innerHTML = head + sw(dark ? '#5b6270' : '#4c525c', 'Denervated (angular)') + sw(dark ? '#8a4d5a' : '#f3c3cd', 'Necrotic') + sw(BG, 'Fibre lost') + '<span>Dashed circle: needle pick-up (≈0.45 mm)</span>';
+}
+function drawXs(play) {
+  if (!xsBase) return;
+  xctx.drawImage(xsBase, 0, 0);
+  // flashes for events in the last 35 ms
+  if (curSig) {
+    const ev = curSig.ev;
+    for (const e of ev) {
+      let dtm = play - e[0];
+      if (dtm < 0) dtm += 2000;
+      if (dtm < 0 || dtm > 35) continue;
+      const a = 1 - dtm / 35;
+      xctx.fillStyle = e[2] === 'muap' || e[2] === 'fasc' || e[2] === 'myok' ? `rgba(255,140,0,${0.9 * a})` : `rgba(255,214,10,${a})`;
+      xctx.strokeStyle = `rgba(60,30,0,${0.6 * a})`; xctx.lineWidth = 2;
+      for (const i of e[1]) { const f = EMG.M.fibres[i], s = S.F[i]; if (!s) continue; fibrePath(xctx, f, (s.d || EMG.D0) / 2 * PXMM * 0.9, shapes[i], false); xctx.fill(); xctx.stroke(); }
+    }
+  }
+  // needle
+  const nx = em.p.nx * PXMM, ny = em.p.ny * PXMM;
+  xctx.setLineDash([10, 8]); xctx.lineWidth = 3; xctx.strokeStyle = isDark() ? 'rgba(255,255,255,.8)' : 'rgba(24,32,43,.75)';
+  xctx.beginPath(); xctx.arc(nx, ny, EMG.PICKUP * PXMM, 0, 7); xctx.stroke(); xctx.setLineDash([]);
+  xctx.fillStyle = '#c3352a'; xctx.beginPath(); xctx.arc(nx, ny, 16, 0, 7); xctx.fill();
+  xctx.lineWidth = 3; xctx.strokeStyle = '#fff'; xctx.stroke();
+  if (!touched) { // first-use hint, gone after the first interaction
+    const t = 'Space: insert needle · drag to move · click a fibre to pick a unit';
+    xctx.font = '600 30px "IBM Plex Sans", sans-serif'; const w = xctx.measureText(t).width + 36;
+    const bx = Math.min(xs.width - w - 16, Math.max(16, nx - w / 2)), by = ny + 40;
+    xctx.fillStyle = 'rgba(24,32,43,.88)'; xctx.beginPath(); xctx.roundRect(bx, by, w, 54, 12); xctx.fill();
+    xctx.fillStyle = '#fff'; xctx.textAlign = 'left'; xctx.fillText(t, bx + 18, by + 37);
+  }
+}
+let drag = false, touched = false;
+function xsPos(e) { const r = xs.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * xs.width, (e.clientY - r.top) / r.height * xs.height]; }
+const nearNeedle = (x, y) => Math.hypot(x - em.p.nx * PXMM, y - em.p.ny * PXMM) < 70;
+xs.addEventListener('pointerdown', e => {
+  const [x, y] = xsPos(e);
+  touched = true;
+  if (nearNeedle(x, y)) { drag = true; xs.style.cursor = 'grabbing'; xs.setPointerCapture(e.pointerId); return; }
+  let best = -1, bd = 1e9;
+  EMG.M.fibres.forEach((f, i) => { const d = Math.hypot(f.x * PXMM - x, f.y * PXMM - y); if (d < bd) { bd = d; best = i; } });
+  if (best >= 0 && bd < 24 && S.F[best].owner >= 0 && !S.F[best].dead) {
+    const u = S.F[best].owner;
+    if (S.blocked[u]) return;
+    em.sel = u; unitInfoCur = EMG.unitInfo(S, u); renderXsBase(); drawMuap();
+  }
+});
+xs.addEventListener('pointermove', e => { const [x, y] = xsPos(e); if (!drag) { xs.style.cursor = nearNeedle(x, y) ? 'grab' : 'pointer'; return; } em.p.nx = Math.max(0.1, Math.min(EMG.W - 0.1, x / PXMM)); em.p.ny = Math.max(0.1, Math.min(EMG.H - 0.1, y / PXMM)); });
+xs.addEventListener('pointerup', () => { if (drag) { drag = false; xs.style.cursor = 'grab'; emgUpdate(true); } });
+xs.addEventListener('keydown', e => {
+  touched = true;
+  if (e.key === 'Enter') { // select the unit of the innervated fibre nearest the needle tip
+    e.preventDefault();
+    let best = -1, bd = 1e9;
+    EMG.M.fibres.forEach((f, i) => { const s = S.F[i]; if (s.owner < 0 || s.dead || S.blocked[s.owner]) return; const d = Math.hypot(f.x - em.p.nx, f.y - em.p.ny); if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { em.sel = S.F[best].owner; unitInfoCur = EMG.unitInfo(S, em.sel); renderXsBase(); drawMuap(); }
+    return;
+  }
+  const d = { ArrowLeft: [-.1, 0], ArrowRight: [.1, 0], ArrowUp: [0, -.1], ArrowDown: [0, .1] }[e.key];
+  if (!d) return; e.preventDefault();
+  em.p.nx = Math.max(0.1, Math.min(EMG.W - 0.1, em.p.nx + d[0])); em.p.ny = Math.max(0.1, Math.min(EMG.H - 0.1, em.p.ny + d[1])); insertSoon();
+});
+xs.tabIndex = 0;
+
+// ---------- scope + audio ----------
+const sweepC = $('sweep'), sctx = sweepC.getContext('2d'), stripC = $('strip'), tctx = stripC.getContext('2d');
+let gain = 0.05, stripBase = null;
+function useSignal(sig) {
+  curSig = sig;
+  if (!sig) return;
+  let mx = 0; for (const v of sig.buf) mx = Math.max(mx, Math.abs(v));
+  if (em.mode === 'rest') gain = em.lib === 'fasc' || em.lib === 'myok' ? 0.2 : 0.05;
+  else gain = pickGain(mx, [0.1, 0.2, 0.5, 1, 2], 3.6);
+  const gl = gain < 1 ? Math.round(gain * 1000) + ' µV/div' : gain + ' mV/div';
+  $('sc-gain').textContent = gl + ' · 10 ms/div'; $('sc-gain2').textContent = gl;
+  if (em.mode === 'act') {
+    const r = sig.rec, vis = SM ? SM.vis.map(v => v.u) : [];
+    const nvis = r.firing.filter(f => vis.includes(f.u)).length;
+    const top = r.firing.slice().sort((a, b) => b.rate - a.rate)[0];
+    $('sc-lbl1').textContent = r.firing.length ? `${nvis} unit${nvis === 1 ? '' : 's'} near the needle firing · fastest ${Math.round(top.rate)} Hz${r.weak ? ' · cannot reach this force' : ''}` : 'No voluntary units';
+  } else $('sc-lbl1').textContent = em.lib ? LIB.find(L => L.id === em.lib).name : (ins && sig === ins.sig ? 'At rest · needle just inserted' : 'At rest');
+  // strip background
+  const c = document.createElement('canvas'); c.width = stripC.width; c.height = stripC.height;
+  const ctx = c.getContext('2d');
+  drawGrid(ctx, c.width, c.height, 10, 4);
+  plotMinMax(ctx, sig.buf, 0, sig.buf.length, c.width, c.height, gain, '#7ef0a2', 4);
+  stripBase = c;
+  if (em.sound) audio.start(sig);
+}
+function drawGrid(ctx, w, h, nx, ny) {
+  ctx.fillStyle = '#0f1a14'; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = '#21352a'; ctx.lineWidth = 1;
+  for (let i = 1; i < nx; i++) { ctx.beginPath(); ctx.moveTo(i * w / nx, 0); ctx.lineTo(i * w / nx, h); ctx.stroke(); }
+  for (let j = 1; j < ny; j++) { ctx.beginPath(); ctx.moveTo(0, j * h / ny); ctx.lineTo(w, j * h / ny); ctx.stroke(); }
+  ctx.strokeStyle = '#2f4a3a'; ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
+}
+// min/max per pixel column; negative up
+function plotMinMax(ctx, buf, i0, i1, w, h, g, col, divsY, xmax) {
+  const n = i1 - i0, per = n / w, mid = h / 2, k = (h / divsY) / g;
+  ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath();
+  const xm = xmax === undefined ? w : xmax;
+  for (let x = 0; x < xm; x++) {
+    const a = i0 + Math.floor(x * per), b = Math.min(i1, i0 + Math.floor((x + 1) * per) + 1);
+    let mn = 1e9, mx = -1e9;
+    for (let i = a; i < b; i++) { const v = buf[i]; if (v < mn) mn = v; if (v > mx) mx = v; }
+    if (mn > mx) continue;
+    const y1 = Math.max(1, Math.min(h - 1, mid - mx * k)), y2 = Math.max(1, Math.min(h - 1, mid - mn * k));
+    if (x === 0) ctx.moveTo(x, y1); else ctx.lineTo(x, y1);
+    ctx.lineTo(x, y2);
+  }
+  ctx.stroke();
+}
+function drawScope(play) {
+  if (!curSig) return;
+  const W = sweepC.width, H = sweepC.height, buf = curSig.buf, FS = EMG.FS;
+  drawGrid(sctx, W, H, 10, 8);
+  const sw = Math.floor(play / 100), x = (play % 100) / 100 * W;
+  const prev = ((sw + 19) % 20) * 100, cur = sw * 100;
+  const n = 100 * FS / 1000;
+  // previous sweep to the right of the beam, current to the left
+  sctx.save(); sctx.beginPath(); sctx.rect(x + 14, 0, W, H); sctx.clip();
+  plotMinMax(sctx, buf, prev * FS / 1000, prev * FS / 1000 + n, W, H, gain, 'rgba(126,240,162,.35)', 8);
+  sctx.restore();
+  plotMinMax(sctx, buf, cur * FS / 1000, cur * FS / 1000 + n, W, H, gain, '#7ef0a2', 8, Math.floor(x));
+  if (stripBase) {
+    tctx.drawImage(stripBase, 0, 0);
+    const px = play / 2000 * stripC.width;
+    tctx.fillStyle = 'rgba(255,255,255,.12)'; tctx.fillRect(px - 0.05 * stripC.width, 0, 0.05 * stripC.width, stripC.height);
+    tctx.strokeStyle = 'rgba(255,255,255,.7)'; tctx.lineWidth = 2; tctx.beginPath(); tctx.moveTo(px, 0); tctx.lineTo(px, stripC.height); tctx.stroke();
+  }
+}
+const clock = {
+  t0: performance.now(), held: 600, paused: REDUCED,
+  now() { if (audio.on && audio.ctx) return ((audio.ctx.currentTime - audio.t0) * 1000) % 2000; return this.paused ? this.held : (performance.now() - this.t0) % 2000; },
+  pause() { this.held = this.now(); this.paused = true; if (audio.on) audio.stop(true); },
+  resume() { this.t0 = performance.now() - this.held; this.paused = false; if (em.sound) audio.start(curSig); }
+};
+const audio = {
+  ctx: null, src: null, on: false, t0: 0,
+  start(sig) {
+    if (!sig) return;
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.stop(true);
+    const b = this.ctx.createBuffer(1, sig.buf.length, EMG.FS), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.tanh(sig.buf[i] / 0.25) * 0.8;
+    const s = this.ctx.createBufferSource(); s.buffer = b; s.loop = true; s.connect(this.ctx.destination);
+    const off = (clock.paused ? clock.held : clock.now()) / 1000;
+    if (em.paused) return;
+    s.start(0, off); this.t0 = this.ctx.currentTime - off; this.src = s; this.on = true;
+  },
+  stop(keep) {
+    if (this.src) { const t = clock.now(); try { this.src.stop(); } catch (e) {} this.src = null; if (this.on) { clock.t0 = performance.now() - t; } }
+    this.on = false;
+  }
+};
+function frame() {
+  if (emgVisible) {
+    const t = clock.now();
+    if (ins && curSig === ins.sig) { // after the burst, fall back to the plain loop (same signal minus the burst)
+      ins.left -= (t - ins.last + 2000) % 2000; ins.last = t;
+      if (ins.left <= 0) { ins = null; useSignal(restSig); }
+    }
+    drawScope(t); drawXs(t);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------- MUAP panel ----------
+function drawMuap() {
+  const svg = $('muplot'); svg.innerHTML = '';
+  const X0 = 40, W = 430, win = EMG.MUAP_WIN, ppm = W / win, base = 120, div = 30;
+  for (let i = 0; i <= win; i += 3) E('line', { x1: X0 + i * ppm, x2: X0 + i * ppm, y1: 10, y2: 210, stroke: 'var(--grid)' }, svg);
+  for (let j = -3; j <= 3; j++) E('line', { x1: X0, x2: X0 + W, y1: base + j * div, y2: base + j * div, stroke: j ? 'var(--grid)' : 'var(--line)' }, svg);
+  const ui = unitInfoCur;
+  if (!ui || !ui.m) {
+    E('text', { x: X0 + W / 2, y: base - 10, 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--muted)' }, svg, ui ? 'Selected unit is too far from the needle to record' : 'No voluntary motor units near the needle');
+    if (ui) E('text', { x: X0 + W / 2, y: base + 14, 'text-anchor': 'middle', 'font-size': 13, fill: 'var(--muted)' }, svg, 'Move the needle back, or click a fibre inside the dashed circle');
+    $('mukv').innerHTML = ''; return;
+  }
+  let mx = 0; for (const y of [ui.y, ...ui.sweeps]) for (const v of y) mx = Math.max(mx, Math.abs(v));
+  const g = pickGain(mx, [0.1, 0.2, 0.5, 1, 2, 5], 3.4);
+  for (const y of ui.sweeps) E('path', { d: pathFrom(y, EMG.MDT, X0, ppm, base, div / g, 8, 212), fill: 'none', stroke: 'var(--trace2)', 'stroke-width': 1, opacity: .45 }, svg);
+  // Duration is read at high gain, where the small initial and terminal phases are visible.
+  // Orange: the same average at 20 µV/div, with the ±12 µV band the measurement uses.
+  const HG = 0.02, TH = 0.012;
+  E('rect', { x: X0, y: base - TH * div / HG, width: W, height: 2 * TH * div / HG, fill: 'var(--warn-soft)', opacity: .7 }, svg);
+  E('path', { d: pathFrom(ui.y, EMG.MDT, X0, ppm, base, div / HG, 10, 210), fill: 'none', stroke: 'var(--warn)', 'stroke-width': 1.3, opacity: .9 }, svg);
+  E('path', { d: pathFrom(ui.y, EMG.MDT, X0, ppm, base, div / g, 8, 212), fill: 'none', stroke: 'var(--trace)', 'stroke-width': 1.8 }, svg);
+  for (const t of [ui.m.a, ui.m.b]) E('line', { x1: X0 + t * ppm, x2: X0 + t * ppm, y1: 14, y2: 206, stroke: 'var(--lesion)', 'stroke-dasharray': '4 3' }, svg);
+  E('text', { x: X0 + ui.m.b * ppm + 5, y: 28, 'font-size': 13, fill: 'var(--lesion)' }, svg, `duration ${fmt(ui.m.dur)} ms`);
+  E('text', { x: X0, y: 238, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g < 1 ? Math.round(g * 1000) + ' µV' : g + ' mV'}/div · 3 ms/div`);
+  E('text', { x: X0, y: 255, 'font-size': 12, fill: 'var(--muted)' }, svg, 'blue: 6 discharges · dark: average · orange: same average at 20 µV/div');
+  const n = REF;
+  $('mukv').innerHTML = `<dt>Unit</dt><dd>#${EMG.M.units[ui.u].rank + 1} in recruitment order${em.color === 'sel' ? ', blue in the cross-section' : ', outlined in the cross-section'}</dd>` +
+    `<dt>Amplitude</dt><dd>${fmt(ui.m.pp, 2)} mV</dd><dt>Duration</dt><dd>${fmt(ui.m.dur)} ms</dd><dt>Phases</dt><dd>${ui.m.phases}${ui.m.phases > 4 ? ' (polyphasic)' : ''}</dd>` +
+    `<dt>Stability</dt><dd>${ui.unstable ? '<span class="bad">unstable</span> (immature sprouts: jitter and blocking)' : 'stable'}</dd>` +
+    (() => { const r = REF && EMG.unitInfo(REF.S, ui.u).m; return r ? `<dt>Same unit, normal</dt><dd>${fmt(r.pp, 2)} mV · ${fmt(r.dur)} ms · ${r.phases} phases</dd>` : ''; })();
+}
+
+// ---------- summary ----------
+function emgTable() {
+  const sm = SM, ref = REF, p = em.p, T = S.T;
+  const rows = [];
+  const pill = (t, c) => `<span class="pill ${c}">${t}</span>`;
+  const g = EMG.grade(sm.fibN);
+  const fasc = p.ongoing && p.loss > 0 && T > 0;
+  rows.push(['grp', 'At rest']);
+  rows.push(['Fibrillations / positive waves', sm.fibN ? pill(g, 'bad') : pill('none', 'good')]);
+  rows.push(['Fasciculations', fasc ? pill('present', 'bad') : pill('none', 'good')]);
+  rows.push(['Myotonic discharges', p.myotonia ? pill('present', 'bad') : pill('none', 'good')]);
+  rows.push(['grp', `Motor units: ${sm.infos.length} near the needle (same units in normal muscle)`]);
+  const noUnits = !sm.infos.length;
+  const c = (v, r, hi, lo) => v === null ? 'none' : v > r * hi ? 'hi' : v < r * lo ? 'lo' : 'ok';
+  const ampC = noUnits ? 'none' : c(sm.amp, sm.refAmp, 1.4, 0.72), durC = noUnits ? 'none' : c(sm.dur, sm.refDur, 1.2, 0.75);
+  const polyHi = !noUnits && sm.poly > Math.max(0.3, sm.refPoly + 0.2);
+  const lab = { hi: ['increased', 'bad'], lo: ['reduced', 'bad'], ok: ['normal', 'good'], none: ['—', ''] };
+  rows.push(['Amplitude', noUnits ? '—' : `${fmt(sm.amp, 2)} mV <span class="subtle">(${fmt(sm.refAmp, 2)})</span> ` + pill(ampC === 'hi' ? 'large' : ampC === 'lo' ? 'small' : 'normal', lab[ampC][1])]);
+  rows.push(['Duration', noUnits ? '—' : `${fmt(sm.dur)} ms <span class="subtle">(${fmt(sm.refDur)})</span> ` + pill(durC === 'hi' ? 'long' : durC === 'lo' ? 'short' : 'normal', lab[durC][1])]);
+  rows.push(['Polyphasic', noUnits ? '—' : `${Math.round(sm.poly * 100)}% <span class="subtle">(${Math.round(sm.refPoly * 100)}%)</span> ` + pill(polyHi ? 'increased' : 'normal', polyHi ? 'bad' : 'good')]);
+  rows.push(['Unstable', noUnits ? '—' : `${sm.unstable} of ${sm.infos.length} ` + pill(sm.unstable >= 2 ? 'yes' : 'no', sm.unstable >= 2 ? 'bad' : 'good')]);
+  rows.push(['grp', 'Recruitment']);
+  const reduced = !noUnits && (sm.recFreq > 12);
+  const early = !noUnits && sm.lowEffortUnits >= Math.max(ref.lowEffortUnits + 2, ref.lowEffortUnits * 1.2);
+  rows.push(['Recruitment frequency', noUnits ? pill('no units', 'bad') : `${fmt(sm.recFreq, 0)} Hz ` + pill(reduced ? 'reduced recruitment' : 'normal', reduced ? 'bad' : 'good')]);
+  rows.push(['Units firing at 8% force', noUnits ? '—' : `${sm.lowEffortUnits} (normal model ${ref.lowEffortUnits}) ` + (early ? pill('early recruitment', 'bad') : '')]);
+  const mx = EMG.recruit(S, 1), visIds = sm.vis.map(v => v.u), nMax = mx.firing.filter(f => visIds.includes(f.u)).length;
+  const ip = nMax === 0 ? 'no units' : nMax >= 0.8 * ref.maxVis ? 'full' : nMax >= 0.3 * ref.maxVis ? 'reduced' : 'discrete (single units)';
+  rows.push(['Interference at max effort', pill(ip, ip === 'full' ? 'good' : 'bad') + ` <span class="subtle">max force ${Math.min(100, Math.round(mx.maxForce * 100))}% of normal</span>`]);
+  let html = '', open = false;
+  for (const r of rows) {
+    if (r[0] === 'grp') { if (open) html += '</tbody></table></div>'; html += `<div><h3>${r[1]}</h3><table><tbody>`; open = true; }
+    else html += `<tr><td>${r[0]}</td><td style="text-align:right">${r[1]}</td></tr>`;
+  }
+  $('emgsum').innerHTML = html + '</tbody></table></div>';
+  // pattern
+  const fibs = sm.fibN > 0, large = ampC === 'hi' || durC === 'hi', small = ampC === 'lo' || durC === 'lo';
+  let pat;
+  if (noUnits && fibs) pat = 'Complete denervation: fibrillations and no voluntary motor units.';
+  else if (small && !large && (early || p.myo)) pat = `Myopathic: small, short${polyHi ? ', polyphasic' : ''} units${early ? ' with early recruitment' : ''}.` + (fibs ? ' Fibrillations point to necrosis or inflammation (inflammatory or necrotizing myopathy, some dystrophies).' : ' No fibrillations: a chronic myopathy without active necrosis.');
+  else if (fasc && fibs) pat = 'Active and chronic denervation with fasciculations: the motor neuron disease pattern when it is found in several body regions.';
+  else if (fibs && large && sm.unstable < 2) pat = 'Active denervation with chronic reinnervation.';
+  else if (fibs && (sm.unstable >= 2 || polyHi)) pat = 'Active denervation with early reinnervation (unstable, polyphasic units).';
+  else if (fibs) pat = 'Active denervation, no reinnervation yet: axon loss of roughly 2–6 weeks, before collateral sprouting changes the units.';
+  else if (large && reduced) pat = 'Chronic reinnervation without active denervation: an old, completed axonal lesion.';
+  else if (reduced && p.loss && T < 2) pat = 'Reduced recruitment only. Fibrillations take about 2–3 weeks to appear, so early axon loss and conduction block look the same at this stage.';
+  else if (reduced) pat = 'Reduced recruitment with normal units and no fibrillations: conduction block rather than axon loss. (Poor activation from pain or an upper motor neuron lesion also gives few units, but they fire slowly.)';
+  else pat = p.myotonia ? '' : 'Normal study.';
+  if (p.myotonia) pat = 'Myotonic discharges at rest.' + (pat && pat !== 'Normal study.' ? ' ' + pat : ' Motor units normal.');
+  $('emg-pattern').textContent = pat;
+}
+
+syncEmgControls();
+if (location.hash === '#emg') showTab('tab-emg');
+
+// ---------- guided comparisons and predict-first mode ----------
+for (const b of document.querySelectorAll('.lb[data-ncs]')) b.onclick = () => applyNcsPreset(b.dataset.ncs);
+for (const b of document.querySelectorAll('.lb[data-emg]')) b.onclick = () => applyEmgPreset(b.dataset.emg);
+function setAnswersHidden(tab, hidden) {
+  const view = $('view-' + tab);
+  for (const el of view.querySelectorAll('.answer')) { el.classList.toggle('shown', !hidden); if (document.body.classList.contains('quiz-' + tab)) el.setAttribute('aria-hidden', String(hidden)); else el.removeAttribute('aria-hidden'); }
+  view.querySelector('.reveal').classList.toggle('done', !hidden);
+}
+for (const ck of document.querySelectorAll('.quizck input')) ck.onchange = () => { document.body.classList.toggle('quiz-' + ck.dataset.tab, ck.checked); setAnswersHidden(ck.dataset.tab, ck.checked); };
+for (const b of document.querySelectorAll('.reveal')) b.onclick = () => setAnswersHidden(b.dataset.tab, false);
+// a new scenario hides the answers again
+{
+  const n0 = applyNcsPreset, e0 = applyEmgPreset;
+  applyNcsPreset = id => { n0(id); if (document.body.classList.contains('quiz-ncs')) setAnswersHidden('ncs', true); };
+  applyEmgPreset = id => { e0(id); if (document.body.classList.contains('quiz-emg')) setAnswersHidden('emg', true); };
+}
+
+// ---------- guide dialog ----------
+const guideEl = $('guide');
+function openGuide(sec) {
+  if (!guideEl.open) { try { guideEl.showModal(); } catch (e) { guideEl.setAttribute('open', ''); } }
+  const el = $(sec || 'g-start');
+  for (const b of guideEl.querySelectorAll('.gnav button')) b.setAttribute('aria-current', String(b.dataset.sec === (sec || 'g-start')));
+  if (el) requestAnimationFrame(() => { const c = guideEl.querySelector('.gcontent'); c.scrollTop = el.offsetTop - 4; });
+}
+function closeGuide() { if (guideEl.open) { try { guideEl.close(); } catch (e) { guideEl.removeAttribute('open'); } } }
+document.addEventListener('click', e => { const b = e.target.closest('[data-open]'); if (b) { e.preventDefault(); openGuide(b.dataset.open); } });
+for (const b of guideEl.querySelectorAll('.gnav button')) b.onclick = () => openGuide(b.dataset.sec);
+$('g-close').onclick = closeGuide;
+guideEl.addEventListener('click', e => { if (e.target === guideEl) closeGuide(); });
+// comparison links load the scenario, switch to its tab and close the guide
+for (const b of guideEl.querySelectorAll('.lb[data-ncs]')) b.addEventListener('click', () => { showTab('tab-ncs'); closeGuide(); });
+for (const b of guideEl.querySelectorAll('.lb[data-emg]')) b.addEventListener('click', () => { showTab('tab-emg'); closeGuide(); });
+$('g-tooldefs').innerHTML = Object.entries(TOOLS).map(([k, t]) => `<dt>${document.querySelector('#tools [data-t="' + k + '"]').textContent}</dt><dd>${t.text}</dd>`).join('');
+for (const b of $('tools').querySelectorAll('button')) b.title = TOOLS[b.dataset.t].text;
+
+</script>
+</body>
+</html>
