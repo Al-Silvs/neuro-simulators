@@ -5,10 +5,11 @@ Interactive simulators for clinical neurology. Plain HTML, CSS and JavaScript: n
 ## Layout
 
 ```
-index.html                 landing page (list of simulators, search, topic filter)
+index.html                 landing page (simulators grouped by section)
 visual-pathway/index.html
-extraocular/index.html
 brachial-plexus/index.html
+emg-ncs/index.html
+extraocular/index.html     (not yet published)
 ```
 
 Each simulator is one self-contained HTML file in its own folder, so its address is `<site>/<folder>/`.
@@ -27,18 +28,22 @@ then go to http://localhost:8000.
 
 1. Create a new repository on GitHub (public, unless you have a plan that allows Pages on private repositories).
 2. Upload the contents of this folder to the repository root, so `index.html` sits at the top level.
-3. In the repository, go to Settings, then Pages. Under "Build and deployment", set Source to "Deploy from a branch", choose the `main` branch and the `/ (root)` folder, and save.
+3. In the repository, go to Settings, then Pages. Under "Build and deployment", set Source to "Deploy from a branch", choose the `master` branch (the branch this repository uses) and the `/ (root)` folder, and save.
 4. After a minute or two the site is at `https://<your-username>.github.io/<repository-name>/`.
+
+This repository is `Al-Silvs/neuro-simulators`, deployed from `master` at `/`. Live site: https://al-silvs.github.io/neuro-simulators/
 
 ## Publish simulators one at a time
 
-The landing page only lists entries in `SIMS` that are not marked `live: false`. `visual-pathway` is live; `extraocular` and `brachial-plexus` are hidden. To publish one, commit its folder, delete its `live: false` line in `index.html`, and push.
+The landing page lists every entry in `SIMS` (near the bottom of `index.html`) that is not marked `live: false`. Live now: visual pathway, brachial plexus, EMG and nerve conduction. Hidden: extraocular. To publish one, commit its folder, delete its `live: false` line, and push.
 
 ## Add a simulator
 
 1. Create a folder, for example `basal-ganglia/`, and put the page in `basal-ganglia/index.html`.
 2. Add a "&larr; All simulators" link to the page header: `<a class="home" href="../">&larr; All simulators</a>`.
-3. Add one entry to the `SIMS` array near the bottom of the root `index.html` (path, title, blurb, tags, features).
+3. Add one entry to `SIMS` in the root `index.html`: `path`, `section`, `glyph`, `title`, `blurb` (one or two sentences) and `features` (three short items).
+   - `section` must be a name in the `SECTIONS` list. Add a new name there (for example `'Movement disorders'`) to start a new group; empty sections are not shown.
+   - `glyph` is a key in `GLYPHS` (`fields`, `eye`, `plexus`, `cmap`). Add a new 40×40 line drawing there, or leave the key out for a blank tile.
 4. Commit and push. Pages redeploys on its own.
 
 ## Notes
