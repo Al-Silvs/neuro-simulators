@@ -257,7 +257,8 @@ if (typeof module !== "undefined") module.exports = { Sim, PRESETS, NODES, DELAY
 const $ = s => document.querySelector(s);
 let sim = new Sim({}, 11);
 let ref = new Sim({}, 11);
-let speed = 1, paused = false, currentPreset = "normal";
+const BASE_SPEED = 0.6; // whole simulation runs at 60% of real time by default, so dots and nodes stay in step
+let speed = BASE_SPEED, paused = false, currentPreset = "normal";
 
 const COL = { exc: "#5cb8ff", inh: "#ff5a5f", da: "#f2c14e" };
 const NODE = {
@@ -486,14 +487,12 @@ function drawDeltas(g) {
 }
 
 // ---------- dots ----------
-const SPIKE_RATE = 10; // dots per second per unit activity (more dots on each path)
-const DOT_TRAVEL = 3; // dots cross a path this many times slower than the model delay (display only, easier on the eyes)
-const DOT_MIN_MS = 900; // shortest on-screen crossing time, so fast paths (hyperdirect) stay readable
+const SPIKE_RATE = 11; // dots per second (sim time) per unit activity
 let ripples = [];
 function updateDots(dtMs) {
   for (const e of EDGES) {
     if (e.opt && !sim.p[e.opt]) { e.dots = []; e.acc = 0; continue; }
-    const D = Math.max(DELAY[e.id] * DOT_TRAVEL, DOT_MIN_MS);
+    const D = DELAY[e.id];
     for (const d of e.dots) d.f += dtMs / D;
     if (e.type === "inh") for (const d of e.dots) if (d.f >= 1) { const p = e.pts[e.pts.length - 1]; ripples.push({ t: performance.now(), x: p[0], y: p[1] }); }
     e.dots = e.dots.filter(d => d.f < 1);
@@ -691,7 +690,7 @@ function applyPreset(k) {
   markPreset(k);
 }
 $("#pause").onclick = () => { paused = !paused; $("#pause").textContent = paused ? "Play" : "Pause"; };
-$("#slow").onclick = () => { speed = speed === 1 ? 0.35 : 1; $("#slow").classList.toggle("on", speed < 1); };
+$("#slow").onclick = () => { speed = speed === BASE_SPEED ? BASE_SPEED * 0.35 : BASE_SPEED; $("#slow").classList.toggle("on", speed < BASE_SPEED); };
 
 const DESC = {
   normal: "The thalamus is constantly driven to fire by cerebellar, corticothalamic and brainstem input, but GPi/SNr normally holds it down. Each cortical command excites D1 cells, which <b>pause GPi/SNr</b> and open the gate for a brief burst to motor cortex. The indirect pathway then raises GPi/SNr after the pause, so the burst stays short and focused. With the hyperdirect pathway on, cortex also excites STN directly, so GPi/SNr rises briefly <i>before</i> the pause (early excitation → inhibition → late excitation).",
