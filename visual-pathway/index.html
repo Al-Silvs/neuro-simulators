@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual Pathway Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: field plots across the top, pathway diagram left, syndromes/lesions and pupils right. Fields and diagram follow the patient's view: patient's left on your left. */
+  --bg:#eef0ee; --panel:#fbfcfb; --ink:#18202b; --muted:#5a6472; --line:#d5d9de;
+  --accent:#1f56c9; --accent-soft:#dbe5fa; --lesion:#c3352a; --lesion-soft:#f7dedb;
+  --lf:#d07a1f; --rf:#16807f;
+  --stem:#e6e9ee; --stem-edge:#c3c9d2;
+  --font-display:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440;
+    --accent:#6f9bff; --accent-soft:#1d2a47; --lesion:#ff6a5c; --lesion-soft:#3a1e1c;
+    --lf:#f0a050; --rf:#3cc0bd; --stem:#1f2630; --stem-edge:#36404d;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440;
+  --accent:#6f9bff; --accent-soft:#1d2a47; --lesion:#ff6a5c; --lesion-soft:#3a1e1c;
+  --lf:#f0a050; --rf:#3cc0bd; --stem:#1f2630; --stem-edge:#36404d;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+header{padding:20px 20px 8px;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline}
+h1{font-family:var(--font-display);font-weight:600;font-size:28px;margin:0;text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:14px;max-width:80ch}
+.home{width:100%;font-size:13px;color:var(--accent);text-decoration:none}
+.home:hover{text-decoration:underline}
+main{max-width:1280px;margin:0 auto;padding:8px 20px 32px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px}
+@media (max-width:920px){main{grid-template-columns:minmax(0,1fr)}}
+.full{grid-column:1/-1}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.panel h2{font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:.4px;text-transform:uppercase;margin:0 0 10px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{font:inherit;font-size:13.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 11px;border-radius:7px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg .btn{border:0;border-radius:0}
+.seg .btn+.btn{border-left:1px solid var(--line)}
+.fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,.72fr);gap:14px;align-items:start;margin-top:10px}
+@media (max-width:700px){.fields{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.fields .bino{grid-column:1/-1;max-width:260px}}
+.fplot{min-width:0;text-align:center}
+.fplot canvas{width:100%;height:auto;display:block;border-radius:8px;background:#dfe3e8}
+.fplot .t{font-weight:600;font-size:14px;margin-bottom:4px}
+.fplot .t span{font-weight:400;color:var(--muted);font-size:12.5px}
+.status{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px;font-size:14px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);font-size:13px}
+.chip.bad{border-color:var(--lesion);background:var(--lesion-soft);color:var(--ink)}
+.chip b{font-weight:600}
+.dx{margin-top:10px;font-size:14px;min-height:2.9em}
+.path{width:100%;height:auto;display:block;max-width:520px;margin:0 auto}
+.path .hit{cursor:pointer}
+.path .hit:focus-visible{outline:none}
+.path .hit:focus-visible .vis{stroke:var(--accent)!important}
+.key{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin-top:6px;justify-content:center}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:18px;height:4px;border-radius:2px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.desc{margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;font-size:14px;max-width:72ch;min-height:4.5em}
+.desc b{font-weight:600}
+.lestable{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}
+.lestable th{font-weight:500;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;text-align:center;padding:4px}
+.lestable th:first-child{text-align:left}
+.lestable td{padding:4px;border-top:1px solid var(--line)}
+.lestable td.c{text-align:center;width:66px}
+.lestable tr.grp td{border-top:none;padding-top:12px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.lestable tr.on td:first-child{color:var(--lesion);font-weight:500}
+input[type=checkbox]{accent-color:var(--lesion);width:16px;height:16px;margin:0}
+.pup{width:100%;max-width:440px;height:auto;display:block;margin:0 auto;border-radius:8px}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+details{font-size:14px}
+details summary{cursor:pointer;font-weight:500}
+details ul{padding-left:18px;max-width:80ch}
+</style>
+</head>
+<body>
+<header>
+  <a class="home" href="../">&larr; All simulators</a>
+  <h1>Visual Pathway Simulator</h1>
+  <p>Lesion the pathway from optic nerve to calcarine cortex and read the fields. Fields are drawn as the patient sees them, and the pathway is viewed from above: the patient's left is on your left in both.</p>
+</header>
+<main>
+  <section class="panel full" aria-labelledby="h-f">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="h-f" style="margin:0">Visual fields</h2>
+      <div class="seg" role="group" aria-label="Field extent">
+        <button class="btn" type="button" id="fm-full" aria-pressed="true">Full field (Goldmann-style)</button>
+        <button class="btn" type="button" id="fm-c30" aria-pressed="false">Central 30°</button>
+      </div>
+    </div>
+    <div class="fields">
+      <div class="fplot"><div class="t">Left eye</div><canvas id="cv-L" width="480" height="480" aria-label="Left eye visual field"></canvas></div>
+      <div class="fplot"><div class="t">Right eye</div><canvas id="cv-R" width="480" height="480" aria-label="Right eye visual field"></canvas></div>
+      <div class="fplot bino"><div class="t">Both eyes open <span>binocular</span></div><canvas id="cv-B" width="480" height="480" aria-label="Binocular visual field"></canvas></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="dx" id="dx"></div>
+  </section>
+
+  <div class="col">
+    <section class="panel" aria-labelledby="h-p">
+      <h2 id="h-p">Pathway: click to lesion</h2>
+      <svg class="path" id="path" viewBox="0 0 460 640" role="group" aria-label="Visual pathway viewed from above"></svg>
+      <div class="key">
+        <span><i class="sw" style="background:var(--lf)"></i>Left visual field (to right hemisphere)</span>
+        <span><i class="sw" style="background:var(--rf)"></i>Right visual field (to left hemisphere)</span>
+        <span><i class="sw" style="background:var(--lesion)"></i>Lesioned</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel" aria-labelledby="h-s">
+      <h2 id="h-s">Syndromes and lesions</h2>
+      <div class="row">
+        <span style="font-size:14px">Side</span>
+        <div class="seg" role="group" aria-label="Side for presets">
+          <button class="btn" type="button" id="side-L" aria-pressed="true">Patient's L</button>
+          <button class="btn" type="button" id="side-R" aria-pressed="false">Patient's R</button>
+        </div>
+      </div>
+      <div class="presets" id="presets"></div>
+      <div class="desc" id="desc"></div>
+      <table class="lestable" id="lestable">
+        <thead><tr><th>Structure</th><th>Patient's L</th><th>Patient's R</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="panel" aria-labelledby="h-pu">
+      <h2 id="h-pu">Swinging flashlight</h2>
+      <svg class="pup" id="pup" viewBox="0 0 440 150" role="img" aria-label="Pupils, examiner's view"></svg>
+      <div class="row" style="justify-content:center;margin-top:8px">
+        <button class="btn" type="button" id="pl-R">Light on R eye</button>
+        <button class="btn" type="button" id="pl-swing" aria-pressed="false">Swing</button>
+        <button class="btn" type="button" id="pl-L">Light on L eye</button>
+        <button class="btn" type="button" id="pl-off">Dark</button>
+      </div>
+      <p class="note" id="pupnote"></p>
+    </section>
+  </div>
+
+  <section class="panel full">
+    <details>
+      <summary>How the model works, and what it leaves out</summary>
+      <ul>
+        <li>Every point in each eye's field is traced along its fibres: nasal retina (temporal field) crosses at the chiasm, so the left hemifield of both eyes reaches the right hemisphere. Upper field travels in the inferior retina, Meyer's loop and the lingual gyrus; lower field in the superior retina, the parietal radiation and the cuneus. The macula is represented at the occipital pole and the far temporal periphery at the anterior calcarine cortex.</li>
+        <li>The temporal crescent is the part of one eye's temporal field that the other eye's nasal field does not reach. It is drawn from the field extents used here: 90° temporal, 60° nasal, 60° up, 70° down.</li>
+        <li>Pupillomotor afferents leave the tract before the LGN, so only lesions up to and including the tract change the RAPD. Input is weighted toward fixation. A tract lesion gives a mild RAPD in the contralateral eye, whose larger temporal hemifield is lost.</li>
+        <li>The junctional scotoma uses the classic explanation (inferonasal crossing fibres looping forward into the opposite optic nerve, Willebrand's knee). Whether that loop exists in vivo is disputed; the field pattern itself is well described.</li>
+        <li>Lesions are complete within their territory. Partial lesions, incongruity of tract and temporal-lobe lesions, field depth, glaucomatous arcuate defects and functional (tubular) fields are not modelled.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+<script>
+// Visual pathway model. Field coordinates in degrees as the patient sees them:
+// x > 0 = patient's right, y > 0 = up. Hemisphere 'R' receives the left hemifield.
+const VF = (() => {
+  const temporalOf = (eye, x) => (eye === 'R' ? x > 0 : x < 0);
+  function inField(eye, x, y) {
+    const a = temporalOf(eye, x) ? 90 : 60, b = y > 0 ? 60 : 70;
+    return (x / a) ** 2 + (y / b) ** 2 <= 1;
+  }
+  function blindSpot(eye, x, y) {
+    const cx = eye === 'R' ? 15 : -15;
+    return ((x - cx) / 2.8) ** 2 + ((y + 1.5) / 3.8) ** 2 <= 1;
+  }
+  function info(eye, x, y) {
+    const temporal = temporalOf(eye, x);
+    const ecc = Math.hypot(x, y);
+    const ang = Math.atan2(Math.abs(y), Math.abs(x)) * 180 / Math.PI; // 0 = horizontal meridian
+    const b = y > 0 ? 60 : 70;
+    const crescent = temporal && (x / 60) ** 2 + (y / b) ** 2 > 1; // seen by this eye only
+    return { eye, x, y, temporal, upper: y > 0, ecc, ang, crescent, hemi: x < 0 ? 'R' : 'L' };
+  }
+  // level: 'pre' = before the pupillary fibres leave (counts toward RAPD)
+  const L = {
+    ON:     { name: 'Optic nerve, complete', group: 'Optic nerve', level: 'pre', kind: 'eye', kill: (s, p) => p.eye === s },
+    ONC:    { name: 'Optic nerve, central scotoma', group: 'Optic nerve', level: 'pre', kind: 'eye', kill: (s, p) => p.eye === s && p.ecc < 12 },
+    AION:   { name: 'Optic nerve head, inferior altitudinal', group: 'Optic nerve', level: 'pre', kind: 'eye', kill: (s, p) => p.eye === s && p.y < 0 },
+    JUNC:   { name: 'Junction (optic nerve + anterior chiasm)', group: 'Chiasm', level: 'pre', kind: 'eye', kill: (s, p) => p.eye === s || (p.temporal && p.upper) },
+    CHL:    { name: 'Chiasm, lateral compression', group: 'Chiasm', level: 'pre', kind: 'eye', kill: (s, p) => p.eye === s && !p.temporal },
+    CHB:    { name: 'Chiasm, body', group: 'Chiasm', level: 'pre', kind: 'mid', kill: (s, p) => p.temporal },
+    CHI:    { name: 'Chiasm, compression from below', group: 'Chiasm', level: 'pre', kind: 'mid', kill: (s, p) => p.temporal && p.upper },
+    CHS:    { name: 'Chiasm, compression from above', group: 'Chiasm', level: 'pre', kind: 'mid', kill: (s, p) => p.temporal && !p.upper },
+    TRACT:  { name: 'Optic tract', group: 'Tract and LGN', level: 'pre', kind: 'hemi', kill: (s, p) => p.hemi === s },
+    LGN:    { name: 'LGN, complete', group: 'Tract and LGN', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s },
+    LGNAC:  { name: 'LGN, anterior choroidal territory', group: 'Tract and LGN', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s && p.ang > 18 },
+    LGNLPC: { name: 'LGN, lateral posterior choroidal territory', group: 'Tract and LGN', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s && p.ang <= 18 },
+    MEYER:  { name: "Meyer's loop (temporal)", group: 'Optic radiation', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s && p.upper && p.ang > 15 },
+    PAR:    { name: 'Parietal radiation', group: 'Optic radiation', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s && !p.upper && p.ang > 15 },
+    RAD:    { name: 'Optic radiation, complete', group: 'Optic radiation', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s },
+    PCA:    { name: 'Calcarine cortex, macular sparing', group: 'Occipital cortex', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s && p.ecc > 5 },
+    POLE:   { name: 'Occipital pole', group: 'Occipital cortex', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s && p.ecc < 10 },
+    CUN:    { name: 'Cuneus (upper bank)', group: 'Occipital cortex', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s && !p.upper },
+    LING:   { name: 'Lingual gyrus (lower bank)', group: 'Occipital cortex', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s && p.upper },
+    ANTC:   { name: 'Anterior calcarine', group: 'Occipital cortex', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s && p.crescent },
+    POSTC:  { name: 'Calcarine, sparing anterior tip', group: 'Occipital cortex', level: 'post', kind: 'hemi', kill: (s, p) => p.hemi === s && !p.crescent }
+  };
+  // lesions: { 'ON_L': true, 'CHB_M': true, ... }
+  function seen(les, eye, x, y, preOnly) {
+    if (!inField(eye, x, y)) return null;
+    const p = info(eye, x, y);
+    for (const k in les) {
+      const [key, s] = k.split('_');
+      const d = L[key];
+      if (preOnly && d.level !== 'pre') continue;
+      if (d.kill(s, p)) return 0;
+    }
+    return 1;
+  }
+  // pupillomotor afferent input per eye, weighted toward the centre
+  function afferent(les) {
+    const out = {};
+    for (const eye of ['R', 'L']) {
+      let tot = 0, ok = 0;
+      for (let x = -89; x <= 89; x += 2) for (let y = -69; y <= 59; y += 2) {
+        const v = seen(les, eye, x, y, true);
+        if (v === null) continue;
+        const w = 1 / (1 + (Math.hypot(x, y) / 5) ** 1.6);
+        tot += w; ok += w * v;
+      }
+      out[eye] = ok / tot;
+    }
+    return out;
+  }
+  function rapd(aff) {
+    const d = aff.R - aff.L, m = Math.abs(d);
+    const grade = m < 0.04 ? 'none' : m < 0.15 ? 'mild' : m < 0.4 ? 'moderate' : 'marked';
+    return { side: grade === 'none' ? null : d < 0 ? 'R' : 'L', grade, diff: m };
+  }
+  return { L, inField, blindSpot, info, seen, afferent, rapd };
+})();
+if (typeof module !== 'undefined') module.exports = VF;
+
+
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) if (attrs[k] !== null) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const state = { les: {}, mode: 'full', side: 'L', preset: 'normal', light: null, swing: false };
+const W = s => (s === 'R' ? 'right' : 'left');
+const opp = s => (s === 'R' ? 'L' : 'R');
+const cap = t => t[0].toUpperCase() + t.slice(1);
+
+// ---------- field plots ----------
+const COL = { seen: [250, 250, 247], lost: [38, 43, 51], blind: [120, 128, 138], out: [223, 227, 232] };
+function drawField(cv, which) {
+  const ctx = cv.getContext('2d'), S = cv.width, c = S / 2;
+  const maxDeg = state.mode === 'full' ? 92 : 31;
+  const k = (S / 2 - 16) / maxDeg;
+  const img = ctx.createImageData(S, S), d = img.data;
+  for (let py = 0; py < S; py++) for (let px = 0; px < S; px++) {
+    const x = (px - c) / k, y = (c - py) / k;
+    let col;
+    if (which === 'B') {
+      const a = VF.seen(state.les, 'L', x, y), b = VF.seen(state.les, 'R', x, y);
+      if (a === null && b === null) col = COL.out;
+      else {
+        const bsL = a !== null && VF.blindSpot('L', x, y), bsR = b !== null && VF.blindSpot('R', x, y);
+        const sa = a === 1 && !bsL, sb = b === 1 && !bsR;
+        col = (sa || sb) ? COL.seen : COL.lost;
+      }
+    } else {
+      const v = VF.seen(state.les, which, x, y);
+      col = v === null ? COL.out : VF.blindSpot(which, x, y) ? COL.blind : v ? COL.seen : COL.lost;
+    }
+    const i = (py * S + px) * 4; d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; d[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  // grid
+  const rings = state.mode === 'full' ? [10, 30, 60, 90] : [10, 20, 30];
+  ctx.lineWidth = 1.2;
+  for (const r of rings) {
+    ctx.strokeStyle = 'rgba(110,120,135,.55)'; ctx.beginPath(); ctx.arc(c, c, r * k, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(110,120,135,.7)';
+  ctx.beginPath(); ctx.moveTo(c - maxDeg * k, c); ctx.lineTo(c + maxDeg * k, c); ctx.moveTo(c, c - maxDeg * k); ctx.lineTo(c, c + maxDeg * k); ctx.stroke();
+  ctx.fillStyle = 'rgba(80,90,105,.95)'; ctx.font = '600 15px "IBM Plex Sans", sans-serif'; ctx.textBaseline = 'middle';
+  for (const r of rings) { ctx.textAlign = 'left'; ctx.fillText(r + '°', c + r * k * 0.707 + 3, c - r * k * 0.707 - 6); }
+  ctx.font = '600 17px "IBM Plex Sans", sans-serif';
+  if (which !== 'B') {
+    const tR = which === 'R';
+    ctx.textAlign = 'left'; ctx.fillText(tR ? 'N' : 'T', 8, 20);
+    ctx.textAlign = 'right'; ctx.fillText(tR ? 'T' : 'N', S - 8, 20);
+  }
+  ctx.fillStyle = '#c3352a'; ctx.beginPath(); ctx.arc(c, c, 4, 0, Math.PI * 2); ctx.fill();
+}
+const cvs = { L: document.getElementById('cv-L'), R: document.getElementById('cv-R'), B: document.getElementById('cv-B') };
+function drawAll() { drawField(cvs.L, 'L'); drawField(cvs.R, 'R'); drawField(cvs.B, 'B'); }
+const fmF = document.getElementById('fm-full'), fmC = document.getElementById('fm-c30');
+fmF.onclick = () => { state.mode = 'full'; fmF.setAttribute('aria-pressed', 'true'); fmC.setAttribute('aria-pressed', 'false'); drawAll(); };
+fmC.onclick = () => { state.mode = 'c30'; fmC.setAttribute('aria-pressed', 'true'); fmF.setAttribute('aria-pressed', 'false'); drawAll(); };
+
+// ---------- pathway diagram ----------
+const svg = document.getElementById('path');
+const parts = {};
+const txt = (x, y, t, o) => { const e = el('text', Object.assign({ x, y, 'font-size': 12, fill: 'var(--muted)' }, o || {}), svg); e.textContent = t; return e; };
+// brain outline and labels
+el('path', { d: 'M 230 150 C 120 150 40 210 36 330 C 32 470 90 600 230 612 C 370 600 428 470 424 330 C 420 210 340 150 230 150 Z', fill: 'var(--stem)', stroke: 'var(--stem-edge)', 'stroke-width': 1.5 }, svg);
+txt(16, 632, "Patient's L", { 'font-weight': 600, fill: 'var(--ink)' });
+txt(444, 632, "Patient's R", { 'font-weight': 600, fill: 'var(--ink)', 'text-anchor': 'end' });
+// eyes
+for (const [s, cx] of [['L', 120], ['R', 340]]) {
+  el('circle', { cx, cy: 60, r: 36, fill: 'var(--panel)', stroke: 'var(--stem-edge)', 'stroke-width': 2 }, svg);
+  el('path', { d: `M ${cx - 30} 78 A 36 36 0 0 0 ${cx + 30} 78`, fill: 'none', stroke: 'var(--muted)', 'stroke-width': 3, 'stroke-opacity': .5 }, svg);
+  el('ellipse', { cx, cy: 26, rx: 14, ry: 6, fill: 'var(--stem)', stroke: 'var(--stem-edge)' }, svg);
+  txt(cx, 64, s + ' eye', { 'text-anchor': 'middle', 'font-weight': 600, fill: 'var(--ink)' });
+  txt(s === 'L' ? cx - 46 : cx + 46, 92, 'T', { 'text-anchor': 'middle', 'font-size': 11 });
+  txt(s === 'L' ? cx + 22 : cx - 22, 108, 'N', { 'text-anchor': 'middle', 'font-size': 11 });
+}
+// fibre lines (carry the colour of the hemifield they serve)
+const FIB = [
+  { d: 'M 112 94 L 206 194 L 208 214 L 150 312', c: '--rf' },          // L temporal retina, right field, stays left
+  { d: 'M 128 94 L 216 192 L 248 214 L 310 312', c: '--lf' },          // L nasal retina, left field, crosses
+  { d: 'M 348 94 L 254 194 L 252 214 L 310 312', c: '--lf' },          // R temporal retina, left field, stays right
+  { d: 'M 332 94 L 244 192 L 212 214 L 150 312', c: '--rf' }           // R nasal retina, right field, crosses
+];
+for (const f of FIB) el('path', { d: f.d, fill: 'none', stroke: `var(${f.c})`, 'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-opacity': .9 }, svg);
+// radiations
+const RADP = {
+  L: { meyer: 'M 146 318 C 70 316 46 360 60 410 C 74 460 110 500 150 528', par: 'M 150 322 C 150 380 154 450 160 528', post: 'M 150 528 L 160 548' },
+  R: { meyer: 'M 314 318 C 390 316 414 360 400 410 C 386 460 350 500 310 528', par: 'M 310 322 C 310 380 306 450 300 528', post: 'M 310 528 L 300 548' }
+};
+for (const s of ['L', 'R']) {
+  const c = s === 'L' ? '--rf' : '--lf';
+  for (const k of ['meyer', 'par']) el('path', { d: RADP[s][k], fill: 'none', stroke: `var(${c})`, 'stroke-width': 3, 'stroke-opacity': .9 }, svg);
+}
+function xMark(g, x, y) {
+  el('circle', { cx: x, cy: y, r: 8, fill: 'var(--lesion)' }, g);
+  el('path', { d: `M ${x - 3.5} ${y - 3.5} L ${x + 3.5} ${y + 3.5} M ${x + 3.5} ${y - 3.5} L ${x - 3.5} ${y + 3.5}`, stroke: '#fff', 'stroke-width': 2 }, g);
+}
+function hit(key, shape, label, markAt) {
+  const g = el('g', { class: 'hit', tabindex: 0, role: 'checkbox', 'aria-label': label }, svg);
+  const t = el('title', {}, g); t.textContent = label + ': click to toggle lesion';
+  let vis;
+  if (shape.type === 'path') {
+    vis = el('path', { d: shape.d, fill: 'none', stroke: 'transparent', 'stroke-width': shape.w || 6, class: 'vis', 'stroke-linecap': 'round' }, g);
+    el('path', { d: shape.d, fill: 'none', stroke: 'transparent', 'stroke-width': 20 }, g);
+  } else if (shape.type === 'ellipse') {
+    vis = el('ellipse', { cx: shape.cx, cy: shape.cy, rx: shape.rx, ry: shape.ry, fill: 'var(--panel)', 'fill-opacity': shape.label === '' ? .2 : .85, stroke: 'var(--stem-edge)', 'stroke-width': 2, class: 'vis' }, g);
+  } else {
+    vis = el('rect', { x: shape.x, y: shape.y, width: shape.w, height: shape.h, rx: 4, fill: 'var(--panel)', 'fill-opacity': .0, stroke: 'transparent', 'stroke-width': 2, class: 'vis' }, g);
+  }
+  if (shape.label) { const tt = el('text', { x: shape.lx, y: shape.ly, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 600, fill: 'var(--ink)', 'pointer-events': 'none' }, g); tt.textContent = shape.label; }
+  const mark = el('g', { visibility: 'hidden', 'pointer-events': 'none' }, g);
+  xMark(mark, markAt[0], markAt[1]);
+  g.addEventListener('click', () => toggle(key));
+  g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(key); } });
+  parts[key] = { g, vis, mark, shape };
+}
+// clickable segments
+hit('ON_L', { type: 'path', d: 'M 120 98 L 200 184', w: 14 }, "Left optic nerve", [152, 134]);
+hit('ON_R', { type: 'path', d: 'M 340 98 L 260 184', w: 14 }, "Right optic nerve", [308, 134]);
+hit('JUNC_L', { type: 'path', d: 'M 202 186 L 212 196', w: 14 }, "Left junction", [196, 196]);
+hit('JUNC_R', { type: 'path', d: 'M 258 186 L 248 196', w: 14 }, "Right junction", [264, 196]);
+hit('CHB_M', { type: 'ellipse', cx: 230, cy: 206, rx: 22, ry: 12, label: '' }, 'Chiasm', [230, 188]);
+hit('TRACT_L', { type: 'path', d: 'M 206 222 L 160 296', w: 14 }, 'Left optic tract', [176, 258]);
+hit('TRACT_R', { type: 'path', d: 'M 254 222 L 300 296', w: 14 }, 'Right optic tract', [284, 258]);
+hit('LGN_L', { type: 'ellipse', cx: 150, cy: 314, rx: 20, ry: 11, label: 'LGN', lx: 150, ly: 318 }, 'Left LGN', [170, 304]);
+hit('LGN_R', { type: 'ellipse', cx: 310, cy: 314, rx: 20, ry: 11, label: 'LGN', lx: 310, ly: 318 }, 'Right LGN', [330, 304]);
+hit('MEYER_L', { type: 'path', d: RADP.L.meyer, w: 10 }, "Left Meyer's loop", [58, 400]);
+hit('MEYER_R', { type: 'path', d: RADP.R.meyer, w: 10 }, "Right Meyer's loop", [402, 400]);
+hit('PAR_L', { type: 'path', d: RADP.L.par, w: 10 }, 'Left parietal radiation', [153, 430]);
+hit('PAR_R', { type: 'path', d: RADP.R.par, w: 10 }, 'Right parietal radiation', [307, 430]);
+// occipital insets (calcarine, schematic medial view): pole at the back (bottom)
+for (const s of ['L', 'R']) {
+  const x0 = s === 'L' ? 120 : 264, y0 = 548, w = 76, h = 52;
+  el('rect', { x: x0, y: y0, width: w, height: h, rx: 8, fill: 'var(--panel)', stroke: 'var(--stem-edge)' }, svg);
+  el('line', { x1: x0 + 4, x2: x0 + w - 4, y1: y0 + h / 2, y2: y0 + h / 2, stroke: 'var(--muted)', 'stroke-dasharray': '3 3' }, svg);
+  const c = s === 'L' ? '--rf' : '--lf';
+  el('rect', { x: x0 + 1, y: y0 + 1, width: w - 2, height: h - 2, rx: 7, fill: `var(${c})`, 'fill-opacity': .14 }, svg);
+  hit('ANTC_' + s, { type: 'rect', x: x0 + w - 16, y: y0, w: 16, h }, `${s === 'L' ? 'Left' : 'Right'} anterior calcarine`, [x0 + w - 8, y0 - 2]);
+  hit('POLE_' + s, { type: 'rect', x: x0, y: y0, w: 18, h }, `${s === 'L' ? 'Left' : 'Right'} occipital pole`, [x0 + 9, y0 - 2]);
+  hit('CUN_' + s, { type: 'rect', x: x0 + 18, y: y0, w: w - 34, h: h / 2, label: 'cun', lx: x0 + w / 2 + 1, ly: y0 + 18 }, `${s === 'L' ? 'Left' : 'Right'} cuneus`, [x0 + w / 2 + 1, y0 + 8]);
+  hit('LING_' + s, { type: 'rect', x: x0 + 18, y: y0 + h / 2, w: w - 34, h: h / 2, label: 'ling', lx: x0 + w / 2 + 1, ly: y0 + h - 8 }, `${s === 'L' ? 'Left' : 'Right'} lingual gyrus`, [x0 + w / 2 + 1, y0 + h - 8]);
+}
+txt(230, 558, 'calcarine', { 'text-anchor': 'middle', 'font-size': 10.5 });
+txt(230, 570, '(medial view)', { 'text-anchor': 'middle', 'font-size': 10.5 });
+txt(116, 576, 'pole', { 'text-anchor': 'end', 'font-size': 10.5 });
+txt(344, 576, 'pole', { 'font-size': 10.5 });
+txt(26, 360, "Meyer's", { 'font-size': 11 });
+txt(26, 373, 'loop', { 'font-size': 11 });
+txt(434, 360, "Meyer's", { 'font-size': 11, 'text-anchor': 'end' });
+txt(434, 373, 'loop', { 'font-size': 11, 'text-anchor': 'end' });
+txt(176, 470, 'parietal', { 'font-size': 11 });
+txt(284, 470, 'parietal', { 'font-size': 11, 'text-anchor': 'end' });
+txt(230, 236, 'chiasm', { 'text-anchor': 'middle', 'font-size': 11 });
+txt(150, 146, 'optic n.', { 'text-anchor': 'end', 'font-size': 11 });
+txt(310, 146, 'optic n.', { 'font-size': 11 });
+txt(176, 286, 'tract', { 'font-size': 11, 'text-anchor': 'end' });
+txt(284, 286, 'tract', { 'font-size': 11 });
+
+// ---------- lesion table ----------
+const tbody = document.querySelector('#lestable tbody');
+const boxes = {};
+let lastGroup = '';
+for (const key in VF.L) {
+  const d = VF.L[key];
+  if (d.group !== lastGroup) { lastGroup = d.group; const g = document.createElement('tr'); g.className = 'grp'; g.innerHTML = `<td colspan="3">${d.group}</td>`; tbody.appendChild(g); }
+  const tr = document.createElement('tr');
+  const td = document.createElement('td'); td.textContent = d.name; tr.appendChild(td);
+  if (d.kind === 'mid') {
+    const c = document.createElement('td'); c.colSpan = 2; c.className = 'c'; c.style.width = 'auto';
+    const cb = mkBox(key + '_M', d.name + ' (midline)'); c.appendChild(cb); tr.appendChild(c);
+  } else {
+    for (const s of ['L', 'R']) {
+      const c = document.createElement('td'); c.className = 'c';
+      c.appendChild(mkBox(key + '_' + s, `${s === 'L' ? 'Left' : 'Right'} ${d.name}`)); tr.appendChild(c);
+    }
+  }
+  tbody.appendChild(tr);
+}
+function mkBox(k, label) { const cb = document.createElement('input'); cb.type = 'checkbox'; cb.setAttribute('aria-label', label); cb.onchange = () => toggle(k, cb.checked); boxes[k] = cb; return cb; }
+function toggle(k, v) { if (v === undefined) v = !state.les[k]; if (v) state.les[k] = true; else delete state.les[k]; state.preset = 'custom'; refresh(); }
+
+// ---------- presets ----------
+const P = [
+  { id: 'normal', name: 'Normal', les: () => ({}), text: () => '<b>Intact pathway.</b> Note the physiological blind spot 15° temporal to fixation and the monocular temporal crescents beyond 60°.' },
+  { id: 'on', name: 'Optic neuritis', les: s => ({ ['ONC_' + s]: 1 }), text: s => `<b>${cap(W(s))} optic neuritis.</b> Central scotoma in the ${W(s)} eye with a ${W(s)} RAPD. The fellow eye is normal. Try the swinging flashlight: both pupils dilate when the light swings onto the ${W(s)} eye.` },
+  { id: 'aion', name: 'AION', les: s => ({ ['AION_' + s]: 1 }), text: s => `<b>${cap(W(s))} anterior ischaemic optic neuropathy.</b> Inferior altitudinal defect in the ${W(s)} eye that respects the horizontal meridian (the boundary of the superior and inferior retinal arcades), with a ${W(s)} RAPD.` },
+  { id: 'onx', name: 'Optic nerve, complete', les: s => ({ ['ON_' + s]: 1 }), text: s => `<b>${cap(W(s))} optic nerve transection.</b> ${cap(W(s))} monocular blindness. ${cap(W(s))} pupil: no direct response, normal consensual response (amaurotic pupil); marked ${W(s)} RAPD.` },
+  { id: 'junc', name: 'Junctional scotoma', les: s => ({ ['JUNC_' + s]: 1 }), text: s => `<b>${cap(W(s))} junctional lesion</b> (optic nerve where it meets the chiasm). ${cap(W(s))} optic neuropathy plus a superotemporal defect in the ${W(opp(s))} eye. Always test the fellow eye's temporal field in an apparently monocular optic neuropathy.` },
+  { id: 'pit', name: 'Pituitary, early', les: () => ({ CHI_M: 1 }), text: () => '<b>Chiasmal compression from below</b> (pituitary macroadenoma). Crossing inferonasal fibres go first, giving bitemporal superior quadrantanopia that progresses to full bitemporal hemianopia. No RAPD while symmetric.' },
+  { id: 'bitemp', name: 'Bitemporal hemianopia', les: () => ({ CHB_M: 1 }), text: () => '<b>Chiasm body.</b> Bitemporal hemianopia splitting at the vertical meridian. Both open eyes still cover most of the field (see binocular plot), which is why patients often notice little apart from losing the far temporal periphery or having trouble fusing (hemifield slide).' },
+  { id: 'cranio', name: 'Craniopharyngioma', les: () => ({ CHS_M: 1 }), text: () => '<b>Chiasmal compression from above</b> (craniopharyngioma, suprasellar mass). Inferior bitemporal quadrantanopia first, the reverse of the pituitary pattern.' },
+  { id: 'binasal', name: 'Binasal', les: () => ({ CHL_L: 1, CHL_R: 1 }), text: () => '<b>Bilateral lateral chiasm compression</b> (for example ectatic carotids or a dilated third ventricle). Binasal defects. Binasal fields are more often from bilateral optic nerve disease such as glaucoma, which this model does not draw as arcuate defects.' },
+  { id: 'tract', name: 'Optic tract', les: s => ({ ['TRACT_' + s]: 1 }), text: s => `<b>${cap(W(s))} optic tract.</b> ${cap(W(opp(s)))} homonymous hemianopia (incongruous when partial) with a mild ${W(opp(s))} RAPD, because the ${W(opp(s))} eye loses its larger temporal hemifield. Later: band (bow-tie) atrophy of the ${W(opp(s))} disc.` },
+  { id: 'lgnac', name: 'LGN sectoranopia', les: s => ({ ['LGNAC_' + s]: 1 }), text: s => `<b>${cap(W(s))} LGN, anterior choroidal artery territory.</b> ${cap(W(opp(s)))} homonymous upper and lower sector defects sparing a horizontal wedge (quadruple sectoranopia). The lateral posterior choroidal territory gives the opposite: a horizontal wedge defect (tick it in the table).` },
+  { id: 'meyer', name: "Meyer's loop", les: s => ({ ['MEYER_' + s]: 1 }), text: s => `<b>${cap(W(s))} temporal lobe (Meyer's loop).</b> ${cap(W(opp(s)))} superior homonymous quadrantanopia ("pie in the sky"), for example after ${W(s)} anterior temporal lobectomy.` },
+  { id: 'par', name: 'Parietal', les: s => ({ ['PAR_' + s]: 1 }), text: s => `<b>${cap(W(s))} parietal radiation.</b> ${cap(W(opp(s)))} inferior homonymous quadrantanopia ("pie on the floor"). Parietal lesions also impair optokinetic nystagmus when the drum rotates toward the side of the lesion.` },
+  { id: 'pca', name: 'PCA infarct', les: s => ({ ['PCA_' + s]: 1 }), text: s => `<b>${cap(W(s))} PCA occipital infarct.</b> Congruous ${W(opp(s))} homonymous hemianopia with macular sparing, attributed to dual MCA/PCA supply of the occipital pole. Pupils are normal: no RAPD after the LGN.` },
+  { id: 'pole', name: 'Occipital pole', les: s => ({ ['POLE_' + s]: 1 }), text: s => `<b>${cap(W(s))} occipital pole</b> (watershed infarct or trauma). ${cap(W(opp(s)))} homonymous central hemianopic scotoma with intact peripheral field. Switch to the central 30° view.` },
+  { id: 'cres', name: 'Temporal crescent', les: s => ({ ['ANTC_' + s]: 1 }), text: s => `<b>${cap(W(s))} anterior calcarine cortex.</b> Loss of the ${W(opp(s))} eye's temporal crescent only: the one retrochiasmal lesion that gives a monocular defect. The reverse (an occipital hemianopia sparing the crescent) is in the table as "Calcarine, sparing anterior tip".` },
+  { id: 'bipca', name: 'Bilateral PCA', les: () => ({ PCA_L: 1, PCA_R: 1 }), text: () => '<b>Bilateral occipital infarcts</b> (top-of-basilar). Bilateral homonymous hemianopia with macular sparing: a small central island (keyhole field). Pupils react normally. Without macular sparing this becomes cortical blindness, sometimes with denial of blindness (Anton syndrome).' }
+];
+const presetsEl = document.getElementById('presets');
+for (const p of P) { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = p.name; b.dataset.id = p.id; b.onclick = () => applyPreset(p.id); presetsEl.appendChild(b); }
+function applyPreset(id) { const p = P.find(x => x.id === id); state.les = Object.fromEntries(Object.keys(p.les(state.side)).map(k => [k, true])); state.preset = id; refresh(); }
+const sL = document.getElementById('side-L'), sR = document.getElementById('side-R');
+function setSide(s) { state.side = s; sL.setAttribute('aria-pressed', String(s === 'L')); sR.setAttribute('aria-pressed', String(s === 'R')); if (state.preset !== 'custom') applyPreset(state.preset); }
+sL.onclick = () => setSide('L'); sR.onclick = () => setSide('R');
+
+// ---------- field description ----------
+function describe() {
+  // summarise each eye by octant
+  const out = {};
+  for (const eye of ['L', 'R']) {
+    let tot = 0, lost = 0;
+    const q = { ut: [0, 0], ln: [0, 0], un: [0, 0], lt: [0, 0] };
+    let ctot = 0, clost = 0;
+    for (let x = -89; x <= 89; x += 3) for (let y = -69; y <= 59; y += 3) {
+      const v = VF.seen(state.les, eye, x, y); if (v === null) continue;
+      const temporal = eye === 'R' ? x > 0 : x < 0;
+      const k = (y > 0 ? 'u' : 'l') + (temporal ? 't' : 'n');
+      q[k][0]++; if (!v) q[k][1]++;
+      tot++; if (!v) lost++;
+      if (Math.hypot(x, y) < 10) { ctot++; if (!v) clost++; }
+    }
+    out[eye] = { frac: lost / tot, q, central: clost / Math.max(1, ctot) };
+  }
+  return out;
+}
+
+// ---------- pupils ----------
+const pup = document.getElementById('pup');
+el('rect', { x: 0, y: 0, width: 440, height: 150, rx: 8, fill: '#d6b096' }, pup);
+const pupEls = {};
+for (const [s, cx] of [['R', 120], ['L', 320]]) { // examiner's view: patient's R on the left
+  const g = el('g', {}, pup);
+  el('path', { d: `M ${cx - 70} 78 Q ${cx} 30 ${cx + 70} 78 Q ${cx} 118 ${cx - 70} 78 Z`, fill: '#fbfaf4', stroke: '#9c7a63', 'stroke-width': 1.5 }, g);
+  el('circle', { cx, cy: 78, r: 30, fill: '#5b7340', stroke: '#2f3d22', 'stroke-width': 2 }, g);
+  const p = el('circle', { cx, cy: 78, r: 12, fill: '#0d0d0d' }, g);
+  const beam = el('path', { d: `M ${cx} 4 L ${cx - 26} 50 L ${cx + 26} 50 Z`, fill: '#fff6b0', 'fill-opacity': .0 }, g);
+  const t = el('text', { x: cx, y: 140, 'text-anchor': 'middle', 'font-size': 13, fill: '#3d2f25', 'font-weight': 600 }, g);
+  t.textContent = `Patient's ${s === 'R' ? 'right' : 'left'}`;
+  const mm = el('text', { x: cx + 74, y: 82, 'font-size': 12, fill: '#3d2f25', 'font-family': 'IBM Plex Mono, monospace' }, g);
+  pupEls[s] = { p, beam, mm, d: 6 };
+}
+el('text', { x: 220, y: 18, 'text-anchor': 'middle', 'font-size': 11.5, fill: '#3d2f25' }, pup).textContent = "Examiner's view";
+let aff = { R: 1, L: 1 }, swingT = 0;
+const plR = document.getElementById('pl-R'), plL = document.getElementById('pl-L'), plS = document.getElementById('pl-swing'), plO = document.getElementById('pl-off');
+function setLight(s) { state.swing = false; plS.setAttribute('aria-pressed', 'false'); state.light = s; }
+plR.onclick = () => setLight('R'); plL.onclick = () => setLight('L'); plO.onclick = () => setLight(null);
+plS.onclick = () => { state.swing = !state.swing; plS.setAttribute('aria-pressed', String(state.swing)); if (state.swing) { swingT = performance.now(); state.light = 'R'; } };
+let lastT = performance.now();
+function tick(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  if (state.swing && now - swingT > 1700) { swingT = now; state.light = opp(state.light || 'L'); }
+  const input = state.light ? aff[state.light] : 0;
+  const target = 7 - 4.2 * input; // mm, consensual: both pupils share the target
+  for (const s of ['R', 'L']) {
+    const e = pupEls[s];
+    e.d += (target - e.d) * (reduceMotion ? 1 : Math.min(1, dt / 0.28));
+    e.p.setAttribute('r', (e.d * 3.6).toFixed(2));
+    e.beam.setAttribute('fill-opacity', state.light === s ? 0.85 : 0);
+    e.mm.textContent = e.d.toFixed(1) + ' mm';
+  }
+  requestAnimationFrame(tick);
+}
+
+// ---------- refresh ----------
+function refresh() {
+  for (const k in boxes) boxes[k].checked = !!state.les[k];
+  for (const tr of tbody.querySelectorAll('tr:not(.grp)')) tr.classList.toggle('on', [...tr.querySelectorAll('input')].some(i => i.checked));
+  for (const k in parts) {
+    const p = parts[k], on = !!state.les[k];
+    p.mark.setAttribute('visibility', on ? 'visible' : 'hidden');
+    p.g.setAttribute('aria-checked', String(on));
+    if (p.shape.type === 'path') { p.vis.setAttribute('stroke', on ? 'var(--lesion)' : 'transparent'); p.vis.setAttribute('stroke-opacity', on ? .45 : 0); }
+    else if (p.shape.type === 'ellipse') p.vis.setAttribute('fill', on ? 'var(--lesion-soft)' : 'var(--panel)');
+    else { p.vis.setAttribute('fill', on ? 'var(--lesion)' : 'var(--panel)'); p.vis.setAttribute('fill-opacity', on ? .35 : 0); }
+  }
+  for (const b of presetsEl.children) b.setAttribute('aria-pressed', String(b.dataset.id === state.preset));
+  const desc = document.getElementById('desc');
+  if (state.preset === 'custom') {
+    const ks = Object.keys(state.les);
+    desc.innerHTML = ks.length ? '<b>Custom lesion set:</b> ' + ks.map(k => { const [a, s] = k.split('_'); return (s === 'M' ? '' : W(s) + ' ') + VF.L[a].name.toLowerCase(); }).join('; ') + '.' : '<b>No lesions.</b> Pick a syndrome or click the pathway.';
+  } else desc.innerHTML = P.find(p => p.id === state.preset).text(state.side);
+  drawAll();
+  aff = VF.afferent(state.les);
+  const r = VF.rapd(aff);
+  const ds = describe();
+  const chips = [];
+  for (const eye of ['L', 'R']) {
+    const pct = Math.round(ds[eye].frac * 100);
+    chips.push(`<span class="chip${pct ? ' bad' : ''}">${eye === 'L' ? 'Left' : 'Right'} eye field lost: <b>${pct}%</b></span>`);
+  }
+  chips.push(`<span class="chip${r.side ? ' bad' : ''}">RAPD: <b>${r.side ? `${r.side === 'L' ? 'left' : 'right'}, ${r.grade}` : 'none'}</b></span>`);
+  const pupilsOK = Object.keys(state.les).some(k => VF.L[k.split('_')[0]].level === 'post') && !r.side;
+  document.getElementById('status').innerHTML = chips.join('');
+  document.getElementById('pupnote').textContent = `Pupillomotor input: right eye ${Math.round(aff.R * 100)}%, left eye ${Math.round(aff.L * 100)}%. ` + (r.side ? `Swing to the ${r.side === 'L' ? 'left' : 'right'} eye and both pupils dilate.` : pupilsOK ? 'Lesions behind the LGN spare the pupillary pathway.' : 'Pupils respond equally to light in either eye.');
+  // short text summary of the defect pattern
+  const dx = [];
+  const quad = { ut: 'upper temporal', un: 'upper nasal', lt: 'lower temporal', ln: 'lower nasal' };
+  for (const eye of ['L', 'R']) {
+    const d = ds[eye];
+    if (d.frac < 0.005) continue;
+    const lostQ = Object.keys(d.q).filter(k => d.q[k][1] / d.q[k][0] > 0.5);
+    const part = d.frac > 0.97 ? 'no vision' : lostQ.length ? lostQ.map(k => quad[k]).join(', ') + ' field' : (d.central > 0.5 ? 'central field' : 'partial field');
+    dx.push(`<b>${eye === 'L' ? 'Left' : 'Right'} eye:</b> ${part}${d.central > 0.5 && d.frac < 0.97 && lostQ.length ? ', including fixation' : (d.central < 0.2 && d.frac > 0.2 ? ', fixation spared' : '')}.`);
+  }
+  document.getElementById('dx').innerHTML = dx.join(' ') || 'Full fields in both eyes.';
+}
+refresh();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

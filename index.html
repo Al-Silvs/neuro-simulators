@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clinical Neurology Simulators</title>
+<meta name="description" content="Interactive simulators for clinical neurology: visual pathway, extraocular movements, brachial plexus.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef0ee; --panel:#fbfcfb; --ink:#18202b; --muted:#5a6472; --line:#d5d9de;
+  --accent:#1f56c9; --accent-soft:#dbe5fa;
+  --font-display:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440;
+    --accent:#6f9bff; --accent-soft:#1d2a47;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+header,main,footer{max-width:1100px;margin:0 auto;padding-left:20px;padding-right:20px}
+header{padding-top:36px;padding-bottom:8px}
+h1{font-family:var(--font-display);font-weight:600;font-size:34px;margin:0 0 6px;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:70ch}
+.tools{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:22px 0 4px}
+.tools input[type=search]{font:inherit;font-size:14px;padding:7px 11px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);min-width:240px}
+.tools input[type=search]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:4px 10px;border-radius:999px;cursor:pointer}
+.tag:hover{border-color:var(--accent)}
+.tag:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.tag[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:16px}
+.card{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;text-decoration:none;color:inherit}
+.card:hover{border-color:var(--accent)}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card h2{font-family:var(--font-display);font-weight:600;font-size:21px;margin:0}
+.card p{margin:0;font-size:14px;color:var(--muted)}
+.card .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.card .meta span{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--accent-soft)}
+.card .go{font-size:13.5px;color:var(--accent);font-weight:500}
+.empty{color:var(--muted);margin-top:20px}
+footer{padding-top:28px;padding-bottom:36px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Clinical Neurology Simulators</h1>
+  <p>Interactive teaching tools. Lesion a structure and see the exam findings that follow. Each page lists what its model leaves out.</p>
+  <div class="tools">
+    <input type="search" id="q" placeholder="Search simulators" aria-label="Search simulators">
+    <div class="tags" id="tags" role="group" aria-label="Filter by topic"></div>
+  </div>
+</header>
+<main>
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" hidden>No simulators match.</p>
+</main>
+<footer>
+  Study tools, not clinical decision aids. Models are simplified and some values are qualitative.
+</footer>
+<script>
+// To add a simulator: put it in its own folder (folder/index.html), then add one entry here.
+// An entry with live: false is hidden from the page. Delete that line (or set live: true) when its folder is published.
+const SIMS = [
+  {
+    path: 'visual-pathway/',
+    title: 'Visual Pathway Simulator',
+    blurb: 'Lesion the pathway from optic nerve to calcarine cortex. Read each eye’s field, the binocular field and the RAPD, and run a swinging-flashlight test.',
+    tags: ['Neuro-ophthalmology', 'Visual fields', 'Pupils'],
+    features: ['Field plots', 'RAPD', 'Syndrome presets']
+  },
+  {
+    path: 'extraocular/',
+    live: false,
+    title: 'Extraocular Movement Simulator',
+    blurb: 'Lesion CN III, IV, VI, the PPRF or the MLF and watch eye position change across gaze. Includes a 3D muscle view from above, front and side.',
+    tags: ['Neuro-ophthalmology', 'Brainstem', 'Cranial nerves'],
+    features: ['Six muscles per eye', 'INO, 1½, WEBINO', 'VOR mode']
+  },
+  {
+    path: 'brachial-plexus/',
+    live: false,
+    title: 'Brachial Plexus Simulator',
+    blurb: 'Lesion roots, trunks, divisions, cords or named nerves. Read MRC strength, sensory maps, reflexes and the SNAP and EMG pattern that separates root from plexus from nerve.',
+    tags: ['Peripheral nerve', 'Neuromuscular', 'Electrodiagnosis'],
+    features: ['Strength table', 'Sensory maps', 'NCS / EMG']
+  }
+];
+
+const LIVE = SIMS.filter(s => s.live !== false);
+const grid = document.getElementById('grid'), q =document.getElementById('q'), tagsEl = document.getElementById('tags'), empty = document.getElementById('empty');
+let activeTag = null;
+const allTags = [...new Set(LIVE.flatMap(s => s.tags))].sort();
+
+function renderTags() {
+  tagsEl.innerHTML = '';
+  for (const t of allTags) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tag'; b.textContent = t;
+    b.setAttribute('aria-pressed', String(t === activeTag));
+    b.onclick = () => { activeTag = activeTag === t ? null : t; renderTags(); render(); };
+    tagsEl.appendChild(b);
+  }
+}
+function render() {
+  const term = q.value.trim().toLowerCase();
+  const list = LIVE.filter(s =>
+    (!activeTag || s.tags.includes(activeTag)) &&
+    (!term || [s.title, s.blurb, ...s.tags, ...s.features].join(' ').toLowerCase().includes(term)));
+  grid.innerHTML = '';
+  for (const s of list) {
+    const a = document.createElement('a');
+    a.className = 'card'; a.href = s.path;
+    const h = document.createElement('h2'); h.textContent = s.title;
+    const p = document.createElement('p'); p.textContent = s.blurb;
+    const m = document.createElement('div'); m.className = 'meta';
+    for (const f of s.features) { const sp = document.createElement('span'); sp.textContent = f; m.appendChild(sp); }
+    const go = document.createElement('div'); go.className = 'go'; go.textContent = 'Open simulator →';
+    a.append(h, p, m, go);
+    grid.appendChild(a);
+  }
+  empty.hidden = list.length > 0;
+}
+q.addEventListener('input', render);
+renderTags(); render();
+</script>
+</body>
+</html>
