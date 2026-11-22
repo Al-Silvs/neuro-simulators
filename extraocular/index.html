@@ -52,6 +52,10 @@ svg text{font-family:var(--font-body)}
 .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 .view{display:grid;grid-template-columns:minmax(0,1fr) clamp(140px,28%,190px);gap:12px;align-items:center}
 .padwrap{min-width:0}
+.stage{min-width:0}
+.tabs{margin-top:8px;gap:8px}
+.stage .note{margin-top:6px}
+[hidden]{display:none!important}
 .padcap{margin:4px 0 0;font-size:12px;color:var(--muted);text-align:center}
 @media (max-width:520px){.view{grid-template-columns:minmax(0,1fr)}.padwrap{width:200px;max-width:100%;margin:0 auto}}
 .inputs{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
@@ -133,7 +137,22 @@ details ul{padding-left:18px;max-width:80ch}
     <section class="panel" aria-labelledby="h-pt">
       <h2 id="h-pt">Patient and gaze</h2>
       <div class="view">
-        <svg class="face" id="face" viewBox="0 0 600 230" role="img" aria-label="Patient's eyes, examiner's view"></svg>
+        <div class="stage">
+          <div id="facewrap"><svg class="face" id="face" viewBox="0 0 600 230" role="img" aria-label="Patient's eyes, examiner's view"></svg></div>
+          <div id="mwrap" hidden><svg class="face" id="mview" viewBox="0 0 600 300" role="img" aria-label="Both orbits viewed from above, showing the six extraocular muscles"></svg></div>
+          <div class="row tabs">
+            <div class="seg" role="group" aria-label="Eye view">
+              <button class="btn" type="button" id="t-eyes" aria-pressed="true">Eyes</button>
+              <button class="btn" type="button" id="t-mus" aria-pressed="false">Muscles</button>
+            </div>
+            <div class="seg" role="group" aria-label="Muscle view direction" id="mvctl" hidden>
+              <button class="btn" type="button" id="mv-top" aria-pressed="true">Above</button>
+              <button class="btn" type="button" id="mv-front" aria-pressed="false">Front</button>
+              <button class="btn" type="button" id="mv-side" aria-pressed="false">Side</button>
+            </div>
+          </div>
+          <p class="note" id="mvcap" hidden></p>
+        </div>
         <div class="padwrap">
           <svg class="pad" id="pad" viewBox="0 0 220 220" tabindex="0" role="slider" aria-label="Gaze target. Arrow keys move it; 0 recentres." aria-valuetext="Primary position"></svg>
           <p class="padcap">Drag to move gaze</p>
@@ -159,21 +178,8 @@ details ul{padding-left:18px;max-width:80ch}
           <button class="btn" id="b-sweep" type="button" aria-pressed="false">Sweep horizontally</button>
           <label class="row" style="gap:6px;font-size:14px"><input type="checkbox" id="slow"> Slow motion</label>
           <label class="row" style="gap:6px;font-size:14px"><input type="checkbox" id="hlock"> Horizontal only</label>
-          <button class="btn" id="b-mus" type="button" aria-pressed="false" aria-controls="mwrap">Show muscles</button>
         </div>
         <p class="note">Arrow keys move the gaze target. Use the saccade buttons with slow motion on to see adduction lag in a partial INO.</p>
-      </div>
-      <div id="mwrap" hidden>
-        <div class="row" style="margin-top:10px">
-          <span style="font-size:14px">View</span>
-          <div class="seg" role="group" aria-label="Muscle view direction">
-            <button class="btn" type="button" id="mv-top" aria-pressed="true">Above</button>
-            <button class="btn" type="button" id="mv-front" aria-pressed="false">Front</button>
-            <button class="btn" type="button" id="mv-side" aria-pressed="false">Side</button>
-          </div>
-        </div>
-        <svg class="face" id="mview" viewBox="0 0 600 300" role="img" aria-label="Both orbits viewed from above, showing the six extraocular muscles" style="margin-top:10px"></svg>
-        <p class="note" id="mvcap"></p>
       </div>
     </section>
 
@@ -720,9 +726,18 @@ function setStroke(rec, x, lesioned) {
 
 // ---------- muscle views (3D orbit model) ----------
 const mview = document.getElementById('mview');
-const bMus = document.getElementById('b-mus'), mwrap = document.getElementById('mwrap');
+const mwrap = document.getElementById('mwrap'), facewrap = document.getElementById('facewrap');
+const tEyes = document.getElementById('t-eyes'), tMus = document.getElementById('t-mus');
 let showMus = false, mvMode = 'top';
-bMus.onclick = () => { showMus = !showMus; mwrap.hidden = !showMus; bMus.setAttribute('aria-pressed', String(showMus)); bMus.textContent = showMus ? 'Hide muscles' : 'Show muscles'; };
+function setEyeView(mus) {
+  showMus = mus;
+  facewrap.hidden = mus; mwrap.hidden = !mus;
+  document.getElementById('mvctl').hidden = !mus;
+  document.getElementById('mvcap').hidden = !mus;
+  tEyes.setAttribute('aria-pressed', String(!mus)); tMus.setAttribute('aria-pressed', String(mus));
+}
+tEyes.onclick = () => setEyeView(false);
+tMus.onclick = () => setEyeView(true);
 // Eye frame: X lateral (+), Y anterior (+), Z up (+); globe centre at origin
 const R3 = 56;
 const rad = d => d * Math.PI / 180;
