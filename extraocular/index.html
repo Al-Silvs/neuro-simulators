@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extraocular Movement Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: instrument panel. Patient view and gaze control on the left, brainstem wiring and lesion list on the right, 9-gaze montage below. Patient's right is always on the viewer's left. */
+  --bg:#eef0ee; --panel:#fbfcfb; --ink:#18202b; --muted:#5a6472; --line:#d5d9de;
+  --accent:#1f56c9; --accent-soft:#dbe5fa; --lesion:#c3352a; --lesion-soft:#f7dedb;
+  --skin:#d6b096; --skin-edge:#9c7a63; --sclera:#fbfaf4; --iris:#5b7340; --iris-edge:#2f3d22; --pupil:#0d0d0d;
+  --stem:#e6e9ee; --stem-edge:#c3c9d2;
+  --font-display:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440;
+    --accent:#6f9bff; --accent-soft:#1d2a47; --lesion:#ff6a5c; --lesion-soft:#3a1e1c;
+    --stem:#1f2630; --stem-edge:#36404d;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440;
+  --accent:#6f9bff; --accent-soft:#1d2a47; --lesion:#ff6a5c; --lesion-soft:#3a1e1c;
+  --stem:#1f2630; --stem-edge:#36404d;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+header{padding:20px 20px 8px;max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline}
+h1{font-family:var(--font-display);font-weight:600;font-size:28px;margin:0;letter-spacing:.2px;text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:14px}
+.home{width:100%;font-size:13px;color:var(--accent);text-decoration:none}
+.home:hover{text-decoration:underline}
+main{max-width:1280px;margin:0 auto;padding:8px 20px 32px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+@media (max-width:920px){main{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.panel h2{font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:.4px;text-transform:uppercase;margin:0 0 10px;color:var(--muted)}
+.full{grid-column:1/-1}
+svg text{font-family:var(--font-body)}
+.face{width:100%;height:auto;display:block;border-radius:8px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.ctl-grid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px 18px;align-items:start}
+@media (max-width:520px){.ctl-grid{grid-template-columns:minmax(0,1fr)}}
+.pad{width:220px;max-width:100%;height:auto;touch-action:none;cursor:crosshair;border-radius:8px;display:block}
+.pad:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stack{display:flex;flex-direction:column;gap:10px;min-width:0}
+label.sl{display:grid;grid-template-columns:110px minmax(0,1fr) 48px;gap:8px;align-items:center;font-size:14px}
+label.sl output{font-family:var(--font-mono);font-size:13px;color:var(--muted);text-align:right}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=checkbox]{accent-color:var(--lesion);width:16px;height:16px;margin:0}
+.btn{font:inherit;font-size:13.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 11px;border-radius:7px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg .btn{border:0;border-radius:0}
+.seg .btn+.btn{border-left:1px solid var(--line)}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.tile .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.tile .v{font-family:var(--font-mono);font-size:17px;font-variant-numeric:tabular-nums;font-weight:500}
+.tile.alert{border-color:var(--lesion);background:var(--lesion-soft)}
+#mview{background:var(--bg);border:1px solid var(--line)}
+.mlab{font-size:12px;font-weight:600;fill:var(--ink)}
+.mlab.below{fill:var(--muted);font-weight:500}
+.findings{margin:10px 0 0;padding-left:18px;font-size:14px;line-height:1.45;height:calc(1.45em * 6 + 4px);overflow-y:auto;overscroll-behavior:contain}
+.findings li{margin:2px 0}
+.stem{width:100%;height:auto;display:block;max-width:520px;margin:0 auto}
+.stem .hit{cursor:pointer}
+.stem .hit:focus-visible .vis{outline:none;stroke:var(--accent)}
+.lestable{width:100%;border-collapse:collapse;font-size:14px}
+.lestable th{font-weight:500;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;text-align:center;padding:4px}
+.lestable th:first-child{text-align:left}
+.lestable td{padding:5px 4px;border-top:1px solid var(--line)}
+.lestable td.c{text-align:center;width:72px}
+.lestable .sub{color:var(--muted);font-size:12px;display:block}
+.lestable tr.on td:first-child{color:var(--lesion);font-weight:500}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.desc{margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;font-size:14px;max-width:72ch}
+.desc b{font-weight:600}
+.montage{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cell{border:1px solid var(--line);border-radius:8px;padding:6px 6px 4px;text-align:center;min-width:0;background:var(--panel)}
+.cell.cur{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.cell svg{width:100%;height:auto;display:block}
+.cell .lab{font-family:var(--font-mono);font-size:12.5px;font-variant-numeric:tabular-nums;min-height:1.4em}
+.cell .lab.bad{color:var(--lesion);font-weight:500}
+.cell .pos{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.muscles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:520px){.muscles{grid-template-columns:minmax(0,1fr)}}
+.mtab{width:100%;border-collapse:collapse;font-size:13.5px}
+.mtab td{padding:3px 4px}
+.mtab td.n{width:36px;font-weight:600;font-family:var(--font-mono)}
+.mtab td.cn{width:46px;color:var(--muted);font-size:12px}
+.mtab td.v{width:44px;text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.bar{height:10px;border-radius:5px;background:var(--line);position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:5px}
+.bar b{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--muted);opacity:.6}
+.mtab tr.weak td.n{color:var(--lesion)}
+.mtab tr.weak .bar{outline:1px solid var(--lesion)}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+details{font-size:14px}
+details summary{cursor:pointer;font-weight:500}
+details ul{padding-left:18px;max-width:80ch}
+.key{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin-top:6px;justify-content:center}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:18px;height:3px;border-radius:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <a class="home" href="../">&larr; All simulators</a>
+  <h1>Extraocular Movement Simulator</h1>
+  <p>Lesion nuclei, nerves, PPRF or MLF and watch versions change. Patient's right is on your left throughout (examiner's view).</p>
+</header>
+<main>
+  <div class="col">
+    <section class="panel" aria-labelledby="h-pt">
+      <h2 id="h-pt">Patient</h2>
+      <svg class="face" id="face" viewBox="0 0 600 230" role="img" aria-label="Patient's eyes, examiner's view"></svg>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="b-mus" type="button" aria-pressed="false" aria-controls="mwrap">Show muscles</button>
+      </div>
+      <div id="mwrap" hidden>
+        <div class="row" style="margin-top:10px">
+          <span style="font-size:14px">View</span>
+          <div class="seg" role="group" aria-label="Muscle view direction">
+            <button class="btn" type="button" id="mv-top" aria-pressed="true">Above</button>
+            <button class="btn" type="button" id="mv-front" aria-pressed="false">Front</button>
+            <button class="btn" type="button" id="mv-side" aria-pressed="false">Side</button>
+          </div>
+        </div>
+        <svg class="face" id="mview" viewBox="0 0 600 300" role="img" aria-label="Both orbits viewed from above, showing the six extraocular muscles" style="margin-top:10px"></svg>
+        <p class="note" id="mvcap"></p>
+      </div>
+      <ul class="findings" id="findings"></ul>
+    </section>
+
+    <section class="panel" aria-labelledby="h-gz">
+      <h2 id="h-gz">Gaze and inputs</h2>
+      <div class="ctl-grid">
+        <div class="stack">
+          <svg class="pad" id="pad" viewBox="0 0 220 220" tabindex="0" role="slider" aria-label="Gaze target. Arrow keys move it; 0 recentres." aria-valuetext="Primary position"></svg>
+          <div class="row" style="justify-content:center">
+            <button class="btn" id="b-sacR" type="button">Saccade R</button>
+            <button class="btn" id="b-ctr" type="button">Centre</button>
+            <button class="btn" id="b-sacL" type="button">Saccade L</button>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="row">
+            <span style="font-size:14px">Input</span>
+            <div class="seg" role="group" aria-label="Movement input">
+              <button class="btn" type="button" id="m-sacc" aria-pressed="true">Voluntary / saccade</button>
+              <button class="btn" type="button" id="m-vor" aria-pressed="false">VOR (doll's eyes)</button>
+            </div>
+          </div>
+          <label class="sl" for="conv">Convergence <input type="range" id="conv" min="0" max="1" step="0.01" value="0"><output id="o-conv">0%</output></label>
+          <label class="sl" for="tilt">Head tilt <input type="range" id="tilt" min="-1" max="1" step="0.01" value="0"><output id="o-tilt">0°</output></label>
+          <div class="row" style="font-size:13px;color:var(--muted);justify-content:space-between;margin:-6px 0 0 118px;max-width:calc(100% - 166px)"><span>to pt's L</span><span>to pt's R</span></div>
+          <div class="row">
+            <button class="btn" id="b-sweep" type="button" aria-pressed="false">Sweep horizontally</button>
+            <label class="row" style="gap:6px;font-size:14px"><input type="checkbox" id="slow"> Slow motion</label>
+            <label class="row" style="gap:6px;font-size:14px"><input type="checkbox" id="hlock"> Horizontal only</label>
+          </div>
+          <p class="note">Arrow keys move the gaze target. Use the saccade buttons with slow motion on to see adduction lag in a partial INO.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-mu">
+      <h2 id="h-mu">Muscle activation</h2>
+      <div class="muscles" id="muscles"></div>
+      <p class="note">Bars show motoneuron drive (tick = resting tone). Red names mark muscles whose innervation is lesioned.</p>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="panel" aria-labelledby="h-st">
+      <h2 id="h-st">Brainstem wiring: click to lesion</h2>
+      <svg class="stem" id="stem" viewBox="-84 0 608 560" role="group" aria-label="Brainstem schematic"></svg>
+      <div class="key">
+        <span><i class="sw" style="background:var(--accent)"></i>Activity (brighter = more drive)</span>
+        <span><i class="sw" style="background:var(--lesion)"></i>Lesioned</span>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-ls">
+      <h2 id="h-ls">Syndromes and lesions</h2>
+      <div class="row">
+        <span style="font-size:14px">Side</span>
+        <div class="seg" role="group" aria-label="Side for presets">
+          <button class="btn" type="button" id="side-R" aria-pressed="true">Patient's R</button>
+          <button class="btn" type="button" id="side-L" aria-pressed="false">Patient's L</button>
+        </div>
+      </div>
+      <div class="presets" id="presets"></div>
+      <div class="desc" id="desc"></div>
+      <table class="lestable" id="lestable" style="margin-top:12px">
+        <thead><tr><th>Structure</th><th>Patient's R</th><th>Patient's L</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="stack" style="margin-top:12px">
+        <label class="sl" for="sev">Lesion severity <input type="range" id="sev" min="0.1" max="1" step="0.05" value="1"><output id="o-sev">100%</output></label>
+        <div class="row">
+          <label class="row" style="gap:6px;font-size:14px"><input type="checkbox" id="pspare"> Pupil-sparing CN III nerve lesion</label>
+          <label class="row" style="gap:6px;font-size:14px"><input type="checkbox" id="lift"> Lift ptotic lids</label>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel full" aria-labelledby="h-9">
+    <h2 id="h-9">Nine gaze positions</h2>
+    <div class="montage" id="montage"></div>
+    <p class="note">Deviation in each position, measured against a normal pair of eyes at the same command. Vertical positions use a moderate excursion.</p>
+  </section>
+
+  <section class="panel full">
+    <details>
+      <summary>How the model works, and what it leaves out</summary>
+      <ul>
+        <li>Each CN VI nucleus fires at a resting tone and increases for gaze toward its own side. It drives the ipsilateral LR through CN VI and, through internuclear neurons that cross and ascend in the opposite MLF, the contralateral MR subnucleus.</li>
+        <li>The PPRF supplies the voluntary/saccadic horizontal command to the CN VI nucleus on its side. In VOR mode vestibular input reaches the CN VI nuclei directly, so PPRF lesions stop mattering and CN VI nucleus lesions do not.</li>
+        <li>Eye position is the net pull of agonist minus antagonist, plus the small horizontal actions of the vertical recti (adduct) and obliques (abduct). Vertical action is weighted toward the recti in abduction and the obliques in adduction; torsion the other way round.</li>
+        <li>Head tilt drives counter-roll: the eye on the tilted side intorts (SR + SO), the other extorts (IR + IO). Losing SO leaves the SR elevation unopposed, which gives the Bielschowsky sign.</li>
+        <li>A pontine MLF lesion leaves a small tonic input to MR, so primary position stays nearly aligned. A midbrain MLF lesion here also removes that tonic input and the convergence drive, which is one proposed explanation for WEBINO exotropia; the mechanism in patients is debated.</li>
+        <li>A CN III nucleus lesion weakens ipsilateral MR, IR, IO and both SRs (the SR subnucleus projects contralaterally and its crossing fibres pass through the other nucleus), with bilateral ptosis from the shared central caudal nucleus.</li>
+        <li>Not modelled: vertical gaze centres (riMLF, INC), skew deviation, saccade main-sequence detail, mechanical restriction, Listing's law. A CN VI nucleus lesion leaves the eyes resting deviated away from the lesion; the model probably overstates that drift. Degrees and prism dioptres are qualitative, not calibrated to patient data.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+
+<script>
+// Extraocular motor model. Shared by the page (inlined) and the Node check.
+const TAU = 0.5;      // resting tone of every motoneuron pool
+const KAPPA = 0.8;    // fraction of resting tone that reaches MR after a pontine MLF lesion
+const G = 45 / (1 + TAU), GV = 30 / (1 + TAU), GT = 15 / (1 + TAU);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+// Motoneuron pool output for a command g (-1 = full off-direction, +1 = full on-direction)
+function O(g) { g = clamp(g, -1, 1.5); return g >= 0 ? TAU + g : TAU * (1 + g); }
+
+function model(inp, les, sev, pupilSpare) {
+  const I = k => (les[k] ? 1 - sev : 1);
+  const H = inp.H, V = inp.V, c = inp.conv, tilt = inp.tilt;
+  const vor = inp.mode === 'vor';
+  const pR = vor ? 1 : I('PPRF_R'), pL = vor ? 1 : I('PPRF_L');
+  // H > 0 = gaze to patient's right
+  const gR = H > 0 ? H * pR : H * pL;
+  const gL = H < 0 ? -H * pL : -H * pR;
+  const VIR = O(gR) * I('VInuc_R'), VIL = O(gL) * I('VInuc_L');
+  const tonic = KAPPA * Math.min(VIR, VIL, TAU);
+  const eyes = {};
+  for (const s of ['R', 'L']) {
+    const o = s === 'R' ? 'L' : 'R';
+    const VIs = s === 'R' ? VIR : VIL, VIo = s === 'R' ? VIL : VIR;
+    const mp = I('MLFp_' + s), mm = I('MLFm_' + s);
+    const mlfP = mp * VIo + (1 - mp) * tonic;   // after pontine segment
+    const mlfM = mm * mlfP;                       // after midbrain segment
+    const q = (s === 'R' ? 1 : -1) * 0.5 * tilt;  // intorsion command from head tilt
+    const III = I('IIInuc_' + s) * I('IIInerve_' + s);
+    const f = {
+      LR: I('VInerve_' + s),
+      MR: III, IR: III, IO: III,
+      // SR subnucleus projects contralaterally, and its crossing fibres pass
+      // through the other nucleus, so either nuclear lesion weakens this SR
+      SR: I('IIInuc_' + o) * I('IIInuc_' + s) * I('IIInerve_' + s),
+      SO: I('IVnuc_' + o) * I('IVnerve_' + s)
+    };
+    const convPath = mm;
+    const A = {
+      LR: f.LR * VIs * (1 - 0.4 * c),
+      MR: f.MR * (mlfM + 0.4 * c * convPath),
+      SR: f.SR * O(V + q), IR: f.IR * O(-V - q),
+      SO: f.SO * O(-V + q), IO: f.IO * O(V - q)
+    };
+    const h = (A.LR - A.MR) + 0.2 * (A.SO + A.IO - A.SR - A.IR);
+    const th = clamp(G * h, -50, 50);            // + = abduction
+    const a = clamp(th / 45, -1, 1), wr = 0.5 + 0.4 * a, wo = 1 - wr;
+    const ph = GV * (wr * (A.SR - A.IR) + wo * (A.IO - A.SO));   // + = up
+    const ps = GT * (wo * (A.SR - A.IR) + wr * (A.SO - A.IO));   // + = intorsion
+    const lev = Math.min(I('IIInuc_R'), I('IIInuc_L')) * I('IIInerve_' + s);
+    const pup = I('IIInuc_' + s) * (pupilSpare ? 1 : I('IIInerve_' + s));
+    const capAdd = f.MR * mp * mm, capAbd = f.LR * I('VInuc_' + s);
+    eyes[s] = { A, f, th, ph, ps, lev, pup, mlfP, mlfM, capAdd, capAbd };
+  }
+  return { eyes, VIR, VIL, pR, pL };
+}
+
+function deviation(m, n) {
+  // m = lesioned, n = normal, same inputs
+  const hx = (m.eyes.R.th + m.eyes.L.th) - (n.eyes.R.th + n.eyes.L.th); // + = exo
+  const vx = (m.eyes.R.ph - m.eyes.L.ph) - (n.eyes.R.ph - n.eyes.L.ph); // + = R hyper
+  return { hx, vx };
+}
+const pd = deg => Math.round(100 * Math.tan(Math.abs(deg) * Math.PI / 180));
+
+if (typeof module !== 'undefined') module.exports = { model, deviation, pd, O, TAU };
+
+
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent) => {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const STRUCT = [
+  { k: 'PPRF', name: 'PPRF', sub: 'Horizontal saccade generator' },
+  { k: 'VInuc', name: 'CN VI nucleus', sub: 'LR motoneurons + internuclear neurons' },
+  { k: 'VInerve', name: 'CN VI nerve', sub: 'Ipsilateral LR' },
+  { k: 'MLFp', name: 'MLF, pons', sub: 'To ipsilateral MR subnucleus' },
+  { k: 'MLFm', name: 'MLF, midbrain', sub: 'Rostral segment; also tonic/vergence input to MR' },
+  { k: 'IIInuc', name: 'CN III nucleus', sub: 'Ipsi MR/IR/IO, both SR, both levators' },
+  { k: 'IIInerve', name: 'CN III nerve', sub: 'Ipsi MR/SR/IR/IO, levator, pupil' },
+  { k: 'IVnuc', name: 'CN IV nucleus', sub: 'Contralateral SO' },
+  { k: 'IVnerve', name: 'CN IV nerve', sub: 'Named for the SO it supplies' }
+];
+const NAMES = Object.fromEntries(STRUCT.map(s => [s.k, s.name]));
+
+const state = {
+  les: {}, sev: 1, pupilSpare: false, lift: false,
+  H: 0, V: 0, conv: 0, tilt: 0, mode: 'sacc',
+  sweep: false, slow: false, hlock: false, side: 'R', preset: 'normal'
+};
+const disp = { R: { th: 0, ph: 0 }, L: { th: 0, ph: 0 } };
+
+// ---------- eye drawing ----------
+function makeEye(parent, cx, cy, s, side, opts) {
+  const w = 82 * s, h = 40 * s;
+  const g = el('g', { transform: `translate(${cx},${cy})` }, parent);
+  const id = 'clip' + Math.random().toString(36).slice(2);
+  const scl = `M ${-w} 0 Q 0 ${-1.45 * h} ${w} 0 Q 0 ${1.35 * h} ${-w} 0 Z`;
+  const cp = el('clipPath', { id }, g); el('path', { d: scl }, cp);
+  el('path', { d: scl, fill: 'var(--sclera)' }, g);
+  const inner = el('g', { 'clip-path': `url(#${id})` }, g);
+  const irisG = el('g', {}, inner);
+  el('circle', { r: 31 * s, fill: 'var(--iris)', stroke: 'var(--iris-edge)', 'stroke-width': 2.2 * s }, irisG);
+  el('circle', { r: 22 * s, fill: 'none', stroke: 'var(--iris-edge)', 'stroke-opacity': .25, 'stroke-width': 1.2 * s }, irisG);
+  const pupil = el('circle', { r: 11 * s, fill: 'var(--pupil)' }, irisG);
+  const tick = el('line', { x1: 0, y1: -14 * s, x2: 0, y2: -29 * s, stroke: '#f3e9c9', 'stroke-width': 2.6 * s, 'stroke-linecap': 'round' }, irisG);
+  el('circle', { cx: 7 * s, cy: -7 * s, r: 3.2 * s, fill: '#fff', 'fill-opacity': .85 }, irisG);
+  el('path', { d: scl, fill: 'none', stroke: 'var(--skin-edge)', 'stroke-width': 1.6 * s }, g);
+  const lid = el('path', { fill: 'var(--skin)' }, g);
+  const margin = el('path', { fill: 'none', stroke: '#5b4334', 'stroke-width': 2.2 * s, 'stroke-linecap': 'round' }, g);
+  const nyLab = opts && opts.label ? el('text', { x: 0, y: 2.25 * h, 'text-anchor': 'middle', 'font-size': 13, fill: '#5a4636' }, g) : null;
+  return {
+    update(th, ph, rot, lev, pup, lift) {
+      const sign = side === 'R' ? -1 : 1;
+      const dx = sign * 72 * s * Math.sin(th * Math.PI / 180);
+      const dy = -48 * s * Math.sin(ph * Math.PI / 180);
+      irisG.setAttribute('transform', `translate(${dx.toFixed(2)},${dy.toFixed(2)})`);
+      tick.setAttribute('transform', `rotate(${((side === 'R' ? 1 : -1) * rot).toFixed(2)})`);
+      pupil.setAttribute('r', ((11 + (1 - pup) * 9) * s).toFixed(2));
+      const ptosis = lift ? 0 : 1 - lev;
+      const m = (-0.6 + ptosis * 1.2) * h;
+      lid.setAttribute('d', `M ${-w - 30 * s} ${-2.4 * h} L ${w + 30 * s} ${-2.4 * h} L ${w + 30 * s} 0 L ${w} 0 Q 0 ${2 * m} ${-w} 0 L ${-w - 30 * s} 0 Z`);
+      lid.setAttribute('fill-opacity', ptosis > 0.05 ? 0.8 : 1);
+      margin.setAttribute('d', `M ${-w} 0 Q 0 ${2 * m} ${w} 0`);
+    },
+    label(t) { if (nyLab) nyLab.textContent = t; }
+  };
+}
+
+// face
+const face = document.getElementById('face');
+el('rect', { x: 0, y: 0, width: 600, height: 230, rx: 10, fill: 'var(--skin)' }, face);
+el('path', { d: 'M 95 52 Q 170 26 250 50', fill: 'none', stroke: '#6b4f3d', 'stroke-width': 9, 'stroke-linecap': 'round' }, face);
+el('path', { d: 'M 350 50 Q 430 26 505 52', fill: 'none', stroke: '#6b4f3d', 'stroke-width': 9, 'stroke-linecap': 'round' }, face);
+el('path', { d: 'M 292 70 Q 284 150 270 195 M 308 70 Q 316 150 330 195', fill: 'none', stroke: 'var(--skin-edge)', 'stroke-width': 1.5, 'stroke-opacity': .6 }, face);
+const bigEye = { R: makeEye(face, 170, 120, 1, 'R', { label: true }), L: makeEye(face, 430, 120, 1, 'L', { label: true }) };
+el('text', { x: 18, y: 24, 'font-size': 13, fill: '#4a3a2e', 'font-weight': 600 }, face).textContent = "Patient's R eye";
+const tL = el('text', { x: 582, y: 24, 'font-size': 13, fill: '#4a3a2e', 'font-weight': 600, 'text-anchor': 'end' }, face); tL.textContent = "Patient's L eye";
+el('text', { x: 300, y: 222, 'font-size': 11, fill: '#4a3a2e', 'text-anchor': 'middle', 'fill-opacity': .8 }, face).textContent = 'Torsion tick exaggerated ×3';
+
+// ---------- gaze pad ----------
+const pad = document.getElementById('pad');
+el('rect', { x: 0, y: 0, width: 220, height: 220, rx: 8, fill: 'var(--bg)', stroke: 'var(--line)' }, pad);
+for (const v of [-0.6, 0.6]) {
+  el('line', { x1: 20, x2: 200, y1: 110 - v * 90, y2: 110 - v * 90, stroke: 'var(--line)', 'stroke-dasharray': '3 4' }, pad);
+  el('line', { y1: 20, y2: 200, x1: 110 - v * 90, x2: 110 - v * 90, stroke: 'var(--line)', 'stroke-dasharray': '3 4' }, pad);
+}
+el('line', { x1: 20, x2: 200, y1: 110, y2: 110, stroke: 'var(--muted)', 'stroke-opacity': .5 }, pad);
+el('line', { y1: 20, y2: 200, x1: 110, x2: 110, stroke: 'var(--muted)', 'stroke-opacity': .5 }, pad);
+const padTxt = (x, y, t, a) => { const e = el('text', { x, y, 'font-size': 10.5, fill: 'var(--muted)', 'text-anchor': a || 'middle' }, pad); e.textContent = t; };
+padTxt(6, 114, 'R', 'start'); padTxt(214, 114, 'L', 'end'); padTxt(110, 14, 'UP'); padTxt(110, 214, 'DOWN');
+const dot = el('circle', { r: 9, fill: 'var(--accent)', stroke: 'var(--panel)', 'stroke-width': 2 }, pad);
+
+function setGaze(H, V) {
+  state.H = clamp(H, -1, 1);
+  state.V = state.hlock ? 0 : clamp(V, -1, 1);
+}
+function padFromEvent(e) {
+  const r = pad.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * 220, y = (e.clientY - r.top) / r.height * 220;
+  setGaze((110 - x) / 90, (110 - y) / 90);
+}
+pad.addEventListener('pointerdown', e => { stopSweep(); pad.setPointerCapture(e.pointerId); padFromEvent(e); });
+pad.addEventListener('pointermove', e => { if (pad.hasPointerCapture(e.pointerId)) padFromEvent(e); });
+pad.addEventListener('keydown', e => {
+  const st = 0.1; let used = true;
+  if (e.key === 'ArrowLeft') setGaze(state.H + st, state.V);
+  else if (e.key === 'ArrowRight') setGaze(state.H - st, state.V);
+  else if (e.key === 'ArrowUp') setGaze(state.H, state.V + st);
+  else if (e.key === 'ArrowDown') setGaze(state.H, state.V - st);
+  else if (e.key === '0' || e.key === 'Home') setGaze(0, 0);
+  else used = false;
+  if (used) { stopSweep(); e.preventDefault(); }
+});
+document.getElementById('b-sacR').onclick = () => { stopSweep(); setGaze(0.9, state.V); };
+document.getElementById('b-sacL').onclick = () => { stopSweep(); setGaze(-0.9, state.V); };
+document.getElementById('b-ctr').onclick = () => { stopSweep(); setGaze(0, 0); };
+const bSweep = document.getElementById('b-sweep');
+let sweepT0 = 0;
+function stopSweep() { state.sweep = false; bSweep.setAttribute('aria-pressed', 'false'); }
+bSweep.onclick = () => { state.sweep = !state.sweep; bSweep.setAttribute('aria-pressed', String(state.sweep)); sweepT0 = performance.now() - Math.asin(clamp(state.H / 0.95, -1, 1)) / 1.1 * 1000; };
+document.getElementById('slow').onchange = e => state.slow = e.target.checked;
+document.getElementById('hlock').onchange = e => { state.hlock = e.target.checked; if (state.hlock) state.V = 0; };
+const mS = document.getElementById('m-sacc'), mV = document.getElementById('m-vor');
+mS.onclick = () => { state.mode = 'sacc'; mS.setAttribute('aria-pressed', 'true'); mV.setAttribute('aria-pressed', 'false'); refresh(); };
+mV.onclick = () => { state.mode = 'vor'; mV.setAttribute('aria-pressed', 'true'); mS.setAttribute('aria-pressed', 'false'); refresh(); };
+const conv = document.getElementById('conv'), tilt = document.getElementById('tilt'), sev = document.getElementById('sev');
+conv.oninput = () => { state.conv = +conv.value; document.getElementById('o-conv').textContent = Math.round(state.conv * 100) + '%'; };
+tilt.oninput = () => { state.tilt = +tilt.value; const d = Math.round(Math.abs(state.tilt) * 45); document.getElementById('o-tilt').textContent = d === 0 ? '0°' : d + '° ' + (state.tilt > 0 ? 'R' : 'L'); };
+sev.oninput = () => { state.sev = +sev.value; document.getElementById('o-sev').textContent = Math.round(state.sev * 100) + '%'; refresh(); };
+document.getElementById('pspare').onchange = e => { state.pupilSpare = e.target.checked; refresh(); };
+document.getElementById('lift').onchange = e => { state.lift = e.target.checked; };
+
+// ---------- brainstem diagram ----------
+const stem = document.getElementById('stem');
+el('path', { d: 'M 110 40 Q 220 22 330 40 L 336 236 Q 380 300 372 420 Q 360 520 220 528 Q 80 520 68 420 Q 60 300 104 236 Z', fill: 'var(--stem)', stroke: 'var(--stem-edge)', 'stroke-width': 1.5 }, stem);
+el('line', { x1: 96, x2: 344, y1: 246, y2: 246, stroke: 'var(--stem-edge)', 'stroke-dasharray': '4 5' }, stem);
+el('line', { x1: 220, x2: 220, y1: 46, y2: 520, stroke: 'var(--stem-edge)', 'stroke-dasharray': '2 6' }, stem);
+const stx = (x, y, t, o) => { const e = el('text', Object.assign({ x, y, 'font-size': 12, fill: 'var(--muted)' }, o || {}), stem); e.textContent = t; return e; };
+stx(118, 62, 'MIDBRAIN', { 'letter-spacing': 1, 'font-size': 11 });
+stx(100, 268, 'PONS', { 'letter-spacing': 1, 'font-size': 11 });
+stx(-76, 552, "Patient's R", { 'font-weight': 600, fill: 'var(--ink)' });
+stx(516, 552, "Patient's L", { 'font-weight': 600, fill: 'var(--ink)', 'text-anchor': 'end' });
+
+const parts = {}; // key -> {vis, mark, kind}
+function addPath(key, d, opts) {
+  const grp = el('g', { class: key && !opts.static ? 'hit' : '' }, stem);
+  const vis = el('path', { d, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 3, 'stroke-linecap': 'round', class: 'vis' }, grp);
+  if (opts.arrow) vis.setAttribute('marker-end', 'url(#arr)');
+  let mark = null;
+  if (key && !opts.static) {
+    el('path', { d, fill: 'none', stroke: 'transparent', 'stroke-width': 18 }, grp);
+    mark = el('g', { visibility: 'hidden' }, grp);
+    makeHitAccessible(grp, key);
+  }
+  const rec = { vis, mark, d, kind: 'path', grp };
+  if (key) parts[key + (opts.static ? '_x' : '')] = rec;
+  return rec;
+}
+function addNode(key, cx, cy, w, h, label) {
+  const grp = el('g', { class: 'hit' }, stem);
+  const vis = el('rect', { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 7, fill: 'var(--panel)', stroke: 'var(--accent)', 'stroke-width': 2.2, class: 'vis' }, grp);
+  const t = el('text', { x: cx, y: cy + 4.5, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 600, fill: 'var(--ink)' }, grp); t.textContent = label;
+  const mark = el('g', { visibility: 'hidden' }, grp);
+  xMark(mark, cx + w / 2 - 2, cy - h / 2 + 2);
+  makeHitAccessible(grp, key);
+  parts[key] = { vis, mark, kind: 'node', grp, fillEl: vis };
+}
+function xMark(g, x, y) {
+  el('circle', { cx: x, cy: y, r: 8, fill: 'var(--lesion)' }, g);
+  el('path', { d: `M ${x - 3.5} ${y - 3.5} L ${x + 3.5} ${y + 3.5} M ${x + 3.5} ${y - 3.5} L ${x - 3.5} ${y + 3.5}`, stroke: '#fff', 'stroke-width': 2 }, g);
+}
+function makeHitAccessible(grp, key) {
+  const [k, s] = key.split('_');
+  grp.setAttribute('tabindex', '0');
+  grp.setAttribute('role', 'checkbox');
+  grp.setAttribute('aria-label', `Lesion patient's ${s === 'R' ? 'right' : 'left'} ${NAMES[k]}`);
+  const ttl = el('title', {}, grp); ttl.textContent = `${s === 'R' ? 'Right' : 'Left'} ${NAMES[k]}: click to toggle lesion`;
+  grp.addEventListener('click', () => toggle(key));
+  grp.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(key); } });
+}
+const defs = el('defs', {}, stem);
+const mk = el('marker', { id: 'arr', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' }, defs);
+el('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--muted)' }, mk);
+
+// vergence input
+const vergBox = el('g', {}, stem);
+el('rect', { x: 186, y: 4, width: 68, height: 22, rx: 11, fill: 'var(--panel)', stroke: 'var(--stem-edge)' }, vergBox);
+const vt = el('text', { x: 220, y: 19, 'text-anchor': 'middle', 'font-size': 11.5, fill: 'var(--muted)' }, vergBox); vt.textContent = 'Vergence';
+const vergR = addPath('VERG_R', 'M 212 26 C 206 44 196 54 190 70', { static: true });
+const vergL = addPath('VERG_L', 'M 228 26 C 234 44 244 54 250 70', { static: true });
+
+// tracts and nerves (drawn under nodes)
+const MLFX = { R: 204, L: 236 };
+for (const s of ['R', 'L']) {
+  const x = MLFX[s];
+  addPath('MLFm_' + s, `M ${x} 246 L ${x} 114`, {});
+  addPath('MLFp_' + s, `M ${x} 390 L ${x} 246`, {});
+}
+// internuclear fibres: R VI nucleus -> L MLF, L VI nucleus -> R MLF
+const intR = addPath('INT_R', 'M 196 420 C 214 420 230 408 236 390', { static: true });
+const intL = addPath('INT_L', 'M 244 420 C 226 420 210 408 204 390', { static: true });
+// CN VI nerves
+addPath('VInerve_R', 'M 144 414 C 110 424 70 450 30 470', {});
+addPath('VInerve_L', 'M 296 414 C 330 424 370 450 410 470', {});
+// CN III nerves
+addPath('IIInerve_R', 'M 162 92 C 120 92 70 74 30 64', {});
+addPath('IIInerve_L', 'M 278 92 C 320 92 370 74 410 64', {});
+// CN IV: intra-axial fibres cross dorsally, nerve exits on the opposite side
+const ivxR = addPath('IVX_R', 'M 186 182 C 190 204 210 214 220 214', { static: true }); // from R nucleus
+const ivxL = addPath('IVX_L', 'M 254 182 C 250 204 230 214 220 214', { static: true });
+addPath('IVnerve_L', 'M 220 214 C 270 214 350 206 410 192', {});
+addPath('IVnerve_R', 'M 220 214 C 170 214 90 206 30 192', {});
+// PPRF -> VI
+const pprfArrR = addPath('PPA_R', 'M 166 458 L 168 436', { static: true, arrow: true });
+const pprfArrL = addPath('PPA_L', 'M 274 458 L 272 436', { static: true, arrow: true });
+// nodes
+addNode('IIInuc_R', 186, 92, 48, 40, 'III');
+addNode('IIInuc_L', 254, 92, 48, 40, 'III');
+addNode('IVnuc_R', 186, 168, 44, 26, 'IV');
+addNode('IVnuc_L', 254, 168, 44, 26, 'IV');
+addNode('VInuc_R', 170, 418, 52, 36, 'VI');
+addNode('VInuc_L', 270, 418, 52, 36, 'VI');
+addNode('PPRF_R', 164, 474, 70, 28, 'PPRF');
+addNode('PPRF_L', 276, 474, 70, 28, 'PPRF');
+// lesion marks on paths at midpoints; labels at nerve ends
+for (const key in parts) {
+  const p = parts[key];
+  if (p.kind === 'path' && p.mark) {
+    const L = p.vis.getTotalLength(); const pt = p.vis.getPointAtLength(L * 0.5);
+    xMark(p.mark, pt.x, pt.y);
+  }
+}
+stx(26, 60, 'CN III', { 'text-anchor': 'end', 'font-weight': 500, fill: 'var(--ink)' });
+stx(414, 60, 'CN III', { 'font-weight': 500, fill: 'var(--ink)' });
+stx(26, 190, 'CN IV', { 'text-anchor': 'end', 'font-weight': 500, fill: 'var(--ink)' });
+stx(26, 204, '→ R SO', { 'text-anchor': 'end', 'font-size': 11 });
+stx(414, 190, 'CN IV', { 'font-weight': 500, fill: 'var(--ink)' });
+stx(414, 204, '→ L SO', { 'font-size': 11 });
+stx(26, 474, 'CN VI', { 'text-anchor': 'end', 'font-weight': 500, fill: 'var(--ink)' });
+stx(26, 488, '→ R LR', { 'text-anchor': 'end', 'font-size': 11 });
+stx(414, 474, 'CN VI', { 'font-weight': 500, fill: 'var(--ink)' });
+stx(414, 488, '→ L LR', { 'font-size': 11 });
+stx(26, 76, '→ R MR SR IR IO', { 'text-anchor': 'end', 'font-size': 11 });
+stx(414, 76, '→ L MR SR IR IO', { 'font-size': 11 });
+stx(166, 300, 'MLF', { 'text-anchor': 'end', 'font-size': 11.5 });
+stx(274, 300, 'MLF', { 'font-size': 11.5 });
+
+// ---------- lesion table ----------
+const tbody = document.querySelector('#lestable tbody');
+const boxes = {};
+for (const s of STRUCT) {
+  const tr = document.createElement('tr'); tr.dataset.k = s.k;
+  const td = document.createElement('td');
+  td.innerHTML = `${s.name}<span class="sub">${s.sub}</span>`;
+  tr.appendChild(td);
+  for (const side of ['R', 'L']) {
+    const c = document.createElement('td'); c.className = 'c';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = `cb-${s.k}-${side}`;
+    cb.setAttribute('aria-label', `${side === 'R' ? 'Right' : 'Left'} ${s.name}`);
+    cb.onchange = () => toggle(`${s.k}_${side}`, cb.checked);
+    boxes[`${s.k}_${side}`] = cb; c.appendChild(cb); tr.appendChild(c);
+  }
+  tbody.appendChild(tr);
+}
+function toggle(key, val) {
+  state.les[key] = val === undefined ? !state.les[key] : val;
+  if (!state.les[key]) delete state.les[key];
+  state.preset = 'custom';
+  refresh();
+}
+
+// ---------- presets ----------
+const opp = s => (s === 'R' ? 'L' : 'R');
+const W = s => (s === 'R' ? 'right' : 'left');
+const PRESETS = [
+  { id: 'normal', name: 'Normal', les: () => ({}),
+    text: () => `<b>All structures intact.</b> Move the gaze target, sweep horizontally, or apply a syndrome.` },
+  { id: 'III', name: 'CN III palsy', les: s => ({ ['IIInerve_' + s]: 1 }),
+    text: s => `<b>${cap(W(s))} CN III nerve palsy.</b> The ${W(s)} eye rests down and out with ptosis and a dilated pupil (tick pupil-sparing for the microvascular pattern). Adduction, elevation and depression are lost; abduction (CN VI) remains. The intact SO intorts the eye on attempted downgaze: watch the torsion tick. Try gaze to the ${W(opp(s))}: the eye stops near midline.` },
+  { id: 'IV', name: 'CN IV palsy', les: s => ({ ['IVnerve_' + s]: 1 }),
+    text: s => `<b>${cap(W(s))} CN IV palsy.</b> ${s}HT in primary gaze, larger on gaze to the ${W(opp(s))} and in downgaze, and larger with head tilt to the ${W(s)} (Bielschowsky). Use the head tilt slider and the down-${W(opp(s))} montage cell. A lesion of the ${W(opp(s))} CN IV nucleus gives the same picture because the fibres decussate.` },
+  { id: 'VI', name: 'CN VI palsy', les: s => ({ ['VInerve_' + s]: 1 }),
+    text: s => `<b>${cap(W(s))} CN VI nerve palsy.</b> Esotropia in primary gaze that increases on gaze to the ${W(s)}; the ${W(s)} eye does not abduct past midline. Gaze to the ${W(opp(s))} is normal, so the deviation is incomitant.` },
+  { id: 'INO', name: 'INO', les: s => ({ ['MLFp_' + s]: 1 }),
+    text: s => `<b>${cap(W(s))} INO (${W(s)} pontine MLF).</b> On gaze to the ${W(opp(s))}, the ${W(s)} eye fails to adduct and the ${W(opp(s))} eye has abducting nystagmus. Gaze to the ${W(s)} is normal and primary position is nearly aligned. Convergence is spared: raise the convergence slider. Set severity to about 50% and use slow-motion saccades to see adduction lag.` },
+  { id: '15', name: '1½ syndrome', les: s => ({ ['VInuc_' + s]: 1, ['MLFp_' + s]: 1 }),
+    text: s => `<b>${cap(W(s))} one-and-a-half syndrome</b> (${W(s)} CN VI nucleus + ${W(s)} MLF). Horizontal gaze palsy to the ${W(s)} plus ${W(s)} INO: the only horizontal movement left is abduction of the ${W(opp(s))} eye, with nystagmus. Here the ${W(opp(s))} eye also rests exotropic (paralytic pontine exotropia), which some patients show. Convergence is spared. A PPRF + MLF lesion gives the same saccadic picture, but VOR mode separates them.` },
+  { id: 'WEBINO', name: 'WEBINO', les: () => ({ MLFm_R: 1, MLFm_L: 1 }),
+    text: () => `<b>Wall-eyed bilateral INO</b> (bilateral midbrain MLF). Exotropia in primary position, failed adduction on gaze to either side with abducting nystagmus in the leading eye, and impaired convergence. Compare with bilateral <i>pontine</i> MLF lesions (tick both in the table): bilateral INO with only a small exodeviation and convergence spared.` },
+  { id: 'VInuc', name: 'CN VI nucleus', les: s => ({ ['VInuc_' + s]: 1 }),
+    text: s => `<b>${cap(W(s))} CN VI nucleus lesion.</b> Horizontal gaze palsy to the ${W(s)}: neither eye passes midline, because the nucleus holds both the LR motoneurons and the internuclear neurons to the ${W(opp(s))} MR. Switch to VOR: the palsy persists. The eyes rest deviated away from the lesion; the model probably overstates that drift.` },
+  { id: 'PPRF', name: 'PPRF', les: s => ({ ['PPRF_' + s]: 1 }),
+    text: s => `<b>${cap(W(s))} PPRF lesion.</b> Voluntary and saccadic gaze palsy to the ${W(s)}. Switch input to VOR (doll's eyes): the eyes now move fully, because vestibular input reaches the CN VI nucleus without the PPRF.` },
+  { id: 'IIInuc', name: 'CN III nucleus', les: s => ({ ['IIInuc_' + s]: 1 }),
+    text: s => `<b>${cap(W(s))} CN III nucleus lesion.</b> ${cap(W(s))} MR, IR and IO weak, both SRs weak (the SR subnucleus projects contralaterally and its crossing fibres pass through the other nucleus), bilateral ptosis from the shared central caudal nucleus, ${W(s)} pupil dilated.` }
+];
+const cap = t => t[0].toUpperCase() + t.slice(1);
+const presetsEl = document.getElementById('presets');
+for (const p of PRESETS) {
+  const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = p.name; b.dataset.id = p.id;
+  b.onclick = () => applyPreset(p.id);
+  presetsEl.appendChild(b);
+}
+function applyPreset(id) {
+  const p = PRESETS.find(x => x.id === id);
+  state.les = p.les(state.side); state.preset = id;
+  if (id === 'III') { state.pupilSpare = false; document.getElementById('pspare').checked = false; }
+  refresh();
+}
+const sideR = document.getElementById('side-R'), sideL = document.getElementById('side-L');
+function setSide(s) {
+  state.side = s; sideR.setAttribute('aria-pressed', String(s === 'R')); sideL.setAttribute('aria-pressed', String(s === 'L'));
+  if (state.preset !== 'custom' && state.preset !== 'normal' && state.preset !== 'WEBINO') applyPreset(state.preset);
+}
+sideR.onclick = () => setSide('R'); sideL.onclick = () => setSide('L');
+
+// ---------- montage ----------
+const montage = document.getElementById('montage');
+const GPOS = [];
+for (const V of [0.6, 0, -0.6]) for (const H of [0.9, 0, -0.9]) GPOS.push({ H, V });
+const posName = (H, V) => { const v = V > 0 ? 'Up' : V < 0 ? 'Down' : ''; const h = H > 0 ? 'right' : H < 0 ? 'left' : ''; return (v && h) ? `${v} ${h}` : (v || (h ? cap(h) : 'Primary')); };
+const cells = GPOS.map(gp => {
+  const c = document.createElement('div'); c.className = 'cell';
+  const pn = document.createElement('div'); pn.className = 'pos'; pn.textContent = posName(gp.H, gp.V);
+  const svg = el('svg', { viewBox: '0 0 200 70' });
+  el('rect', { x: 0, y: 0, width: 200, height: 70, rx: 6, fill: 'var(--skin)' }, svg);
+  const eR = makeEye(svg, 54, 37, 0.46, 'R'), eL = makeEye(svg, 146, 37, 0.46, 'L');
+  const lab = document.createElement('div'); lab.className = 'lab';
+  c.append(pn, svg, lab); montage.appendChild(c);
+  return { c, eR, eL, lab, gp };
+});
+
+// ---------- muscles ----------
+const mus = document.getElementById('muscles');
+const MORDER = [['LR', 'VI'], ['MR', 'III'], ['SR', 'III'], ['IR', 'III'], ['SO', 'IV'], ['IO', 'III']];
+const mrows = {};
+for (const s of ['R', 'L']) {
+  const d = document.createElement('div');
+  d.innerHTML = `<div style="font-weight:600;font-size:14px;margin-bottom:4px">Patient's ${s === 'R' ? 'right' : 'left'} eye</div>`;
+  const t = document.createElement('table'); t.className = 'mtab';
+  for (const [m, n] of MORDER) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="n">${m}</td><td class="cn">CN ${n}</td><td><div class="bar"><i></i><b style="left:${TAU / 2 * 100}%"></b></div></td><td class="v"></td>`;
+    t.appendChild(tr); mrows[s + m] = tr;
+  }
+  d.appendChild(t); mus.appendChild(d);
+}
+
+// ---------- helpers ----------
+function devLabel(d) {
+  const parts = [];
+  if (Math.abs(d.hx) >= 1) parts.push(`${d.hx > 0 ? 'XT' : 'ET'} ${pd(d.hx)}Δ`);
+  if (Math.abs(d.vx) >= 1) parts.push(`${d.vx > 0 ? 'RHT' : 'LHT'} ${pd(d.vx)}Δ`);
+  return parts.length ? parts.join(' · ') : 'Aligned';
+}
+function inputs(H, V, extra) { return Object.assign({ H, V, conv: state.conv, tilt: state.tilt, mode: state.mode }, extra || {}); }
+const run = inp => model(inp, state.les, state.sev, state.pupilSpare);
+const runN = inp => model(inp, {}, 0, false);
+
+// refresh = things that only change with lesions/mode
+function refresh() {
+  for (const k in boxes) {
+    boxes[k].checked = !!state.les[k];
+    boxes[k].closest('tr').classList.toggle('on', !!(state.les[k.split('_')[0] + '_R'] || state.les[k.split('_')[0] + '_L']));
+  }
+  for (const key in parts) {
+    const p = parts[key]; if (!p.mark) continue;
+    const on = !!state.les[key];
+    p.mark.setAttribute('visibility', on ? 'visible' : 'hidden');
+    p.grp.setAttribute('aria-checked', String(on));
+    if (p.kind === 'node') p.vis.setAttribute('fill', on ? 'var(--lesion-soft)' : 'var(--panel)');
+  }
+  for (const b of presetsEl.children) b.setAttribute('aria-pressed', String(b.dataset.id === state.preset));
+  const desc = document.getElementById('desc');
+  if (state.preset === 'custom') {
+    const ks = Object.keys(state.les);
+    desc.innerHTML = ks.length ? `<b>Custom lesion set:</b> ${ks.map(k => { const [a, s] = k.split('_'); return `${W(s)} ${NAMES[a]}`; }).join(', ')}.` : '<b>No lesions.</b> Pick a syndrome or tick structures below.';
+  } else {
+    desc.innerHTML = PRESETS.find(p => p.id === state.preset).text(state.side);
+  }
+  document.getElementById('pspare').checked = state.pupilSpare;
+  // montage
+  let any = false;
+  for (const cl of cells) {
+    const inp = { H: cl.gp.H, V: cl.gp.V, conv: 0, tilt: 0, mode: state.mode };
+    const m = run(inp), n = runN(inp), n0 = n;
+    for (const s of ['R', 'L']) {
+      const e = m.eyes[s];
+      cl['e' + s].update(e.th, e.ph, (e.ps - n0.eyes[s].ps) * 3, e.lev, e.pup, true);
+    }
+    const d = deviation(m, n);
+    const t = devLabel(d);
+    cl.lab.textContent = t; cl.lab.classList.toggle('bad', t !== 'Aligned');
+  }
+}
+
+function setStroke(rec, x, lesioned) {
+  x = clamp(x, 0, 1);
+  if (lesioned) {
+    rec.vis.setAttribute('stroke', 'var(--lesion)');
+    rec.vis.setAttribute('stroke-dasharray', '6 5');
+    rec.vis.setAttribute('stroke-opacity', 1);
+    rec.vis.setAttribute('stroke-width', 3);
+  } else {
+    rec.vis.setAttribute('stroke', 'var(--accent)');
+    rec.vis.removeAttribute('stroke-dasharray');
+    rec.vis.setAttribute('stroke-opacity', (0.18 + 0.82 * x).toFixed(2));
+    rec.vis.setAttribute('stroke-width', rec.kind === 'node' ? 2.2 : (1.8 + 3.2 * x).toFixed(2));
+  }
+}
+
+// ---------- muscle views (3D orbit model) ----------
+const mview = document.getElementById('mview');
+const bMus = document.getElementById('b-mus'), mwrap = document.getElementById('mwrap');
+let showMus = false, mvMode = 'top';
+bMus.onclick = () => { showMus = !showMus; mwrap.hidden = !showMus; bMus.setAttribute('aria-pressed', String(showMus)); bMus.textContent = showMus ? 'Hide muscles' : 'Show muscles'; };
+// Eye frame: X lateral (+), Y anterior (+), Z up (+); globe centre at origin
+const R3 = 56;
+const rad = d => d * Math.PI / 180;
+const v3 = {
+  add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  sc: (a, k) => [a[0] * k, a[1] * k, a[2] * k],
+  dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  len: a => Math.hypot(a[0], a[1], a[2])
+};
+// point on the globe: alpha = angle from the anterior pole, (dx, dz) = direction around the pole
+function onSphere(alpha, dx, dz) { const a = rad(alpha), n = Math.hypot(dx, dz); return [R3 * Math.sin(a) * dx / n, R3 * Math.cos(a), R3 * Math.sin(a) * dz / n]; }
+// Rectus insertions from the spiral of Tillaux (MR 5.5, IR 6.5, LR 6.9, SR 7.7 mm behind the limbus)
+const G3 = {
+  MR: { o: [-46, -150, 0], ins: onSphere(56, -1, 0) },
+  LR: { o: [-34, -150, 0], ins: onSphere(63, 1, 0) },
+  SR: { o: [-40, -150, 8], ins: onSphere(67, 0.12, 1) },
+  IR: { o: [-40, -150, -8], ins: onSphere(61, -0.1, -1) },
+  SO: { o: [-50, -146, 20], tro: [-84, 30, 52], ins: onSphere(112, 0.55, 0.83) },
+  IO: { o: [-56, 50, -48], ins: onSphere(122, 0.8, -0.6) }
+};
+function rot3(p, th, ph, ps) {
+  let [x, y, z] = p, t, c, s;
+  t = rad(ps); c = Math.cos(t); s = Math.sin(t); [x, z] = [x * c - z * s, x * s + z * c];   // torsion (+ = intorsion)
+  t = rad(ph); c = Math.cos(t); s = Math.sin(t); [y, z] = [y * c - z * s, y * s + z * c];   // elevation
+  t = rad(th); c = Math.cos(t); s = Math.sin(t); [x, y] = [x * c + y * s, -x * s + y * c];  // abduction
+  return [x, y, z];
+}
+function seg3(a, b, n) { const r = []; for (let i = 0; i <= n; i++) r.push(v3.add(a, v3.sc(v3.sub(b, a), i / n))); return r; }
+// shortest path from an external point O to a point P on the globe, wrapping over the surface when needed
+function wrap3(O, P) {
+  const d = v3.len(O), e1 = v3.sc(O, 1 / d);
+  const pe = v3.sub(P, v3.sc(e1, v3.dot(P, e1))), pl = v3.len(pe);
+  if (pl < 1e-6) return seg3(O, P, 12);
+  const e2 = v3.sc(pe, 1 / pl);
+  const gP = Math.atan2(v3.dot(P, e2), v3.dot(P, e1)), gT = Math.acos(R3 / d);
+  const pt = g => v3.add(v3.sc(e1, R3 * Math.cos(g)), v3.sc(e2, R3 * Math.sin(g)));
+  if (gP > gT) { const pts = seg3(O, pt(gT), 10); for (let i = 1; i <= 14; i++) pts.push(pt(gT + (gP - gT) * i / 14)); return pts; }
+  return seg3(O, P, 12);
+}
+// proj returns [x right, y down, depth toward viewer] for the right eye; the left eye is mirrored in x
+const VIEWS = {
+  top: { cx: { R: 140, L: 460 }, cy: 190, proj: p => [-p[0], p[1], p[2]],
+    cap: 'Viewed from above, patient facing you.',
+    lab: { LR: [[-112, -50], 0.5], SR: [[-80, -128], 0.12], MR: [[118, -100], 0.35], SO: [[118, 10], 'tro'], IR: [[118, 80], 0.9], IO: [[-108, 56], 0.8] } },
+  front: { cx: { R: 150, L: 450 }, cy: 150, proj: p => [-p[0], -p[2], p[1]],
+    cap: "Viewed from the front, examiner's view.",
+    lab: { LR: [[-108, 8], 0.97], MR: [[106, 8], 0.97], SR: [[-40, -96], 0.97], IR: [[-40, 100], 0.97], SO: [[106, -88], 'tro'], IO: [[104, 92], 0.15] } },
+  side: { cx: { R: 200, L: 400 }, cy: 150, proj: p => [p[1], -p[2], p[0]],
+    cap: 'Each eye from its own side (right eye from the right, left eye from the left); the corneas face the centre.',
+    lab: { SR: [[-118, -64], 0.35], SO: [[-30, -102], 0.3], LR: [[-122, 40], 0.45], MR: [[-84, 78], 0.3], IR: [[-16, 96], 0.6], IO: [[80, 96], 0.2] } }
+};
+const MKEYS = ['MR', 'LR', 'SR', 'IR', 'SOb', 'SOt', 'IO'];
+let MV = {};
+function toScr(view, side, q) { return [view.cx[side] + (side === 'R' ? 1 : -1) * q[0], view.cy + q[1]]; }
+function buildMV() {
+  const view = VIEWS[mvMode];
+  while (mview.firstChild) mview.removeChild(mview.firstChild);
+  MV = {};
+  const loc = (side, x, y) => toScr(view, side, [x, y]);
+  if (mvMode === 'top') el('path', { d: 'M 300 180 C 293 214 286 250 289 278 L 311 278 C 314 250 307 214 300 180 Z', fill: 'var(--stem)', stroke: 'var(--stem-edge)' }, mview);
+  if (mvMode === 'front') el('path', { d: 'M 292 70 Q 286 160 274 236 M 308 70 Q 314 160 326 236', fill: 'none', stroke: 'var(--stem-edge)', 'stroke-width': 2 }, mview);
+  for (const s of ['R', 'L']) {
+    const g = el('g', {}, mview);
+    const P = pts => pts.map((p, i) => { const q = loc(s, p[0], p[1]); return (i ? 'L' : 'M') + q[0] + ' ' + q[1]; }).join(' ');
+    if (mvMode === 'top') el('path', { d: P([[-98, -6], [40, -150], [96, 54]]), fill: 'none', stroke: 'var(--stem-edge)', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
+    if (mvMode === 'side') el('path', { d: P([[45, -84], [-150, 0], [55, 76]]), fill: 'none', stroke: 'var(--stem-edge)', 'stroke-width': 2, 'stroke-linejoin': 'round' }, g);
+    if (mvMode === 'front') { const c = loc(s, 4, -2); el('ellipse', { cx: c[0], cy: c[1], rx: 92, ry: 82, fill: 'none', stroke: 'var(--stem-edge)', 'stroke-width': 2.5 }, g); }
+    if (mvMode !== 'front') { const ap = toScr(view, s, view.proj([-40, -150, 0])); el('ellipse', { cx: ap[0], cy: ap[1], rx: mvMode === 'top' ? 12 : 6, ry: mvMode === 'top' ? 6 : 12, fill: 'var(--stem)', stroke: 'var(--stem-edge)' }, g); }
+    const back = el('g', { opacity: mvMode === 'front' ? 0.6 : 0.45 }, g);
+    const cornea = el('circle', { r: 24, fill: 'var(--sclera)', stroke: 'var(--skin-edge)', 'stroke-width': 1.5 }, g);
+    const c0 = loc(s, 0, 0);
+    el('circle', { cx: c0[0], cy: c0[1], r: R3, fill: 'var(--sclera)', 'fill-opacity': 0.78, stroke: 'var(--skin-edge)', 'stroke-width': 1.5 }, g);
+    const iris = el('path', { fill: 'var(--iris)', stroke: 'var(--iris-edge)', 'stroke-width': 1 }, g);
+    const pupil = el('path', { fill: 'var(--pupil)' }, g);
+    const axis = el('path', { fill: 'none', stroke: 'var(--muted)', 'stroke-dasharray': '2 4', 'stroke-width': 1.5 }, g);
+    const front = el('g', {}, g);
+    const bands = {};
+    for (const k of MKEYS) bands[k] = { b: el('path', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, back), f: el('path', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, front) };
+    const tro = toScr(view, s, view.proj(G3.SO.tro));
+    el('circle', { cx: tro[0], cy: tro[1], r: 6, fill: 'none', stroke: 'var(--stem-edge)', 'stroke-width': 2.5 }, g);
+    const labs = {};
+    for (const k in view.lab) {
+      const [pos, tgt] = view.lab[k];
+      const q = loc(s, pos[0], pos[1]);
+      const towardRight = (s === 'R') === (pos[0] > 0);
+      const leader = el('line', { stroke: 'var(--muted)', 'stroke-width': 1 }, g);
+      const t = el('text', { x: q[0] + (towardRight ? 3 : -3), y: q[1] + 4, 'text-anchor': towardRight ? 'start' : 'end', class: 'mlab' }, g);
+      t.textContent = k;
+      labs[k] = { leader, q, tgt, t };
+    }
+    const cap = el('text', { x: view.cx[s], y: 16, 'text-anchor': 'middle', 'font-size': 12, fill: 'var(--muted)' }, g);
+    cap.textContent = s === 'R' ? "Patient's R eye" : "Patient's L eye";
+    MV[s] = { bands, cornea, iris, pupil, axis, labs };
+  }
+  document.getElementById('mvcap').textContent = view.cap + ' Band width and brightness show motoneuron drive; red bands are denervated. Faded segments run behind the globe.';
+  for (const b of ['top', 'front', 'side']) document.getElementById('mv-' + b).setAttribute('aria-pressed', String(b === mvMode));
+}
+for (const b of ['top', 'front', 'side']) document.getElementById('mv-' + b).onclick = () => { mvMode = b; buildMV(); };
+function styleBand(p, act, f, thin) {
+  const x = clamp(act / 1.5, 0, 1.35), den = f < 0.999;
+  p.setAttribute('stroke', den ? 'var(--lesion)' : 'var(--accent)');
+  p.setAttribute('stroke-width', ((4 + 8 * x) * (thin ? 0.45 : 1)).toFixed(1));
+  p.setAttribute('stroke-opacity', (0.25 + 0.75 * Math.min(1, x)).toFixed(2));
+}
+function updateMuscles(s, th, ph, ps, e) {
+  const view = VIEWS[mvMode], v = MV[s], A = e.A, f = e.f;
+  const R = p => rot3(p, th, ph, ps);
+  const paths = {
+    MR: wrap3(G3.MR.o, R(G3.MR.ins)), LR: wrap3(G3.LR.o, R(G3.LR.ins)),
+    SR: wrap3(G3.SR.o, R(G3.SR.ins)), IR: wrap3(G3.IR.o, R(G3.IR.ins)),
+    SOb: seg3(G3.SO.o, G3.SO.tro, 12), SOt: wrap3(G3.SO.tro, R(G3.SO.ins)),
+    IO: wrap3(G3.IO.o, R(G3.IO.ins))
+  };
+  const prj = p => { const q = view.proj(p); const sxy = toScr(view, s, q); return { x: sxy[0], y: sxy[1], hid: q[2] < 0 && Math.hypot(q[0], q[1]) < R3 - 0.5 }; };
+  for (const k of MKEYS) {
+    const pts = paths[k].map(prj);
+    let fd = '', bd = '', prev = null;
+    for (const p of pts) {
+      const cmd = p.x.toFixed(1) + ' ' + p.y.toFixed(1);
+      if (p.hid) { bd += (prev && prev.hid ? ' L' : ' M') + cmd; if (prev && !prev.hid) bd = bd.replace(/ M([^M]*)$/, ` M${prev.x.toFixed(1)} ${prev.y.toFixed(1)} L$1`); }
+      else { fd += (prev && !prev.hid ? ' L' : ' M') + cmd; if (prev && prev.hid) fd = fd.replace(/ M([^M]*)$/, ` M${prev.x.toFixed(1)} ${prev.y.toFixed(1)} L$1`); }
+      prev = p;
+    }
+    const mk = k.startsWith('SO') ? 'SO' : k;
+    for (const which of ['b', 'f']) {
+      const el2 = v.bands[k][which]; const d = which === 'b' ? bd : fd;
+      el2.setAttribute('d', d.trim() || 'M0 0');
+      el2.setAttribute('visibility', d ? 'visible' : 'hidden');
+      styleBand(el2, A[mk], f[mk], k === 'SOt');
+    }
+    v.bands[k].pts = paths[k];
+  }
+  // cornea, iris disc and visual axis
+  const cc = prj(R([0, 40, 0])); v.cornea.setAttribute('cx', cc.x); v.cornea.setAttribute('cy', cc.y);
+  const n = view.proj(R([0, 1, 0]));
+  const disc = (rr) => { let d = ''; for (let i = 0; i <= 28; i++) { const a = i / 28 * 2 * Math.PI; const p = prj(R([rr * Math.cos(a), 49, rr * Math.sin(a)])); d += (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); } return d + 'Z'; };
+  const facing = n[2] > -0.05;
+  v.iris.setAttribute('d', facing ? disc(20) : 'M0 0'); v.pupil.setAttribute('d', facing ? disc(8) : 'M0 0');
+  v.iris.setAttribute('visibility', facing ? 'visible' : 'hidden'); v.pupil.setAttribute('visibility', facing ? 'visible' : 'hidden');
+  const a1 = prj(R([0, R3 + 6, 0])), a2 = prj(R([0, R3 + 44, 0]));
+  v.axis.setAttribute('d', `M${a1.x.toFixed(1)} ${a1.y.toFixed(1)} L${a2.x.toFixed(1)} ${a2.y.toFixed(1)}`);
+  // label leaders
+  for (const k in v.labs) {
+    const L = v.labs[k];
+    let tp;
+    if (L.tgt === 'tro') tp = G3.SO.tro;
+    else {
+      const pts = v.bands[k === 'SO' ? 'SOb' : k].pts;
+      let tot = 0; const cum = [0];
+      for (let i = 1; i < pts.length; i++) { tot += v3.len(v3.sub(pts[i], pts[i - 1])); cum.push(tot); }
+      const want = L.tgt * tot; let i = 1; while (i < pts.length - 1 && cum[i] < want) i++;
+      const fr = (want - cum[i - 1]) / Math.max(1e-6, cum[i] - cum[i - 1]);
+      tp = v3.add(pts[i - 1], v3.sc(v3.sub(pts[i], pts[i - 1]), fr));
+    }
+    const t = prj(tp);
+    L.leader.setAttribute('x1', L.q[0]); L.leader.setAttribute('y1', L.q[1]);
+    L.leader.setAttribute('x2', t.x.toFixed(1)); L.leader.setAttribute('y2', t.y.toFixed(1));
+    if (t.hid) L.leader.setAttribute('stroke-dasharray', '3 3'); else L.leader.removeAttribute('stroke-dasharray');
+    L.t.classList.toggle('below', t.hid);
+  }
+}
+buildMV();
+
+// ---------- frame loop ----------
+let last = performance.now();
+const findings = document.getElementById('findings');
+let lastText = '';
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (state.sweep) setGaze(0.95 * Math.sin((now - sweepT0) / 1000 * 1.1), state.V);
+  const inp = inputs(state.H, state.V);
+  const m = run(inp), n = runN(inp), n0 = runN(Object.assign({}, inp, { tilt: 0 }));
+  // dot
+  dot.setAttribute('cx', 110 - state.H * 90); dot.setAttribute('cy', 110 - state.V * 90);
+  // saccade dynamics: per-eye velocity limit set by the agonist's available phasic drive
+  const vmax = 450 * (state.slow ? 0.15 : 1);
+  const nyst = {};
+  for (const s of ['R', 'L']) {
+    const e = m.eyes[s], dd = disp[s];
+    const dth = e.th - dd.th;
+    const cap = dth >= 0 ? Math.max(0.08, e.capAbd) : Math.max(0.08, e.capAdd);
+    const step = vmax * cap * dt;
+    dd.th += clamp(dth, -step, step);
+    const dph = e.ph - dd.ph; const sv = vmax * dt; dd.ph += clamp(dph, -sv, sv);
+  }
+  // dissociated abducting nystagmus: eye abducting while fellow under-adducts
+  for (const s of ['R', 'L']) {
+    const o = opp(s), cmdAbd = s === 'R' ? state.H : -state.H;
+    const deficit = m.eyes[o].th - n.eyes[o].th; // positive = fellow less adducted than normal
+    nyst[s] = (cmdAbd > 0.3 && deficit > 6 && m.eyes[s].th > 15) ? clamp(deficit * 0.1, 1.5, 4) : 0;
+  }
+  for (const s of ['R', 'L']) {
+    const e = m.eyes[s];
+    let th = disp[s].th;
+    if (nyst[s] && !reduceMotion) { const f = ((now / 1000) * 2.6) % 1; th -= nyst[s] * f; }
+    bigEye[s].update(th, disp[s].ph, (e.ps - n0.eyes[s].ps) * 3, e.lev, e.pup, state.lift);
+    bigEye[s].label(nyst[s] ? 'abducting nystagmus' : '');
+    if (showMus) updateMuscles(s, th, disp[s].ph, e.ps - n0.eyes[s].ps, e);
+  }
+  // diagram activity
+  const sc = 1.5;
+  const sacc = state.mode === 'sacc';
+  for (const s of ['R', 'L']) {
+    const o = opp(s), e = m.eyes[s], eo = m.eyes[o];
+    const VIs = s === 'R' ? m.VIR : m.VIL;
+    const pAct = sacc ? Math.max(0, s === 'R' ? state.H : -state.H) * (s === 'R' ? m.pR : m.pL) : 0;
+    setStroke(parts['PPRF_' + s], pAct, !!state.les['PPRF_' + s]);
+    parts['PPRF_' + s].vis.setAttribute('opacity', sacc ? 1 : 0.45);
+    setStroke(parts['PPA_' + s + '_x'], pAct, false);
+    setStroke(parts['VInuc_' + s], VIs / sc, !!state.les['VInuc_' + s]);
+    setStroke(parts['VInerve_' + s], e.A.LR / sc, !!state.les['VInerve_' + s]);
+    setStroke(parts['INT_' + s + '_x'], VIs / sc, false);
+    setStroke(parts['MLFp_' + s], (s === 'R' ? m.VIL : m.VIR) / sc, !!state.les['MLFp_' + s]);
+    setStroke(parts['MLFm_' + s], e.mlfP / sc, !!state.les['MLFm_' + s]);
+    setStroke(parts['IIInuc_' + s], e.A.MR / sc, !!state.les['IIInuc_' + s]);
+    setStroke(parts['IIInerve_' + s], (e.A.MR + e.A.SR + e.A.IR + e.A.IO) / 4 / sc * 1.4, !!state.les['IIInerve_' + s]);
+    setStroke(parts['IVnuc_' + s], eo.A.SO / sc, !!state.les['IVnuc_' + s]);
+    setStroke(parts['IVX_' + s + '_x'], eo.A.SO / sc, false);
+    setStroke(parts['IVnerve_' + s], e.A.SO / sc, !!state.les['IVnerve_' + s]);
+    setStroke(parts['VERG_' + s + '_x'], state.conv * (e.f.MR > 0 ? 1 : 0) * (state.les['MLFm_' + s] ? 1 - state.sev : 1), false);
+  }
+  // muscles
+  for (const s of ['R', 'L']) {
+    const e = m.eyes[s];
+    for (const [mm] of MORDER) {
+      const tr = mrows[s + mm];
+      tr.querySelector('i').style.width = (clamp(e.A[mm] / 2, 0, 1) * 100).toFixed(1) + '%';
+      tr.querySelector('.v').textContent = e.A[mm].toFixed(2);
+      tr.classList.toggle('weak', e.f[mm] < 0.999);
+    }
+  }
+  // readouts (text only when changed)
+  const d = deviation(m, n);
+  const eyeTxt = s => {
+    const e = m.eyes[s];
+    const h = Math.abs(e.th) < 0.5 ? 'centre' : `${Math.abs(e.th).toFixed(0)}° ${e.th > 0 ? 'abd' : 'add'}`;
+    const v = Math.abs(e.ph) < 0.5 ? '' : `, ${Math.abs(e.ph).toFixed(0)}° ${e.ph > 0 ? 'up' : 'down'}`;
+    return h + v;
+  };
+  const fl = [];
+  const gz = Math.abs(state.H) < 0.05 && Math.abs(state.V) < 0.05 ? 'primary position' : `${posName(Math.abs(state.H) < 0.05 ? 0 : state.H, Math.abs(state.V) < 0.05 ? 0 : state.V).toLowerCase()} gaze (${state.mode === 'vor' ? 'VOR' : 'voluntary'})`;
+  fl.unshift(`Command: ${gz}${state.conv > 0.02 ? `, convergence ${Math.round(state.conv * 100)}%` : ''}${Math.abs(state.tilt) > 0.02 ? `, head tilted ${Math.round(Math.abs(state.tilt) * 45)}° to the ${state.tilt > 0 ? 'right' : 'left'}` : ''}.`);
+  for (const s of ['R', 'L']) {
+    const e = m.eyes[s], nm = s === 'R' ? 'Right' : 'Left';
+    if (e.lev < 0.95) fl.push(`${nm} ptosis (${e.lev < 0.2 ? 'complete' : 'partial'}).`);
+    if (e.pup < 0.95) fl.push(`${nm} pupil dilated.`);
+    const lag = n.eyes[s].th - e.th;
+    if (lag > 4 && n.eyes[s].th < -10) fl.push(`${nm} eye under-adducts by ${lag.toFixed(0)}°.`);
+    const lagA = n.eyes[s].th - e.th;
+    if (lagA > 4 && n.eyes[s].th > 10) fl.push(`${nm} eye under-abducts by ${lagA.toFixed(0)}°.`);
+    const tor = e.ps - n.eyes[s].ps;
+    if (Math.abs(tor) > 2) fl.push(`${nm} eye ${tor > 0 ? 'intorted' : 'extorted'} ${Math.abs(tor).toFixed(0)}° relative to normal.`);
+    if (nyst[s]) fl.push(`${nm} eye: abducting nystagmus.`);
+  }
+  if (Math.abs(state.H) < 0.05 && Math.abs(state.V) < 0.05 && state.conv < 0.02) {
+    const cj = (m.eyes.R.th - m.eyes.L.th) / 2; // + = both toward patient's right
+    if (Math.abs(cj) > 5 && Math.sign(m.eyes.R.th) === -Math.sign(m.eyes.L.th)) fl.push(`Eyes rest deviated ${Math.abs(cj).toFixed(0)}° toward the patient's ${cj > 0 ? 'right' : 'left'} despite a primary-position command.`);
+  }
+  const txt = JSON.stringify(fl);
+  if (txt !== lastText) {
+    lastText = txt;
+    findings.innerHTML = fl.map(f => `<li>${f}</li>`).join('');
+    pad.setAttribute('aria-valuetext', gz);
+  }
+  // montage highlight
+  for (const cl of cells) cl.c.classList.toggle('cur', Math.abs(cl.gp.H - state.H) < 0.3 && Math.abs(cl.gp.V - state.V) < 0.3);
+  requestAnimationFrame(frame);
+}
+refresh();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
