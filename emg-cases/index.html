@@ -84,6 +84,23 @@ kbd{font-family:var(--font-mono);font-size:11.5px;border:1px solid var(--line);b
 .patbar .count{font-size:13px;color:var(--muted);white-space:nowrap}
 .why{margin:6px 0 10px;padding:8px 12px;border-left:3px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;font-size:14px}
 .why b{font-weight:600}
+.nref{color:var(--muted);font-size:12px;margin-left:4px}
+/* your grades against the model's, one block per muscle */
+.gcmp{margin:10px 0 14px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.gcmp .gh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;padding:7px 10px;background:var(--grid);font-weight:600;font-size:14px}
+.gcmp .gh .gs{font-weight:500;font-size:13px;color:var(--muted)}
+.gcmp table{width:100%;border-collapse:collapse;font-size:13.5px}
+.gcmp th,.gcmp td{padding:5px 10px;text-align:left;border-top:1px solid var(--line);vertical-align:middle}
+.gcmp thead th{font-size:12px;color:var(--muted);font-weight:600;border-top:0}
+.gcmp tbody th{font-weight:500}
+.gcmp .mod{background:var(--accent-soft)}
+.gcmp tr.hit .res{color:var(--ok)}
+.gcmp tr.miss{background:var(--lesion-soft)}
+.gcmp tr.miss .you,.gcmp tr.miss .res{color:var(--lesion);font-weight:600}
+.gcmp tr.miss .mod{font-weight:600;color:var(--ink)}
+.gcmp tr.skip{color:var(--muted)}
+.gcmp table{table-layout:fixed}
+.gcmp th:nth-child(1){width:34%}.gcmp th:nth-child(2),.gcmp th:nth-child(3){width:21%}.gcmp th:nth-child(4){width:24%}
 .recall{margin:12px 0 4px;padding:8px 12px;border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:0 8px 8px 0;background:var(--panel);font-size:14px}
 .recall .rl{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-bottom:2px}
 
@@ -360,7 +377,7 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
           <div class="murow">
             <div>
               <div class="row between"><h3 style="margin:4px 0">Triggered motor unit</h3><button class="btn sm" type="button" id="nextunit">Next unit</button></div>
-              <svg class="plot" id="muplot" viewBox="0 0 480 250" role="img" aria-label="Motor unit potential, six discharges superimposed"></svg>
+              <svg class="plot" id="muplot" viewBox="0 0 480 278" role="img" aria-label="Motor unit potential, six discharges superimposed"></svg>
               <dl class="kv" id="mukv"></dl>
             </div>
             <div class="readbox" id="readbox"><h3>Machine readings at this needle position</h3><dl class="kv" id="readkv"></dl></div>
@@ -2419,9 +2436,9 @@ function drawF(S, res) {
 }
 
 // ===================== needle EMG =====================
-// sensitivity in mV/div: 50 uV/div at rest, as usually used for spontaneous activity [P&S]; 500 uV/div for
-// voluntary activity (200 uV/div is also common for MUAP analysis)
-const em = { eff: 0, sound: false, paused: REDUCED, cur: null, ui: 0, gainRest: 0.05, gainAct: 0.5, hold: false, chunk: 0, lastT: 0 };
+// sensitivity in mV/div: 50 uV/div at rest, as usually used for spontaneous activity [P&S]; 200 uV/div for
+// voluntary activity and MUAP analysis
+const em = { eff: 0, sound: false, paused: REDUCED, cur: null, ui: 0, gainRest: 0.05, gainAct: 0.2, hold: false, chunk: 0, lastT: 0 };
 let restSig = null, actSig = null, curSig = null, ins = null;
 function emgEntry() { return st.muscle ? st.emg[st.side][st.muscle] : null; }
 function selectMuscle(name) {
@@ -2526,7 +2543,7 @@ $('eff').addEventListener('input', () => {
   if (wasRest !== (em.eff === 0) || !effPending) { effPending = true; requestAnimationFrame(applyEffort); }
 });
 // sensitivity (per vertical division). Fixed, not auto-scaled, so a large or small unit looks large or small.
-// Rest and activity keep separate settings, as on a machine: 50 µV/div at rest, 500 µV/div for voluntary activity.
+// Rest and activity keep separate settings, as on a machine: 50 µV/div at rest, 200 µV/div for voluntary activity.
 const GAINS = [0.02, 0.05, 0.1, 0.2, 0.5, 1, 2];
 const gainText = g => g < 1 ? Math.round(g * 1000) + ' µV/div' : g + ' mV/div';
 $('gain-sel').innerHTML = GAINS.map(g => `<option value="${g}">${gainText(g)}</option>`).join('');
@@ -2736,9 +2753,15 @@ requestAnimationFrame(frame);
 
 function drawMuap() {
   const svg = $('muplot'); svg.innerHTML = '';
-  const X0 = 40, W = 430, win = EMG.MUAP_WIN, ppm = W / win, base = 115, div = 30;
-  for (let i = 0; i <= win; i += 3) E('line', { x1: X0 + i * ppm, x2: X0 + i * ppm, y1: 10, y2: 210, stroke: 'var(--grid)' }, svg);
-  for (let j = -3; j <= 3; j++) E('line', { x1: X0, x2: X0 + W, y1: base + j * div, y2: base + j * div, stroke: j ? 'var(--grid)' : 'var(--line)' }, svg);
+  const X0 = 40, W = 430, win = EMG.MUAP_WIN, ppm = W / win, base = 130, div = 24, NJ = 4, TOP = base - NJ * div, BOT = base + NJ * div;
+  const g = em.gainAct; // same fixed sensitivity as the scope, so unit size compares across muscles and patients
+  for (let i = 0; i <= win; i += 3) E('line', { x1: X0 + i * ppm, x2: X0 + i * ppm, y1: TOP, y2: BOT, stroke: 'var(--grid)' }, svg);
+  for (let j = -NJ; j <= NJ; j++) E('line', { x1: X0, x2: X0 + W, y1: base + j * div, y2: base + j * div, stroke: j ? 'var(--grid)' : 'var(--line)' }, svg);
+  // scale: µV on the left (up is positive on the screen's trace), ms along the bottom
+  const axis = { 'font-size': 10, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' };
+  E('text', Object.assign({ x: X0 - 5, y: TOP - 8, 'text-anchor': 'end' }, axis), svg, 'µV');
+  for (let j = -NJ; j <= NJ; j++) { const v = Math.round(-j * g * 1000); E('text', Object.assign({ x: X0 - 5, y: base + j * div + 3.5, 'text-anchor': 'end' }, axis), svg, (v < 0 ? '−' : '') + Math.abs(v)); }
+  for (let i = 0; i <= win; i += 3) E('text', Object.assign({ x: X0 + i * ppm, y: BOT + 14, 'text-anchor': i === win ? 'end' : 'middle' }, axis), svg, i === win ? i + ' ms' : String(i));
   const e = emgEntry(), infos = em.trig || [];
   if (!e || !e.act || !em.trig) { E('text', { x: X0 + W / 2, y: base - 8, 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--muted)' }, svg, 'Raise the effort slider to trigger on a unit'); $('mukv').innerHTML = ''; return; }
   if (!infos.length) {
@@ -2747,13 +2770,31 @@ function drawMuap() {
     $('mukv').innerHTML = ''; return;
   }
   const ui = infos[em.ui % infos.length];
-  const g = em.gainAct; // same fixed sensitivity as the scope, so unit size compares across muscles and patients
-  for (const y of ui.sweeps) E('path', { d: pathFrom(y, EMG.MDT, X0, ppm, base, div / g, 8, 212), fill: 'none', stroke: 'var(--trace2)', 'stroke-width': 1, opacity: .45 }, svg);
-  E('path', { d: pathFrom(ui.y, EMG.MDT, X0, ppm, base, div / g, 8, 212), fill: 'none', stroke: 'var(--trace)', 'stroke-width': 1.8 }, svg);
-  E('text', { x: X0, y: 232, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g < 1 ? Math.round(g * 1000) + ' µV' : g + ' mV'}/div · 3 ms/div · unit ${em.ui % infos.length + 1} of ${infos.length}`);
-  E('text', { x: X0, y: 247, 'font-size': 12, fill: 'var(--muted)' }, svg, 'blue: 6 discharges superimposed · dark: average');
+  const lo = TOP - 4, hi = BOT + 4, yAt = v => base - v * div / g;
+  // the same unit in normal muscle, for comparison (hidden while you grade by hand)
+  const nu = EMG.unitInfo(em.cur.REF.S, ui.u), nm = nu && nu.m ? nu : null;
+  if (nm && !st.selfGrade) E('path', { d: pathFrom(nm.y, EMG.MDT, X0, ppm, base, div / g, lo, hi), fill: 'none', stroke: 'var(--muted)', 'stroke-width': 1.4, 'stroke-dasharray': '4 3' }, svg);
+  for (const y of ui.sweeps) E('path', { d: pathFrom(y, EMG.MDT, X0, ppm, base, div / g, lo, hi), fill: 'none', stroke: 'var(--trace2)', 'stroke-width': 1, opacity: .45 }, svg);
+  E('path', { d: pathFrom(ui.y, EMG.MDT, X0, ppm, base, div / g, lo, hi), fill: 'none', stroke: 'var(--trace)', 'stroke-width': 1.8 }, svg);
+  if (!st.selfGrade) { // the measurement itself: duration (onset to return to baseline) and peak-to-peak amplitude
+    let mx = -1e9, mn = 1e9; for (const v of ui.y) { if (v > mx) mx = v; if (v < mn) mn = v; }
+    const xa = X0 + ui.m.a * ppm, xb = X0 + ui.m.b * ppm, yd = TOP - 12, cl = v => Math.max(lo, Math.min(hi, v));
+    const mk = { stroke: 'var(--accent)', 'stroke-width': 1.5 }, guide = { stroke: 'var(--accent)', 'stroke-width': 1, 'stroke-dasharray': '2 3', opacity: .6 };
+    E('line', Object.assign({ x1: xa, x2: xa, y1: yd, y2: BOT }, guide), svg); E('line', Object.assign({ x1: xb, x2: xb, y1: yd, y2: BOT }, guide), svg);
+    E('line', Object.assign({ x1: xa, x2: xb, y1: yd, y2: yd }, mk), svg);
+    E('line', Object.assign({ x1: xa, x2: xa, y1: yd - 4, y2: yd + 4 }, mk), svg); E('line', Object.assign({ x1: xb, x2: xb, y1: yd - 4, y2: yd + 4 }, mk), svg);
+    E('text', { x: (xa + xb) / 2, y: yd - 6, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 600, fill: 'var(--accent)', 'font-family': 'var(--font-mono)' }, svg, `duration ${fmt(ui.m.dur)} ms`);
+    const xr = Math.min(X0 + W - 8, xb + 16), yt = cl(yAt(mx)), yb = cl(yAt(mn)), right = xr < 380;
+    E('line', Object.assign({ x1: X0, x2: xr, y1: yAt(mx), y2: yAt(mx) }, guide), svg); E('line', Object.assign({ x1: X0, x2: xr, y1: yAt(mn), y2: yAt(mn) }, guide), svg);
+    E('line', Object.assign({ x1: xr, x2: xr, y1: yt, y2: yb }, mk), svg);
+    E('line', Object.assign({ x1: xr - 4, x2: xr + 4, y1: yt, y2: yt }, mk), svg); E('line', Object.assign({ x1: xr - 4, x2: xr + 4, y1: yb, y2: yb }, mk), svg);
+    E('text', { x: right ? xr + 7 : xr - 7, y: (yt + yb) / 2 + 4, 'text-anchor': right ? 'start' : 'end', 'font-size': 12, 'font-weight': 600, fill: 'var(--accent)', 'font-family': 'var(--font-mono)' }, svg, `${fmt(ui.m.pp, 2)} mV`);
+  }
+  E('text', { x: X0, y: 257, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g < 1 ? Math.round(g * 1000) + ' µV' : g + ' mV'}/div · 3 ms/div · unit ${em.ui % infos.length + 1} of ${infos.length}`);
+  E('text', { x: X0, y: 272, 'font-size': 12, fill: 'var(--muted)' }, svg, st.selfGrade ? 'blue: 6 discharges superimposed · dark: average' : 'blue: 6 discharges · dark: average · dashed: normal muscle');
+  const nref = (v, d, u) => nm ? ` <span class="nref">normal ${fmt(v, d)} ${u}</span>` : '';
   $('mukv').innerHTML = st.selfGrade ? '' :
-    `<dt>Amplitude</dt><dd>${fmt(ui.m.pp, 2)} mV</dd><dt>Duration</dt><dd>${fmt(ui.m.dur)} ms</dd><dt>Phases</dt><dd>${ui.m.phases}</dd><dt>Stability</dt><dd>${ui.unstable ? 'unstable' : 'stable'}</dd>`;
+    `<dt>Amplitude</dt><dd>${fmt(ui.m.pp, 2)} mV${nref(nm && nm.m.pp, 2, 'mV')}</dd><dt>Duration</dt><dd>${fmt(ui.m.dur)} ms${nref(nm && nm.m.dur, 1, 'ms')}</dd><dt>Phases</dt><dd>${ui.m.phases}</dd><dt>Stability</dt><dd>${ui.unstable ? 'unstable' : 'stable'}</dd>`;
 }
 const P = (t, bad) => `<span class="pill ${bad ? 'bad' : 'good'}">${t}</span>`;
 function drawReadings() {
@@ -2897,18 +2938,28 @@ $('submit').onclick = () => {
   h += `<h3>Tests that settle it</h3><ul class="keylist">${c.key.map(([lab, ids]) => `<li class="${ids.some(did) ? 'y' : 'x'}">${lab}</li>`).join('')}</ul>`;
   h += `<h3>Lesion in the model</h3><p class="note" style="margin-top:0">${c.lesions.length ? c.lesions.map(lesionText).join('<br>') + (c.ongoing ? '<br>Motor neuron loss is ongoing: these are the losses reached at one year.' : '') : 'No lesion.'}${c.left ? '<br>Left side: ' + c.left.filter(x => x.at.startsWith('R_')).map(lesionText).join('; ') : ''}</p>`;
   { // compare any grades entered by hand with the model's readings
-    const rows = [], fi = v => GRADES.fib.findIndex(g => g[0] === v);
+    // One block per muscle; each finding is a row with your grade and the model's reading in separate, labelled columns.
+    const FN = { ia: 'Insertional activity', fib: 'Fibrillations / PSWs', fasc: 'Fasciculations', amp: 'MUAP amplitude', dur: 'MUAP duration', poly: 'Polyphasia', recruit: 'Recruitment', interference: 'Interference pattern' };
+    const blocks = [], fi = v => GRADES.fib.findIndex(g => g[0] === v);
     for (const s of ['R', 'L']) for (const [n, e] of Object.entries(st.emg[s])) {
       if (!e.read || !GKEYS.some(k => e.user[k])) continue;
       const mg = modelGrade(e.read), u = e.user;
-      const cell = k => {
-        const m = mg[k], none = m === '—';
-        const ok = u[k] ? (k === 'fib' ? Math.abs(fi(u[k]) - fi(m)) <= 1 : u[k] === m) : none;
-        return `<td class="${u[k] || none ? (ok ? '' : 'bad') : 'note'}">${u[k] ? GLABEL(k, u[k]) : '—'} / ${none ? '—' : GLABEL(k, m)}</td>`;
-      };
-      rows.push(`<tr><td>${n} ${s}</td>${['ia', 'fib', 'fasc'].map(cell).join('')}${e.act ? ACT_KEYS.map(cell).join('') : '<td colspan="5" class="note">not activated</td>'}</tr>`);
+      let graded = 0, agree = 0;
+      const rows = GKEYS.filter(k => e.act || !ACT_KEYS.includes(k)).map(k => {
+        const m = mg[k], none = m === '—', yours = u[k];
+        let cls = 'skip', res = 'Not graded';
+        if (yours) {
+          graded++;
+          const exact = yours === m, near = k === 'fib' && !exact && !none && Math.abs(fi(yours) - fi(m)) <= 1;
+          if (exact || near) { agree++; cls = 'hit'; res = exact ? '<span aria-hidden="true">✓</span> Agrees' : '<span aria-hidden="true">✓</span> Within one step'; }
+          else { cls = 'miss'; res = '<span aria-hidden="true">✗</span> Differs'; }
+        } else if (!none) res = 'Not graded';
+        return `<tr class="${cls}"><th scope="row">${FN[k]}</th><td class="you">${yours ? GLABEL(k, yours) : '—'}</td><td class="mod">${none ? 'No unit to grade' : GLABEL(k, m)}</td><td class="res">${res}</td></tr>`;
+      }).join('');
+      blocks.push(`<div class="gcmp"><div class="gh"><span>${n} · ${s === 'R' ? 'right' : 'left'}</span><span class="gs">${agree} of ${graded} graded agree${e.act ? '' : ' · motor units not examined'}</span></div>` +
+        `<table><thead><tr><th>Finding</th><th>Your grade</th><th class="mod">Model's reading</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>`);
     }
-    if (rows.length) h += `<h3>Your needle grades / the model's</h3><p class="note" style="margin-top:0">Fibrillation grades within one step count as agreeing. Red: your grade differs.</p><div class="repwrap"><table><thead><tr><th>Muscle</th><th>Ins Act</th><th>Fibs / PSW</th><th>Fasc</th><th>Amp</th><th>Dur</th><th>Poly</th><th>Recrt</th><th>Int Pat</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+    if (blocks.length) h += `<h3>Your needle grades against the model's</h3><p class="note" style="margin-top:0">The model's reading is the correct answer for this needle position. Fibrillation grades within one step count as agreeing.</p>${blocks.join('')}`;
   }
   h += `<div class="row" style="margin-top:12px"><button class="btn primary" type="button" id="next">Next patient</button></div>`;
   $('result').innerHTML = `<div class="result">${h}</div>`;
