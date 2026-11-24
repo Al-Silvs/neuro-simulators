@@ -2365,7 +2365,7 @@ function drawNcs() {
       E('circle', { cx: X0 + r.m.peakLat * ppm, cy: Math.max(rt + 2, base - r.m.amp * div / g), r: 3.2, fill: 'var(--accent)' }, svg);
     }
   }
-  E('text', { x: X0, y: H - 6, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g} ${motor ? 'mV' : 'µV'}/div · ${step} ms/div · tick = onset · dot = ${motor ? 'negative peak' : 'peak'}`);
+  E('text', { x: X0, y: H - 6, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g} ${motor ? 'mV' : 'µV'}/div · ${step} ms/div`);
   ncsTable(S, cur);
   const R = S.ref;
   $('ncs-ref').textContent = motor
