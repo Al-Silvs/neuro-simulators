@@ -2229,7 +2229,7 @@ function drawOverlay() {
   const label = (g, x, y, text, s) => { const right = s === 'ant'; /* labels point away from the trunk */ E('text', { x: x + (right ? 19 : -19), y: y + 6, 'text-anchor': right ? 'start' : 'end', class: 'elab' }, g, text); };
   $('figkey').innerHTML = st.mode === 'emg'
     ? ''
-    : st.study && NV[st.study] ? `<span><i class="nv"></i>Course of the ${NV_NAME[st.study]} nerve${NV[st.study][1].some(r => r[1]) ? ' (faded where it runs behind)' : ''}, simplified</span>` : '';
+    : st.study && NV[st.study] ?;
   if (st.mode === 'ncs' && st.study && NV[st.study]) {
     const [s, runs] = NV[st.study];
     // stretches that run behind bone or the far side of the limb are drawn faded, as if seen through it
@@ -2351,7 +2351,7 @@ function drawNcs() {
     E('path', { d: BOLT_D, transform: `translate(4 ${base - 42}) scale(.8)`, fill: '#e0a000', stroke: '#7a5a00', 'stroke-width': 1 }, lab);
     E('text', { x: 21, y: base - 30, 'font-size': 13.5, 'font-weight': 600, fill: 'var(--ink)', class: 'sl' }, lab, r.name);
     E('text', { x: 4, y: base - 12, 'font-size': 12.5, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, lab,
-      !done || animating ? 'not stimulated' : !r.m ? 'no response' : motor ? `${fmt(r.m.onset)} ms ${fmt(r.m.amp)} mV` : `${fmt(r.m.peakLat, 2)} ms ${fmt(r.m.amp)} µV`);
+      !done || animating ? 'not stimulated' : !r.m ? 'no response' : motor ? ``);
     lab.addEventListener('click', () => stimulate(r.i));
     lab.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); stimulate(r.i); } });
     if (!done) continue;
@@ -2365,7 +2365,7 @@ function drawNcs() {
       E('circle', { cx: X0 + r.m.peakLat * ppm, cy: Math.max(rt + 2, base - r.m.amp * div / g), r: 3.2, fill: 'var(--accent)' }, svg);
     }
   }
-  E('text', { x: X0, y: H - 6, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g} ${motor ? 'mV' : 'µV'}/div · ${step} ms/div · tick = onset · dot = ${motor ? 'negative peak' : 'peak'}`);
+  E('text', { x: X0, y: H - 6, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g} ${motor ? 'mV' : 'µV'}/div · ${step} ms/div`);
   ncsTable(S, cur);
   const R = S.ref;
   $('ncs-ref').textContent = motor
