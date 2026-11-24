@@ -1072,7 +1072,7 @@ const NCS = (() => {
     radM: {
       kind: 'motor', name: 'Radial motor', rec: 'EIP', muscle: 'EIP', residual: 1.4, window: 30, target: 4.5,
       segs: [{ id: 'd', len: 60 }, { id: 'f', len: 110, bp: ['PIN'] }, { id: 'e', len: 100 }, { id: 's', len: 100, bp: ['RAD2'] }, { id: 'p', len: 250, mult: 1.1 }, { id: 'r', len: 70, mult: 1.1 }],
-      sites: [{ name: 'Forearm', k: 1, pos: ['post', 116, 470] }, { name: 'Elbow', k: 2, pos: ['ant', 100, 318] }, { name: 'Below spiral groove', k: 3, pos: ['post', 92, 252] }, { name: 'Above spiral groove', k: 4, pos: ['post', 120, 160] }],
+      sites: [{ name: 'Forearm', k: 1, pos: ['post', 131, 470] }, { name: 'Elbow', k: 2, pos: ['ant', 117, 338] }, { name: 'Below spiral groove', k: 3, pos: ['post', 120, 278] }, { name: 'Above spiral groove', k: 4, pos: ['post', 178, 140] }],
       recPos: ['post', 146, 528], ref: { amp: 2.0, dl: 2.9, cv: 49 }
     },
     mcnM: {
@@ -1097,7 +1097,7 @@ const NCS = (() => {
     },
     radS: {
       kind: 'sensory', name: 'Superficial radial sensory', rec: 'Snuffbox', stim: 'Forearm', root: 'C6', nerve: 'SRN', len: 100, target: 30,
-      stimPos: ['post', 96, 470], recPos: ['post', 112, 580], ref: { amp: 15, pl: 2.9 }
+      stimPos: ['post', 112, 470], recPos: ['post', 112, 580], ref: { amp: 15, pl: 2.9 }
     },
     labc: {
       kind: 'sensory', name: 'Lateral antebrachial cutaneous', rec: 'Lateral forearm', stim: 'Elbow', root: 'C6', nerve: 'MCN', len: 120, target: 20,
@@ -1902,7 +1902,8 @@ for (const n in TARGETS) { const [s, x, y] = TARGETS[n]; MPOS[s][n] = [s === 'po
 // each list passes through that study's stimulation and recording sites.
 // One unbroken line per study, on the view that holds its sites; stretches hidden behind bone, the clavicle
 // or the other side of the limb (as seen in that view) are dotted.
-// Each entry: [view, [runs]], a run being [points, behind]; consecutive runs share their joining point.
+// Each entry: [view, [runs]], a run being [points, behind, view?]; consecutive runs share their joining point.
+// A run that names the other view adds a stretch on that figure as well.
 const NV = (() => {
   const ax = [200, 126];                                                        // axilla
   const plexus = [[262, 6], [240, 46], [218, 92], ax];                          // Erb's point to the axilla, behind the clavicle (deep)
@@ -1910,26 +1911,55 @@ const NV = (() => {
   const medFore = [P2(400, .55), P2(480, .47), [136, 552], [133, 586]];        // between FDS and FDP; carpal tunnel
   const ulnArm = [ax, P2(200, .93), [192, 282], [196, 326], [190, 372]];       // medial arm; behind the medial epicondyle; under FCU
   const ulnFore = [P2(450, .9), [163, 552], [171, 584]];                       // forearm under FCU; Guyon canal
-  const radAx = [ax, [168, 140], [128, 166]];                                    // axilla to the spiral groove: in front of the humerus, so hidden in the back view
-  const radArm = [[128, 166], P2(215, .04), P2(262, .02), P2(300, .02), P2(320, .03)]; // spiral groove, then lateral above the elbow
-  const pin = [P2(345, .08), P2(390, .16), [116, 470], [146, 528]];            // through supinator to the posterior forearm and EIP
-  const srn = [P2(380, .04), P2(450, .04), P2(500, .05), P2(540, .08), [112, 580]]; // under brachioradialis to the snuffbox
+  // radial: from the axilla it spirals down behind the humerus from medial to lateral, pierces the lateral
+  // septum in the lower third of the arm and passes in front of the lateral epicondyle; there it splits into
+  // the posterior interosseous nerve (through supinator to the back of the forearm) and the superficial
+  // branch (under brachioradialis down the lateral forearm, onto the back of the wrist to the snuffbox).
+  // spiral groove: middle third of the humerus, from the lower border of teres major to just below the deltoid insertion
+  // (t: 0 = lateral skin, 1 = medial skin; the humerus is the middle band, about t 0.3-0.65)
+  const radAx = [ax, P2(138, .8), P2(150, .66)];
+  const radGroove = [P2(150, .66), P2(182, .53), P2(212, .4), P2(240, .28)];   // across the back of the shaft, medial to lateral
+  const radLow = [P2(240, .28), P2(262, .2), P2(295, .17)];                    // through the lateral septum, between brachialis and brachioradialis
+  const radSpiral = [...radAx, ...radGroove.slice(1), ...radLow.slice(1)];
+  const radElbow = [P2(295, .17), P2(318, .18), P2(338, .2), P2(365, .22)];   // in front of the lateral epicondyle
+  const pin = [P2(365, .22), P2(395, .28), P2(430, .33), P2(470, .35), [146, 528]]; // supinator, then the back of the forearm to EIP
+  const srnFront = [P2(365, .22), P2(400, .12), P2(450, .07), P2(505, .06)]; // under brachioradialis, lateral forearm
+  const srnBack = [P2(505, .06), P2(540, .08), [112, 580]];                    // onto the back of the wrist, snuffbox
   const solid = pts => [pts, false], deep = pts => [pts, true]; // deep = behind something in this view: dotted
+  const backLine = pts => [pts, false, 'post'], backDot = pts => [pts, true, 'post'];
+  const frontLine = pts => [pts, false, 'ant'], frontDot = pts => [pts, true, 'ant'];
+  // ulnar: medial arm in front, through the medial septum at mid-arm to the back, behind the medial epicondyle,
+  // then under FCU on the front of the forearm
+  const ulnUp = [ax, P2(200, .93)], ulnBack = [P2(200, .93), [192, 282], [196, 326], [190, 372]];
+  const uln = (hand, palmDeep) => {
+    const fore = [[190, 372], ...ulnFore, ...hand];
+    const r = [solid(ulnUp), deep(ulnBack), solid(fore), backDot(ulnUp), backLine(ulnBack), backDot(fore)];
+    if (palmDeep) r.push(deep(palmDeep), backDot(palmDeep));
+    return r;
+  };
+  const mcn = [ax, [196, 134], P2(175, .62), [142, 228]];
+  const labc = [ax, [196, 134], P2(175, .62), P2(240, .47), P2(300, .38), [132, 330], P2(390, .2), [112, 452]];
+  const axQ = [ax, P2(140, .5), P2(128, .2)], axD = [P2(128, .2), [108, 112]];
+  const mabc = [ax, P2(220, .9), P2(290, .84), [176, 322], P2(390, .8), [176, 452]];
   return {
-    medM: ['ant', [solid([...medArm, ...medFore, [124, 596], [116, 610]])]],    // recurrent thenar branch to APB
-    medS: ['ant', [solid([...medArm, ...medFore, [128, 614], [118, 650], [113, 706]])]],
-    medP: ['ant', [solid([...medArm, ...medFore, [132, 628]])]],
-    ulnM: ['ant', [solid([...ulnArm, ...ulnFore, [180, 600], [186, 622]])]],
-    ulnFDI: ['ant', [solid([...ulnArm, ...ulnFore, [158, 604]]), deep([[158, 604], [136, 622], [120, 628]])]], // deep branch across the palm to FDI
-    ulnS: ['ant', [solid([...ulnArm, ...ulnFore, [180, 610], [187, 690]])]],
-    ulnP: ['ant', [solid([...ulnArm, ...ulnFore, [170, 632]])]],
-    duc: ['post', [deep([ax, P2(200, .93), [192, 282]]), solid([[192, 282], [196, 326], [190, 372]]), deep([[190, 372], P2(450, .92), P2(495, .94)]), solid([P2(495, .94), [180, 520], [178, 560], [176, 606]])]], // front of the arm (hidden), ulnar groove (seen), under FCU (hidden), then the dorsal branch winds round the ulna
-    radM: ['post', [deep(radAx), solid([...radArm, ...pin])]],
-    radS: ['post', [deep(radAx), solid([...radArm, ...srn])]],
-    mcnM: ['ant', [deep(plexus), solid([ax, [196, 134], P2(175, .62), [142, 228]])]],             // through coracobrachialis to biceps
-    labc: ['ant', [solid([ax, [196, 134], P2(175, .62), P2(240, .47), P2(300, .38), [132, 330], P2(390, .2), [112, 452]])]],
-    axnM: ['ant', [deep(plexus), deep([ax, P2(140, .5), P2(128, .2)]), solid([P2(128, .2), [108, 112]])]], // behind the surgical neck of the humerus to the deltoid
-    mabc: ['ant', [solid([ax, P2(220, .9), P2(290, .84), [176, 322], P2(390, .8), [176, 452]])]]
+    // every nerve is drawn on both figures: solid where that view sees it, dotted where it runs behind
+    medM: ['ant', [solid([...medArm, ...medFore, [124, 596], [116, 610]]), backDot([...medArm, ...medFore, [124, 596], [116, 610]])]], // recurrent thenar branch to APB
+    medS: ['ant', [solid([...medArm, ...medFore, [128, 614], [118, 650], [113, 706]]), backDot([...medArm, ...medFore, [128, 614], [118, 650], [113, 706]])]],
+    medP: ['ant', [solid([...medArm, ...medFore, [132, 628]]), backDot([...medArm, ...medFore, [132, 628]])]],
+    ulnM: ['ant', uln([[180, 600], [186, 622]])],
+    ulnFDI: ['ant', uln([[158, 604]], [[158, 604], [136, 622], [120, 628]])], // deep branch across the palm to FDI
+    ulnS: ['ant', uln([[180, 610], [187, 690]])],
+    ulnP: ['ant', uln([[170, 632]])],
+    duc: ['post', [deep(ulnUp), solid(ulnBack), deep([[190, 372], P2(450, .92), P2(495, .94)]), solid([P2(495, .94), [180, 520], [178, 560], [176, 606]]), // dorsal branch winds round the ulna
+      frontLine(ulnUp), frontDot(ulnBack), frontLine([[190, 372], P2(450, .92), P2(495, .94)]), frontDot([P2(495, .94), [180, 520], [178, 560], [176, 606]])]],
+    radM: ['post', [solid(radSpiral), deep(radElbow), deep(pin.slice(0, 2)), solid(pin.slice(1)),
+      frontLine(radAx), frontDot(radGroove), frontLine(radLow), frontLine([...radElbow, ...pin.slice(1, 2)])]],
+    radS: ['post', [solid(radSpiral), deep([...radElbow, ...srnFront.slice(1)]), solid(srnBack),
+      frontLine(radAx), frontDot(radGroove), frontLine(radLow), frontLine([...radElbow, ...srnFront.slice(1)])]],
+    mcnM: ['ant', [deep(plexus), solid(mcn), backDot(plexus), backDot(mcn)]], // through coracobrachialis to biceps
+    labc: ['ant', [solid(labc), backDot(labc)]],
+    axnM: ['ant', [deep(plexus), deep(axQ), solid(axD), backDot(plexus), backLine(axQ), backDot(axD)]], // through the quadrilateral space, behind the surgical neck of the humerus, to the deltoid
+    mabc: ['ant', [solid(mabc), backDot(mabc)]]
   };
 })();
 const NV_NAME = { medM: 'median', medS: 'median', medP: 'median', ulnM: 'ulnar', ulnFDI: 'ulnar', ulnS: 'ulnar', ulnP: 'ulnar', duc: 'ulnar (dorsal cutaneous branch)', radM: 'radial (posterior interosseous)', radS: 'radial (superficial branch)', mcnM: 'musculocutaneous', labc: 'musculocutaneous (lateral antebrachial cutaneous)', axnM: 'axillary', mabc: 'medial antebrachial cutaneous' };
@@ -1972,8 +2002,8 @@ function drawOverlay() {
     : st.study && NV[st.study] ? `<span><i class="nv"></i>Course of the ${NV_NAME[st.study]} nerve${NV[st.study][1].some(r => r[1]) ? ' (dotted where it runs behind)' : ''}, simplified</span>` : '';
   if (st.mode === 'ncs' && st.study && NV[st.study]) {
     const [s, runs] = NV[st.study];
-    for (const [pts, isDeep] of runs) E('path', { d: nervePath(pts, s), class: 'nerve', stroke: 'var(--panel)', 'stroke-width': isDeep ? 7 : 6.5, 'stroke-linecap': 'round', 'stroke-dasharray': isDeep ? '0.1 7' : null, opacity: .9 }, ov[s]);
-    for (const [pts, isDeep] of runs) E('path', { d: nervePath(pts, s), class: 'nerve', stroke: '#d99a00', 'stroke-width': isDeep ? 3.6 : 3.2, 'stroke-linecap': 'round', 'stroke-dasharray': isDeep ? '0.1 7' : null }, ov[s]);
+    for (const [pts, isDeep, v = s] of runs) E('path', { d: nervePath(pts, v), class: 'nerve', stroke: 'var(--panel)', 'stroke-width': isDeep ? 7 : 6.5, 'stroke-linecap': 'round', 'stroke-dasharray': isDeep ? '0.1 7' : null, opacity: .9 }, ov[v]);
+    for (const [pts, isDeep, v = s] of runs) E('path', { d: nervePath(pts, v), class: 'nerve', stroke: '#d99a00', 'stroke-width': isDeep ? 3.6 : 3.2, 'stroke-linecap': 'round', 'stroke-dasharray': isDeep ? '0.1 7' : null }, ov[v]);
   }
   if (st.mode === 'ncs' && st.study) {
     const S = NCS.STUDIES[st.study], cur = ncsEntry(st.study);
