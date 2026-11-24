@@ -105,6 +105,18 @@ select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .figs figure{margin:0;min-width:0}
 .figs figcaption{text-align:center;font-size:12.5px;color:var(--muted)}
 svg.body{width:100%;height:auto;display:block;touch-action:manipulation}
+/* left arm: mirror each drawing, keep text readable, and swap the two figures so the trunk stays on the outside */
+.figs.left svg.body{transform:scaleX(-1)}
+.figs.left svg.body text{transform:scaleX(-1);transform-box:fill-box;transform-origin:center}
+.figs.left figure:first-child{order:2}
+/* structures that cannot be needled here, and tendons: pale, so they do not read as findings */
+svg.body .n.off{fill:var(--musc-off)}
+svg.body .n.tendon{fill:#fbf8f3}
+svg.body.ncs .n{opacity:.4}
+svg.body .nerve{fill:none;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.figkey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin:6px 0 0}
+.figkey i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px;border:1px solid rgba(40,40,60,.35)}
+.figkey i.nv{width:18px;height:4px;border:0;border-radius:2px;background:#e0a800;vertical-align:2px}
 svg.body .m{fill:var(--musc);stroke:rgba(40,40,60,.35);stroke-width:.7;transition:fill .12s}
 svg.body.emg .m{cursor:pointer}
 svg.body.emg .m.done{fill:var(--musc-done)}
@@ -257,10 +269,11 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
       <div id="emg-pick" class="pick hidden">
         <p class="note" style="margin:0 0 6px">Click a muscle on the arm to insert the needle. Deep and axial muscles are listed below the figure.</p>
       </div>
-      <div class="figs">
+      <div class="figs" id="figs">
         <figure><svg id="fig-post" class="body ncs" viewBox="0 -14 318 784" role="group" aria-label="Arm, back"></svg><figcaption id="cap-post">Right arm, back</figcaption></figure>
         <figure><svg id="fig-ant" class="body ncs" viewBox="62 -14 318 784" role="group" aria-label="Arm, front"></svg><figcaption id="cap-ant">Right arm, front</figcaption></figure>
       </div>
+      <p class="figkey" id="figkey"></p>
       <div id="emg-chips" class="hidden">
         <div class="chips" id="chips"></div>
         <label class="note" style="display:grid;gap:3px;margin-top:10px">Or choose any muscle <select id="musc-select"></select></label>
@@ -1739,7 +1752,7 @@ function setSide(s, quiet) {
   for (const k of ['R', 'L']) $('side-' + k).setAttribute('aria-pressed', String(k === s));
   const w = s === 'R' ? 'Right' : 'Left';
   $('cap-ant').textContent = `${w} arm, front`; $('cap-post').textContent = `${w} arm, back`;
-  if (s === 'L') { $('cap-ant').textContent += ' (drawn as the right)'; $('cap-post').textContent += ' (drawn as the right)'; }
+  $('figs').classList.toggle('left', s === 'L'); // the left arm is the right arm's mirror image
   st.muscle = null; emgStop();
   if (!quiet) renderAll();
 }
@@ -1797,9 +1810,11 @@ function buildFigure(svgEl, defs, surf) {
     const kind = name[0];
     const p = E('path', { d: smooth(pts) }, clip === 'body' ? gb : gl);
     if (kind === '~' || kind === '=') {
-      p.setAttribute('class', 'n');
-      p.setAttribute('fill', kind === '=' ? '#fbf8f3' : '#c9c4c0');
+      p.setAttribute('class', kind === '=' ? 'n tendon' : 'n off');
       p.setAttribute('stroke', 'rgba(70,40,40,.28)'); p.setAttribute('stroke-width', .6);
+      const tip = kind === '=' ? `<b>${name.slice(1)}</b>` : `<b>${name.slice(1)}</b><br>Not tested in this simulator`;
+      p.addEventListener('pointermove', e => { if (st.mode === 'emg') showTip(e, tip); });
+      p.addEventListener('pointerleave', hideTip);
       continue;
     }
     p.setAttribute('class', 'm');
@@ -1828,6 +1843,39 @@ const TARGETS = {
   'Cervical paraspinals, C5–6': ['post', 366, 2], 'Cervical paraspinals, C7–T1': ['post', 366, 48], 'Thoracic paraspinals': ['post', 366, 300]
 };
 for (const n in TARGETS) { const [s, x, y] = TARGETS[n]; MPOS[s][n] = [s === 'post' ? AW - x : x, y]; }
+// Simplified course of each study's nerve, drawn on the front or back view where it runs.
+// Points are in the anterior frame like the study positions (P2(y, t): t = 0 radial edge, 1 ulnar edge);
+// each list passes through that study's stimulation and recording sites.
+const NV = (() => {
+  const plexus = [[262, 6], [238, 50], [214, 98], [200, 126]];       // Erb's point to the axilla, behind the clavicle
+  const medArm = [P2(200, .82), P2(270, .76), [160, 326]];             // medial arm with the brachial artery; cubital fossa medial to the biceps tendon
+  const medFore = [P2(400, .55), P2(480, .47), [136, 552], [133, 586]];  // between FDS and FDP; carpal tunnel
+  const ulnArm = [P2(200, .93), [192, 282], [196, 326], [190, 372]];   // medial arm; behind the medial epicondyle; under FCU
+  const ulnFore = [P2(450, .9), [163, 552], [171, 584]];               // forearm under FCU; Guyon canal
+  const radPost = [[200, 126], [164, 140], [120, 162], [100, 205], [92, 252]]; // posterior arm in the spiral groove, lateral below the deltoid
+  const radAnt = [[96, 262], [101, 296], [101, 318]];                  // lateral to the biceps, in front of the lateral epicondyle
+  const pinPost = [P2(338, .06), P2(380, .14), [116, 470], [146, 528]]; // through supinator to the posterior forearm and EIP
+  const srn = [P2(380, .05), P2(450, .04), P2(490, .03)];             // under brachioradialis
+  const ant = pts => ['ant', pts], post = pts => ['post', pts];
+  return {
+    medM: [ant([...plexus, ...medArm, ...medFore, [124, 596], [116, 610]])],          // recurrent thenar branch to APB
+    medS: [ant([...plexus, ...medArm, ...medFore, [128, 614], [118, 650], [113, 706]])],
+    medP: [ant([...plexus, ...medArm, ...medFore, [132, 628]])],
+    ulnM: [ant([...plexus, ...ulnArm, ...ulnFore, [180, 600], [186, 622]])],
+    ulnFDI: [ant([...plexus, ...ulnArm, ...ulnFore, [158, 604], [136, 622], [120, 628]])], // deep branch across the palm to FDI
+    ulnS: [ant([...plexus, ...ulnArm, ...ulnFore, [180, 610], [187, 690]])],
+    ulnP: [ant([...plexus, ...ulnArm, ...ulnFore, [170, 632]])],
+    duc: [ant([...plexus, ...ulnArm, P2(450, .9), P2(495, .93)]), post([P2(495, .95), [180, 520], [178, 560], [176, 606]])], // dorsal branch winds round the ulna
+    radM: [ant(plexus), post(radPost), ant(radAnt), post(pinPost)],
+    radS: [ant(plexus), post(radPost), ant([...radAnt, ...srn]), post([P2(490, .02), P2(530, .06), [112, 580]])],
+    mcnM: [ant([...plexus, [196, 134], P2(175, .62), [142, 228]])],                  // through coracobrachialis to biceps
+    labc: [ant([...plexus, [196, 134], P2(175, .62), P2(240, .47), P2(300, .38), [132, 330], P2(390, .2), [112, 452]])],
+    axnM: [ant(plexus), post([[200, 126], P2(134, .6), P2(126, .25), P2(118, .02)]), ant([P2(118, .04), [108, 112]])], // round the surgical neck of the humerus
+    mabc: [ant([...plexus, P2(220, .9), P2(290, .84), [176, 322], P2(390, .8), [176, 452]])]
+  };
+})();
+const NV_NAME = { medM: 'median', medS: 'median', medP: 'median', ulnM: 'ulnar', ulnFDI: 'ulnar', ulnS: 'ulnar', ulnP: 'ulnar', duc: 'ulnar (dorsal cutaneous branch)', radM: 'radial (posterior interosseous)', radS: 'radial (superficial branch)', mcnM: 'musculocutaneous', labc: 'musculocutaneous (lateral antebrachial cutaneous)', axnM: 'axillary', mabc: 'medial antebrachial cutaneous' };
+function nervePath(pts, s) { const P = pts.map(([x, y]) => [s === 'post' ? AW - x : x, y]); let d = `M ${P[0][0]} ${P[0][1]}`; for (let i = 1; i < P.length; i++) { const [x0, y0] = P[i - 1], [x1, y1] = P[i], mx = (x0 + x1) / 2, my = (y0 + y1) / 2; d += i === 1 ? ` L ${mx} ${my}` : ` Q ${x0} ${y0} ${mx} ${my}`; } return d + ` L ${P[P.length - 1][0]} ${P[P.length - 1][1]}`; }
 // muscles picked from chips or the list (not on the arm drawing)
 const CHIP_MUSCLES = ['Subscapularis', 'Supinator', 'EIP', 'EPL', 'FDP 2–3', 'FDP 4–5', 'FPL', 'Pronator quadratus', ...EXTRA_MUSCLES.map(m => m.name)];
 function renderChips() {
@@ -1861,6 +1909,16 @@ function drawOverlay() {
   ov.ant.innerHTML = ''; ov.post.innerHTML = '';
   const at = (pos) => { const [s, x, y] = pos; return [s, s === 'post' ? AW - x : x, y]; };
   const label = (g, x, y, text, s) => { const right = s === 'ant'; /* labels point away from the trunk */ E('text', { x: x + (right ? 19 : -19), y: y + 6, 'text-anchor': right ? 'start' : 'end', class: 'elab' }, g, text); };
+  $('figkey').innerHTML = st.mode === 'emg'
+    ? '<span><i style="background:var(--musc)"></i>Muscle you can needle</span><span><i style="background:var(--musc-done)"></i>Already needled</span><span><i style="background:var(--musc-off)"></i>Not tested here</span><span><i style="background:#fbf8f3"></i>Tendon</span>'
+    : st.study && NV[st.study] ? `<span><i class="nv"></i>Course of the ${NV_NAME[st.study]} nerve</span>` : '';
+  if (st.mode === 'ncs' && st.study && NV[st.study]) {
+    for (const [s, pts] of NV[st.study]) {
+      const d = nervePath(pts, s);
+      E('path', { d, class: 'nerve', stroke: 'var(--panel)', 'stroke-width': 8, opacity: .85 }, ov[s]);
+      E('path', { d, class: 'nerve', stroke: '#e0a800', 'stroke-width': 4.5 }, ov[s]);
+    }
+  }
   if (st.mode === 'ncs' && st.study) {
     const S = NCS.STUDIES[st.study], cur = ncsEntry(st.study);
     const [rs, rx, ry] = at(S.recPos);
