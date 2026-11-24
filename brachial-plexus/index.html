@@ -172,6 +172,16 @@ tr.hl td{background:var(--accent-soft)}
 .pill.good{border-color:var(--ok);color:var(--ok)}
 .note{font-size:13px;color:var(--muted);margin:8px 0 0}
 [hidden]{display:none!important}
+/* Examination / EMG lab tabs; the lab is the EMG lab page (../emg-cases/) embedded with this lesion */
+.viewtabs{display:flex;gap:6px;margin:0 16px 12px}
+.viewtabs .btn{font-weight:500}
+.viewtabs .btn[aria-selected="true"]{background:var(--accent-strong);border-color:var(--accent-strong);color:#fff}
+#lab-panel{margin:0 16px 16px;padding:10px 12px}
+.labctl{display:grid;grid-template-columns:minmax(220px,340px) auto minmax(0,1fr);gap:8px 16px;align-items:center;margin-bottom:8px}
+.labctl .note{margin:0}
+@media (max-width:800px){.labctl{grid-template-columns:minmax(0,1fr) auto}.labctl .note{grid-column:1/-1}}
+label.sl.wk{grid-template-columns:84px minmax(0,1fr) 78px}
+#lab{display:block;width:100%;height:max(640px,calc(100vh - 40px));border:1px solid var(--line);border-radius:8px;background:var(--bg)}
 </style>
 </head>
 <body>
@@ -194,7 +204,19 @@ tr.hl td{background:var(--accent-soft)}
     </div>
   </div>
 </section>
-<main class="work">
+<div class="viewtabs" role="tablist" aria-label="View">
+  <button class="btn" type="button" role="tab" id="vt-exam" aria-selected="true" aria-controls="exam-view">Examination</button>
+  <button class="btn" type="button" role="tab" id="vt-lab" aria-selected="false" aria-controls="lab-panel">EMG and nerve conduction lab</button>
+</div>
+<section class="panel" id="lab-panel" role="tabpanel" aria-labelledby="vt-lab" hidden>
+  <div class="labctl">
+    <label class="sl wk" for="wk">Since onset <input type="range" id="wk" min="0" max="104" step="1" value="6"><output id="o-wk">6 weeks</output></label>
+    <button class="btn sm" type="button" id="lab-restart">Restart the study</button>
+    <p class="note" id="lab-note">Run nerve conduction studies and needle EMG on the lesion set above. The lesion is axon loss at the chosen severity; the left arm is normal for comparison.</p>
+  </div>
+  <iframe id="lab" title="EMG and nerve conduction lab"></iframe>
+</section>
+<main class="work" id="exam-view" role="tabpanel" aria-labelledby="vt-exam">
   <div class="col" tabindex="0" aria-label="Plexus and localisation clues">
     <section class="panel" aria-labelledby="h-px">
       <div class="ph"><h2 id="h-px">Plexus: click a segment to lesion</h2><button class="lb" type="button" data-open="g-plexus" aria-label="Guide: plexus diagram">?</button></div>
@@ -294,6 +316,7 @@ tr.hl td{background:var(--accent-soft)}
         <p>Root lesions sit proximal to the dorsal root ganglion, so SNAPs stay normal even in numb skin ("Normal (numb skin)"), while the cervical paraspinals denervate. Lesions in the plexus or beyond reduce SNAPs and spare the paraspinals.</p>
         <p>Each SNAP is listed with the root that mainly carries it: LABC and median digit 2 test C6, superficial radial C6, ulnar digit 5 and dorsal ulnar cutaneous C8, MABC T1. Reflexes grade as 2+ normal, 1+ reduced or 0 absent.</p>
         <p>Needle EMG lists every limb muscle with any loss of innervation, plus the paraspinals. Fibrillations take about 2–3 weeks to appear after injury; the simulator shows the established picture.</p>
+        <p>The <b>EMG and nerve conduction lab</b> tab runs the studies yourself on the lesion set here: stimulate nerves, needle muscles and read the waveforms, with the left arm normal for comparison. Set the time since onset there: fibrillations appear from about 2 weeks and reinnervated motor units over months. Changing the lesion, severity or time restarts the study.</p>
       </section>
       <section id="g-model"><h3>How the model works</h3>
         <ul>
@@ -1108,6 +1131,47 @@ function updateClues(rootsHit) {
 }
 function fitRow() { const w = document.querySelector('.work'); document.documentElement.style.setProperty('--rowH', Math.max(520, innerHeight - (w.getBoundingClientRect().top + scrollY) - 12) + 'px'); }
 fitRow(); addEventListener('resize', fitRow);
+// ---------- EMG and nerve conduction lab tab ----------
+// The lab is the EMG lab page, loaded with this lesion in its address. It restarts (losing tests already run)
+// when the lesion, severity or time since onset changes while the tab is open, or when the tab is opened after a change.
+const lab = { frame: document.getElementById('lab'), url: null, timer: 0, weeks: 6 };
+function labUrl() {
+  const les = Object.keys(state.les).join(',');
+  return `../emg-cases/?embed=1&les=${encodeURIComponent(les)}&sev=${state.sev}&weeks=${lab.weeks}&mystery=${state.mystery ? 1 : 0}`;
+}
+function syncLab(force) {
+  if (document.getElementById('lab-panel').hidden) return;
+  const u = labUrl();
+  if (!force && u === lab.url) return;
+  const changed = lab.url !== null && !force;
+  lab.url = u; lab.frame.src = u;
+  document.getElementById('lab-note').textContent = changed
+    ? 'The lesion, severity or time since onset changed, so the study restarted.'
+    : 'Run nerve conduction studies and needle EMG on the lesion set above. The lesion is axon loss at the chosen severity; the left arm is normal for comparison.';
+}
+function showView(v) {
+  const isLab = v === 'lab';
+  document.getElementById('vt-exam').setAttribute('aria-selected', String(!isLab));
+  document.getElementById('vt-lab').setAttribute('aria-selected', String(isLab));
+  document.getElementById('exam-view').hidden = isLab;
+  document.getElementById('lab-panel').hidden = !isLab;
+  if (isLab) { syncLab(); document.getElementById('vt-lab').scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+  else fitRow();
+}
+document.getElementById('vt-exam').onclick = () => showView('exam');
+document.getElementById('vt-lab').onclick = () => showView('lab');
+document.querySelector('.viewtabs').addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+  const v = document.getElementById('lab-panel').hidden ? 'lab' : 'exam'; showView(v); document.getElementById('vt-' + v).focus();
+});
+const wk = document.getElementById('wk');
+const wkText = w => w < 8 ? `${w} week${w === 1 ? '' : 's'}` : w < 52 ? `${w} wk (~${Math.round(w / 4.35)} mo)` : `${w} wk (~${(w / 52).toFixed(1).replace('.0', '')} yr)`;
+wk.oninput = () => { lab.weeks = +wk.value; document.getElementById('o-wk').textContent = wkText(lab.weeks); };
+wk.onchange = () => syncLab();
+document.getElementById('lab-restart').onclick = () => syncLab(true);
+// lesion changes (chips, severity, presets, mystery) reload the lab after a short pause, so dragging the severity slider does not reload it on every step
+const refreshExam = refresh;
+refresh = function () { refreshExam(); clearTimeout(lab.timer); lab.timer = setTimeout(() => syncLab(), 400); };
 refresh();
 addEventListener('scroll', hideTip, true);
 </script>
