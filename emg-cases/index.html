@@ -56,6 +56,15 @@ main{padding:0 16px 24px;display:grid;gap:12px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500}
 .btn.sm{padding:3px 9px;font-size:13px;min-height:30px}
 .btn:disabled{opacity:.45;cursor:default}
+.effort{display:grid;grid-template-columns:auto minmax(0,1fr) 9.5em;gap:12px;align-items:start;margin:10px 0 4px;font-size:13.5px}
+.effort>label{padding-top:2px;font-weight:500}
+.effwrap{position:relative;padding-bottom:18px}
+.effwrap input{width:100%;margin:0;accent-color:var(--accent)}
+.effticks span{position:absolute;top:22px;transform:translateX(-50%);font-size:11.5px;color:var(--muted);white-space:nowrap}
+.effticks span:first-child{transform:none}.effticks span:last-child{transform:translateX(-100%)}
+.effort output{font-family:var(--font-mono);font-size:12.5px;padding-top:2px}
+.gainsel{font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.gainsel select{width:auto;font-size:13px;padding:4px 6px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
 .seg .btn{border:0;border-radius:0}
 .seg .btn+.btn{border-left:1px solid var(--line)}
@@ -156,6 +165,16 @@ td.bad::after,dd.bad::after{content:"*";color:var(--lesion)}
 .rep h3{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
 .rep table{margin-bottom:4px}
 .rep td.grp{font-weight:600}
+/* NCS report in the layout of a clinical machine report: a nerve heading row, then indented site rows */
+.rep table.ncsrep{border:1.5px solid var(--ink);width:auto;min-width:100%}
+.rep table.ncsrep th{border:1px solid var(--line);border-bottom:1.5px solid var(--ink);text-align:center;color:var(--ink);font-weight:600;text-transform:none;letter-spacing:0;font-size:12.5px;line-height:1.25;padding:5px 8px}
+.rep table.ncsrep th .u{display:block;font-weight:400;color:var(--muted)}
+.rep table.ncsrep td{border:1px solid var(--line);padding:3px 8px}
+.rep table.ncsrep tr.nh td{font-weight:600;border-top:1.5px solid var(--ink)}
+.rep table.ncsrep td.site{padding-left:22px}
+.rep table.ncsrep td.n,.rep table.ncsrep td.sg{text-align:right}
+.rep table.ncsrep.fw{min-width:0;width:auto}
+.rep table.emgrep td.c,.rep table.emgrep td:nth-child(4){text-align:center;white-space:nowrap}
 .rep select{width:auto;font-size:13px;padding:2px 4px}
 .repwrap{overflow-x:auto}
 
@@ -175,6 +194,23 @@ td.bad::after,dd.bad::after{content:"*";color:var(--lesion)}
 
 dialog#guide{width:min(900px,94vw);max-height:88vh;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink)}
 dialog#guide::backdrop{background:rgba(10,14,20,.45)}
+/* report pop-up: a white printed page in the style of the Natus report, in light and dark themes */
+dialog#repdlg{width:min(1000px,96vw);max-height:90vh;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);display:none;flex-direction:column}
+dialog#repdlg[open]{display:flex}
+dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
+.paper{overflow:auto;background:#e9e9e9;padding:16px}
+.paper .rep{background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;font-size:13.5px;padding:22px 26px;max-width:940px;margin:0 auto;box-shadow:0 1px 4px rgba(0,0,0,.25);--line:#9a9a9a;--ink:#111;--muted:#444;--lesion:#d00000}
+.paper .rep .note{color:#555}
+.paper .rep .ptline{display:flex;flex-wrap:wrap;gap:4px 24px;border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:6px}
+.paper .rep h1{font-size:18px;margin:0 0 6px}
+.paper .rep h3{font-size:15px;font-weight:700;text-decoration:underline;text-transform:none;letter-spacing:0;color:#111;margin:16px 0 6px}
+.paper .rep td.n{font-family:Arial,Helvetica,sans-serif;font-size:13.5px}
+.paper .rep .bad{color:#d00000;font-weight:700}
+.paper .rep td.bad::after{content:none}
+.rep .ref{color:#6b6b6b;font-style:italic;font-weight:400;font-size:.9em;white-space:nowrap}
+.paper .rep .ref{font-family:Arial,Helvetica,sans-serif}
+.paper .rep select{background:#fff;color:#111;border:1px solid #999;border-radius:3px;font:12.5px Arial,Helvetica,sans-serif;padding:1px 0;min-height:0}
+.paper .rep table.emgrep td{padding:3px 4px}
 .ghead{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line)}
 .ghead h2{font-family:var(--font-display);font-size:20px;margin:0}
 .gcontent{overflow:auto;max-height:calc(88vh - 60px);padding:4px 22px 22px;font-size:15px}
@@ -209,7 +245,6 @@ dialog#guide::backdrop{background:rgba(10,14,20,.45)}
         <h2 id="h-imp">Your impression</h2>
         <label>Localisation <select id="imp-loc"></select></label>
         <label>Pathophysiology <select id="imp-path"></select></label>
-        <label class="row" style="display:flex;color:var(--ink);font-size:13.5px;margin-top:10px"><input type="checkbox" id="selfgrade"> Grade the needle findings myself (hides the machine's readings)</label>
         <div class="row" style="margin-top:10px"><button class="btn primary" type="button" id="submit">Check my answer</button></div>
       </section>
     </div>
@@ -223,8 +258,8 @@ dialog#guide::backdrop{background:rgba(10,14,20,.45)}
         <p class="note" style="margin:0 0 6px">Click a muscle on the arm to insert the needle. Deep and axial muscles are listed below the figure.</p>
       </div>
       <div class="figs">
-        <figure><svg id="fig-ant" class="body ncs" viewBox="62 -14 318 784" role="group" aria-label="Arm, front"></svg><figcaption id="cap-ant">Right arm, front</figcaption></figure>
         <figure><svg id="fig-post" class="body ncs" viewBox="0 -14 318 784" role="group" aria-label="Arm, back"></svg><figcaption id="cap-post">Right arm, back</figcaption></figure>
+        <figure><svg id="fig-ant" class="body ncs" viewBox="62 -14 318 784" role="group" aria-label="Arm, front"></svg><figcaption id="cap-ant">Right arm, front</figcaption></figure>
       </div>
       <div id="emg-chips" class="hidden">
         <div class="chips" id="chips"></div>
@@ -252,10 +287,18 @@ dialog#guide::backdrop{background:rgba(10,14,20,.45)}
         <p class="empty" id="emg-empty">Click a muscle on the patient to insert the needle.</p>
         <div id="emg-live" class="hidden">
           <div class="row">
-            <div class="seg" role="group" aria-label="Patient effort"><button class="btn sm" type="button" data-eff="0" aria-pressed="true">At rest</button><button class="btn sm" type="button" data-eff="0.06" aria-pressed="false">Minimal</button><button class="btn sm" type="button" data-eff="0.3" aria-pressed="false">Moderate</button><button class="btn sm" type="button" data-eff="1" aria-pressed="false">Maximal</button></div>
             <button class="btn sm" type="button" id="ins" title="Keyboard shortcut: Space">Move needle <kbd>Space</kbd></button>
             <button class="btn sm" type="button" id="snd" aria-pressed="false">🔈 Sound off</button>
             <button class="btn sm" type="button" id="pause" aria-pressed="false">Pause</button>
+            <label class="gainsel">Sensitivity <select id="gain-sel" aria-label="Sensitivity, per vertical division"></select></label>
+          </div>
+          <div class="effort">
+            <label for="eff">Patient effort</label>
+            <div class="effwrap">
+              <input type="range" id="eff" min="0" max="100" step="1" value="0" aria-describedby="eff-out">
+              <div class="effticks" aria-hidden="true"><span style="left:0">Rest</span><span style="left:30%">Moderate</span><span style="left:100%">Maximal</span></div>
+            </div>
+            <output id="eff-out" for="eff">At rest</output>
           </div>
           <div class="scopehead"><span id="sc-lbl"></span><span id="sc-gain"></span></div>
           <div class="scope"><canvas id="sweep" width="1300" height="380" aria-label="Oscilloscope sweep, 100 ms"></canvas></div>
@@ -280,10 +323,14 @@ dialog#guide::backdrop{background:rgba(10,14,20,.45)}
   </section>
 
   <section class="panel" aria-labelledby="h-rep">
-    <h2 id="h-rep">Report</h2>
-    <div class="rep" id="report"><p class="note">Results appear here as you test.</p></div>
+    <div class="row between"><div><h2 id="h-rep" style="margin:0 0 2px">Report</h2><p class="note" id="rep-sum" style="margin:0">Results go into the report as you test.</p></div><button class="btn primary" type="button" id="open-rep">Show report</button></div>
   </section>
 </main>
+
+<dialog id="repdlg" aria-labelledby="r-title">
+  <div class="ghead"><h2 id="r-title">Report</h2><button class="btn" type="button" id="r-close">Close ✕</button></div>
+  <div class="paper"><div class="rep" id="report"><p class="note">Results appear here as you test.</p></div></div>
+</dialog>
 
 <dialog id="guide" aria-labelledby="g-title">
   <div class="ghead"><h2 id="g-title">Guide</h2><button class="btn" type="button" id="g-close">Close ✕</button></div>
@@ -296,7 +343,7 @@ dialog#guide::backdrop{background:rgba(10,14,20,.45)}
       <li>Use the <b>Left arm</b> button for side-to-side comparisons. Proximal studies (musculocutaneous, axillary, MABC) are best judged against the other side.</li>
       <li>When you have enough, choose the localisation and pathophysiology and check your answer. The answer lists the tests that settle the case and which of them you did.</li>
     </ol>
-    <p>Tick "Grade the needle findings myself" to hide the machine's readings. Each muscle's report row then asks for your own grades, and the answer compares them with the model's.</p>
+    <p>The machine's automated needle readings are hidden at first, as when you write a report yourself. Grade each muscle in the EMG table of the report (Show report): insertional activity, fibrillations and positive sharp waves, fasciculations, motor unit amplitude, duration and polyphasia, recruitment and interference pattern. Check my answer then compares your grades with the model's. Press "Show automated readings" beside the scope to see the machine's grades instead.</p>
     <h3>Reading the screen</h3>
     <ul>
       <li>Traces are shown negative-up. The blue tick marks the onset, the dot the negative peak.</li>
@@ -1649,7 +1696,7 @@ for (const [g, opts] of LOCS) {
 for (const [v, t] of PATHS) $('imp-path').appendChild(Object.assign(document.createElement('option'), { value: v, textContent: t }));
 
 // ===================== state =====================
-const st = { ci: -1, c: null, side: 'R', mode: 'ncs', study: null, muscle: null, ncs: null, emg: null, submitted: false, selfGrade: false };
+const st = { ci: -1, c: null, side: 'R', mode: 'ncs', study: null, muscle: null, ncs: null, emg: null, submitted: false, selfGrade: true }; // selfGrade: automated needle readings hidden; you grade in the report
 const solved = new Set();
 let order = 0;
 
@@ -1984,7 +2031,8 @@ function flags(S, key, side, r) { // r: {m, i, cv, drop}
   }
   return f;
 }
-const B = (on, t) => `<td class="n${on ? ' bad' : ''}">${t}</td>`;
+// a value cell, red when abnormal; with ref, the reference limit follows an abnormal value in grey italics
+const B = (on, t, ref) => `<td class="n${on ? ' bad' : ''}">${t}${on && ref ? ` <span class="ref">${ref}</span>` : ''}</td>`;
 function ncsTable(S, cur) {
   const t = $('ncs-tab');
   if (!cur.done.length) { t.innerHTML = ''; return; }
@@ -2015,7 +2063,7 @@ function drawF(S, res) {
 }
 
 // ===================== needle EMG =====================
-const em = { eff: 0, sound: false, paused: REDUCED, cur: null, ui: 0 };
+const em = { eff: 0, sound: false, paused: REDUCED, cur: null, ui: 0, gainRest: 0.05, gainAct: 0.5 };
 let restSig = null, actSig = null, curSig = null, ins = null;
 function emgEntry() { return st.muscle ? st.emg[st.side][st.muscle] : null; }
 function selectMuscle(name) {
@@ -2057,15 +2105,31 @@ function emgPanel() {
   $('emg-sub').textContent = `${st.side === 'R' ? 'Right' : 'Left'} ${st.muscle} · ${muscleLabel(m)}`;
   drawMuap(); drawReadings();
 }
-function syncEff() { for (const b of document.querySelectorAll('[data-eff]')) b.setAttribute('aria-pressed', String(+b.dataset.eff === em.eff)); }
-for (const b of document.querySelectorAll('[data-eff]')) b.onclick = () => {
+// effort slider: 0–100 % of maximal voluntary force; the model recruits units in size order to meet it
+const effWord = v => v === 0 ? 'At rest' : v < 12 ? 'Minimal' : v < 50 ? 'Moderate' : v < 90 ? 'Strong' : 'Maximal';
+function syncEff() { const v = Math.round(em.eff * 100); $('eff').value = v; $('eff-out').textContent = v ? `${v}% · ${effWord(v)}` : 'At rest'; syncGainSel(); }
+let effPending = false;
+function applyEffort() {
+  effPending = false;
   if (!em.cur) return;
-  em.eff = +b.dataset.eff; syncEff();
   const e = emgEntry();
   if (em.eff > 0) { e.act = true; actSig = EMG.activeSignal(em.cur.S, em.eff, 2); ins = null; useSignal(actSig); }
   else useSignal(restSig);
   drawMuap(); drawReadings(); renderReport();
-};
+}
+$('eff').addEventListener('input', () => {
+  const wasRest = em.eff === 0;
+  em.eff = +$('eff').value / 100; syncEff();
+  if (!em.cur) return;
+  if (wasRest !== (em.eff === 0) || !effPending) { effPending = true; requestAnimationFrame(applyEffort); }
+});
+// sensitivity (per vertical division). Fixed, not auto-scaled, so a large or small unit looks large or small.
+// Rest and activity keep separate settings, as on a machine: 50 µV/div at rest, 500 µV/div for voluntary activity.
+const GAINS = [0.02, 0.05, 0.1, 0.2, 0.5, 1, 2];
+const gainText = g => g < 1 ? Math.round(g * 1000) + ' µV/div' : g + ' mV/div';
+$('gain-sel').innerHTML = GAINS.map(g => `<option value="${g}">${gainText(g)}</option>`).join('');
+function syncGainSel() { $('gain-sel').value = String(em.eff > 0 ? em.gainAct : em.gainRest); }
+$('gain-sel').onchange = () => { const g = +$('gain-sel').value; if (em.eff > 0) em.gainAct = g; else em.gainRest = g; if (curSig) useSignal(curSig); drawMuap(); };
 function insertNeedle() {
   const e = emgEntry(); if (!e) return;
   const a = Math.random() * Math.PI * 2, d = 0.12 + Math.random() * 0.12;
@@ -2092,16 +2156,15 @@ let gain = 0.05, stripBase = null;
 function useSignal(sig) {
   curSig = sig;
   if (!sig) return;
-  let mx = 0; for (const v of sig.buf) mx = Math.max(mx, Math.abs(v));
-  gain = em.eff === 0 ? 0.05 : pickGain(mx, [0.1, 0.2, 0.5, 1, 2], 3.6);
-  const gl = gain < 1 ? Math.round(gain * 1000) + ' µV/div' : gain + ' mV/div';
+  gain = em.eff === 0 ? em.gainRest : em.gainAct;
+  const gl = gainText(gain);
   $('sc-gain').textContent = gl + ' · 10 ms/div'; $('sc-gain2').textContent = gl + ' · 200 ms/div';
   if (em.eff > 0) {
     const r = sig.rec, vis = em.cur ? em.cur.SM.vis.map(v => v.u) : [];
     const nvis = r.firing.filter(f => vis.includes(f.u)).length;
     const topu = r.firing.slice().sort((a, b) => b.rate - a.rate)[0];
-    const lvl = { 0.06: 'Minimal', 0.3: 'Moderate', 1: 'Maximal' }[em.eff];
-    $('sc-lbl').textContent = r.firing.length ? `${lvl} effort · ${nvis} unit${nvis === 1 ? '' : 's'} near the needle · fastest ${Math.round(topu.rate)} Hz` : `${lvl} effort · no voluntary units`;
+    const lvl = `${Math.round(em.eff * 100)}% effort`;
+    $('sc-lbl').textContent = r.firing.length ? `${lvl} · ${nvis} unit${nvis === 1 ? '' : 's'} firing near the needle · fastest ${Math.round(topu.rate)} Hz` : `${lvl} · no voluntary units`;
   } else $('sc-lbl').textContent = ins && sig === ins.sig ? 'At rest · needle just moved' : 'At rest';
   const c = document.createElement('canvas'); c.width = stripC.width; c.height = stripC.height;
   const ctx = c.getContext('2d');
@@ -2203,11 +2266,10 @@ function drawMuap() {
   for (let i = 0; i <= win; i += 3) E('line', { x1: X0 + i * ppm, x2: X0 + i * ppm, y1: 10, y2: 210, stroke: 'var(--grid)' }, svg);
   for (let j = -3; j <= 3; j++) E('line', { x1: X0, x2: X0 + W, y1: base + j * div, y2: base + j * div, stroke: j ? 'var(--grid)' : 'var(--line)' }, svg);
   const e = emgEntry(), infos = em.cur ? em.cur.SM.infos : [];
-  if (!e || !e.act) { E('text', { x: X0 + W / 2, y: base - 8, 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--muted)' }, svg, 'Ask for minimal effort to trigger on a unit'); $('mukv').innerHTML = ''; return; }
+  if (!e || !e.act) { E('text', { x: X0 + W / 2, y: base - 8, 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--muted)' }, svg, 'Raise the effort slider to trigger on a unit'); $('mukv').innerHTML = ''; return; }
   if (!infos.length) { E('text', { x: X0 + W / 2, y: base - 8, 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--muted)' }, svg, 'No voluntary motor units near the needle'); $('mukv').innerHTML = ''; return; }
   const ui = infos[em.ui % infos.length];
-  let mx = 0; for (const y of [ui.y, ...ui.sweeps]) for (const v of y) mx = Math.max(mx, Math.abs(v));
-  const g = pickGain(mx, [0.1, 0.2, 0.5, 1, 2, 5], 3.4);
+  const g = em.gainAct; // same fixed sensitivity as the scope, so unit size compares across muscles and patients
   for (const y of ui.sweeps) E('path', { d: pathFrom(y, EMG.MDT, X0, ppm, base, div / g, 8, 212), fill: 'none', stroke: 'var(--trace2)', 'stroke-width': 1, opacity: .45 }, svg);
   E('path', { d: pathFrom(ui.y, EMG.MDT, X0, ppm, base, div / g, 8, 212), fill: 'none', stroke: 'var(--trace)', 'stroke-width': 1.8 }, svg);
   E('text', { x: X0, y: 232, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g < 1 ? Math.round(g * 1000) + ' µV' : g + ' mV'}/div · 3 ms/div · unit ${em.ui % infos.length + 1} of ${infos.length}`);
@@ -2219,9 +2281,11 @@ const P = (t, bad) => `<span class="pill ${bad ? 'bad' : 'good'}">${t}</span>`;
 function drawReadings() {
   const e = emgEntry(), box = $('readbox');
   if (!e) return;
-  if (st.selfGrade) { box.innerHTML = '<h3>Machine readings hidden</h3><p class="note">You are grading this muscle yourself. Enter your grades in its row of the report.</p>'; return; }
+  const tog = `<button class="btn sm" type="button" id="auto-tog" aria-pressed="${!st.selfGrade}">${st.selfGrade ? 'Show automated readings' : 'Hide automated readings'}</button>`;
+  if (st.selfGrade) { box.innerHTML = `<div class="row between"><h3>Your grading</h3>${tog}</div><p class="note">Watch and listen, then enter insertional activity, fibrillations, fasciculations, motor unit size and recruitment for this muscle in the EMG table of the report (Show report, at the bottom of the page).</p>`; $('auto-tog').onclick = toggleAuto; return; }
   const r = e.read, a = e.act;
-  box.innerHTML = '<h3>Machine readings at this needle position</h3><dl class="kv" id="readkv"></dl>';
+  box.innerHTML = `<div class="row between"><h3>Automated readings at this needle position</h3>${tog}</div><dl class="kv" id="readkv"></dl>`;
+  $('auto-tog').onclick = toggleAuto;
   $('readkv').innerHTML =
     `<dt>Insertional activity</dt><dd>${P(r.ia, r.ia !== 'normal')}</dd>` +
     `<dt>Fibrillations / PSWs</dt><dd>${P(r.fib, r.fib !== '0')}</dd>` +
@@ -2230,54 +2294,93 @@ function drawReadings() {
       `<dt>Recruitment</dt><dd>${P(r.recruit, r.recruit !== 'normal')}${r.recFreq ? ` <span class="note">${Math.round(r.recFreq)} Hz</span>` : ''}</dd><dt>Interference</dt><dd>${P(r.interference, r.interference !== 'full')}</dd>`
       : '<dt>Motor units</dt><dd class="note">ask for effort</dd>');
 }
-$('selfgrade').onchange = e => { st.selfGrade = e.target.checked; drawReadings(); drawMuap(); renderReport(); };
+function toggleAuto() { st.selfGrade = !st.selfGrade; drawReadings(); drawMuap(); renderReport(); }
 
 // ===================== report =====================
-const GRADES = { fib: ['0', '1+', '2+', '3+', '4+'], fasc: ['none', 'present'], muap: ['normal', 'large', 'polyphasic, unstable', 'small', 'none'], recruit: ['normal', 'reduced', 'early', 'none'] };
-function modelGrade(r) { return { fib: r.fib, fasc: r.fasc ? 'present' : 'none', muap: r.muap.startsWith('large') ? 'large' : r.muap, recruit: r.recruit }; }
+// Manual grading fields, in report column order: [internal value (as the model reports it), Natus label]
+const NID = [['normal', 'Nml'], ['increased', 'Incr'], ['reduced', 'Decr']];
+const GRADES = {
+  ia: NID, fib: [['0', 'None'], ['1+', '1+'], ['2+', '2+'], ['3+', '3+'], ['4+', '4+']], fasc: [['none', 'None'], ['present', 'Present']],
+  amp: NID, dur: NID, poly: [['normal', 'Nml'], ['increased', 'Incr']],
+  recruit: [['normal', 'Nml'], ['reduced', 'Reduced'], ['early', 'Early'], ['none', 'None']],
+  interference: [['full', 'Full'], ['reduced', 'Reduced'], ['discrete', 'Discrete'], ['none', 'None']]
+};
+const GKEYS = ['ia', 'fib', 'fasc', 'amp', 'dur', 'poly', 'recruit', 'interference'], ACT_KEYS = ['amp', 'dur', 'poly', 'recruit', 'interference'];
+const GLABEL = (k, v) => { const x = GRADES[k].find(g => g[0] === v); return x ? x[1] : v; };
+function modelGrade(r) { return { ia: r.ia, fib: r.fib, fasc: r.fasc ? 'present' : 'none', amp: r.amp, dur: r.dur, poly: r.poly, recruit: r.recruit, interference: r.interference }; }
 function renderReport() {
   if (!st.c) return;
   const sides = ['R', 'L'], sname = s => s === 'R' ? 'R' : 'L';
   const byOrder = (obj) => Object.entries(obj).sort((a, b) => a[1].order - b[1].order);
   let mot = '', sen = '', fw = '', emgRows = '';
+  const nerveOf = S => S.name.replace(/ (motor|sensory)$/, '').replace(/ \(mixed\)$/, '');
+  const rec = r => r.replace(/^Digit (\d)$/, (_, d) => 'Dig ' + ['', 'I', 'II', 'III', 'IV', 'V'][d]);
   for (const s of sides) {
+    let palm = ''; // median and ulnar palmar studies share one heading, as on the machine report
     for (const [k, cur] of byOrder(st.ncs[s])) {
       const S = NCS.STUDIES[k];
       if (S.kind === 'motor' && cur.done.length) {
-        motorRows(S, cur, s).forEach((r, j) => {
-          const f = flags(S, k, s, r);
-          mot += `<tr><td class="grp">${j ? '' : `${S.name} ${sname(s)}`}</td><td>${j ? '' : S.rec}</td><td>${r.site}</td>${B(f.lat, r.m ? fmt(r.m.onset) : 'NR')}${B(f.amp, r.m ? fmt(r.m.amp) : '—')}<td>${r.seg || ''}</td><td class="n">${r.len ? fmt(r.len / 10, 0) : ''}</td>${B(f.cv, r.seg ? (r.cv ? fmt(r.cv, 0) : '—') : '')}${B(f.drop, r.seg && r.drop !== null ? (r.drop > 0 ? '−' : '+') + Math.abs(Math.round(r.drop * 100)) + '%' : '')}</tr>`;
+        mot += `<tr class="nh"><td colspan="6">${sname(s)} ${nerveOf(S)} - ${S.rec}</td></tr>`;
+        let prevSite = null;
+        motorRows(S, cur, s).forEach(r => {
+          const f = flags(S, k, s, r), first = prevSite === null, site = S.sites[r.i];
+          // distal row: recording segment and its distance; later rows: segment from the previous site, its distance and velocity
+          const seg = first ? `${site.name} - ${S.rec}` : `${site.name} - ${prevSite}`;
+          const dist = first ? S.segs.slice(0, site.k).reduce((t, x) => t + x.len, 0) : r.len;
+          // amplitude is flagged when low, or when it falls ≥20% from the previous site (possible conduction block)
+          const R = S.ref;
+          const ampRef = f.amp ? (R.amp && first ? `(≥${R.amp})` : !R.amp ? '(<50% of other side)' : '') : f.drop && r.drop !== null ? `(${Math.round(r.drop * 100)}% drop; nl <20%)` : '';
+          mot += `<tr><td class="site">${r.site}</td>${B(f.lat, r.m ? fmt(r.m.onset) : 'NR', `(≤${R.dl})`)}${B(f.amp || f.drop, r.m ? fmt(r.m.amp) : 'NR', ampRef)}<td class="sg">${seg}</td><td class="n">${fmt(dist, 0)}</td>${first ? '<td class="n"></td>' : B(f.cv, r.cv ? fmt(r.cv, 1) : '—', R.cv ? `(≥${R.cv})` : '')}</tr>`;
+          prevSite = site.name;
         });
       }
-      if (S.kind === 'motor' && cur.f) { const f = cur.res.f; fw += `<tr><td class="grp">${S.name} ${sname(s)}</td><td>${S.rec}</td>${B(f.min === null || f.min > S.ref.f, f.min === null ? 'absent' : fmt(f.min))}${B(f.persist < f.n / 2, f.persist + '/' + f.n)}</tr>`; }
+      if (S.kind === 'motor' && cur.f) { const f = cur.res.f; fw += `<tr class="nh"><td colspan="3">${sname(s)} ${nerveOf(S)} - ${S.rec}</td></tr><tr><td class="site">Wrist</td>${B(f.min === null || f.min > S.ref.f, f.min === null ? 'NR' : fmt(f.min), `(≤${S.ref.f})`)}${B(f.persist < f.n / 2, Math.round(100 * f.persist / f.n) + '', '(≥50)')}</tr>`; }
       if (S.kind === 'sensory' && cur.done.length) {
         const m = cur.res.m, f = flags(S, k, s, { m, i: 0 });
-        sen += `<tr><td class="grp">${S.name} ${sname(s)}</td><td>${S.stim} → ${S.rec}</td>${B(f.lat, m ? fmt(m.peakLat, 2) : 'NR')}${B(f.amp, m ? fmt(m.amp) : 'absent')}<td class="n">${S.len / 10}</td><td class="n">${m ? fmt(m.cv, 0) : '—'}</td></tr>`;
+        const isPalm = k === 'medP' || k === 'ulnP', site = isPalm ? `${nerveOf(S).split(' ')[0]} Palm` : S.stim;
+        const lowAbs = !m || m.amp < S.ref.amp;
+        const row = `<tr><td class="site">${site}</td>${B(f.lat, m ? fmt(m.peakLat, 1) : 'NR', `(≤${S.ref.pl})`)}${B(f.amp, m ? fmt(m.amp) : 'NR', lowAbs ? `(≥${S.ref.amp})` : '(<50% of other side)')}<td class="sg">${site} - ${rec(S.rec)}</td><td class="n">${S.len}</td><td class="n">${m ? fmt(m.cv, 1) : '—'}</td></tr>`;
+        if (isPalm) palm += row;
+        else sen += `<tr class="nh"><td colspan="6">${sname(s)} ${nerveOf(S)} - ${rec(S.rec)}</td></tr>` + row;
       }
     }
-    const mp = st.ncs[s].medP, up = st.ncs[s].ulnP;
-    if (mp && up && mp.done.length && up.done.length && mp.res.m && up.res.m) {
-      const d = mp.res.m.peakLat - up.res.m.peakLat;
-      sen += `<tr><td class="grp">Median − ulnar palmar ${sname(s)}</td><td>peak latency difference</td>${B(d >= 0.4, fmt(d, 2))}<td></td><td></td><td></td></tr>`;
+    if (palm) {
+      const mp = st.ncs[s].medP, up = st.ncs[s].ulnP, names = [mp && mp.done.length && 'Median', up && up.done.length && 'Ulnar'].filter(Boolean).join(', ');
+      sen += `<tr class="nh"><td colspan="6">${sname(s)} ${names} - Palmar</td></tr>` + palm;
+      if (mp && up && mp.done.length && up.done.length && mp.res.m && up.res.m) {
+        const d = mp.res.m.peakLat - up.res.m.peakLat;
+        sen += `<tr><td class="site">Median − Ulnar</td>${B(d >= 0.4, fmt(d, 1), '(<0.4)')}<td></td><td class="sg">peak latency difference</td><td></td><td></td></tr>`;
+      }
     }
     for (const [n, e] of byOrder(st.emg[s])) {
       const r = e.read; if (!r) continue;
       const a = e.act;
+      const lead = `<td>${sname(s)}</td><td>${n}</td><td>${nerveLabel(MBY[n])}</td><td>${rootLabel(MBY[n])}</td>`;
       if (st.selfGrade) {
-        const sel = (k) => `<select data-m="${n}" data-s="${s}" data-k="${k}"><option value="">—</option>${GRADES[k].map(v => `<option${e.user[k] === v ? ' selected' : ''}>${v}</option>`).join('')}</select>`;
-        emgRows += `<tr><td class="grp">${n} ${sname(s)}</td><td>${sel('fib')}</td><td>${sel('fasc')}</td><td>${sel('muap')}</td><td>${sel('recruit')}</td></tr>`;
+        const sel = (k) => `<td class="c"><select data-m="${n}" data-s="${s}" data-k="${k}" aria-label="${n}, ${k}"><option value="">—</option>${GRADES[k].map(([v, l]) => `<option value="${v}"${e.user[k] === v ? ' selected' : ''}>${l}</option>`).join('')}</select></td>`;
+        emgRows += `<tr>${lead}${['ia', 'fib', 'fasc'].map(sel).join('')}${a ? ACT_KEYS.map(sel).join('') : '<td class="c">—</td>'.repeat(5)}<td>${a ? '' : 'Not activated'}</td></tr>`;
       } else {
-        const c = (v, bad) => `<td${bad ? ' class="bad"' : ''}>${v}</td>`;
-        emgRows += `<tr><td class="grp">${n} ${sname(s)}</td>${c(r.ia, r.ia !== 'normal')}${c(r.fib, r.fib !== '0')}${c(r.fasc ? 'present' : 'none', r.fasc)}${a ? c(r.muap, r.muap !== 'normal') + c(r.recruit, r.recruit !== 'normal') + c(r.interference, r.interference !== 'full') : '<td class="note" colspan="3">not activated</td>'}</tr>`;
+        // Natus shorthand: Nml / Incr / Decr, grades for spontaneous activity
+        const c = (v, bad) => `<td class="c${bad ? ' bad' : ''}">${v}</td>`;
+        const nid = v => ({ normal: 'Nml', increased: 'Incr', reduced: 'Decr' }[v] || v);
+        const cap = v => v.charAt(0).toUpperCase() + v.slice(1);
+        const comment = !a ? 'Not activated' : r.unstable ? 'Unstable MUAPs' : r.muap === 'none' ? 'No MUAPs' : '';
+        emgRows += `<tr>${lead}${c(nid(r.ia), r.ia !== 'normal')}${c(r.fib === '0' ? 'None' : r.fib, r.fib !== '0')}${c(r.fasc ? 'Present' : 'None', r.fasc)}` +
+          (a ? c(nid(r.amp), r.amp !== 'normal') + c(nid(r.dur), r.dur !== 'normal') + c(nid(r.poly), r.poly !== 'normal') + c(r.recruit === 'normal' ? 'Nml' : cap(r.recruit), r.recruit !== 'normal') + c(cap(r.interference), r.interference !== 'full')
+            : '<td class="c">—</td>'.repeat(5)) + `<td>${comment}</td></tr>`;
       }
     }
   }
   let h = '';
-  if (mot) h += '<h3>Motor nerve conduction</h3><div class="repwrap"><table><thead><tr><th>Nerve</th><th>Record</th><th>Stimulate</th><th>Latency <span class="u">ms</span></th><th>Amp <span class="u">mV</span></th><th>Segment</th><th>Dist <span class="u">cm</span></th><th>CV <span class="u">m/s</span></th><th>Amp change</th></tr></thead><tbody>' + mot + '</tbody></table></div>';
-  if (fw) h += '<h3>F waves</h3><div class="repwrap"><table><thead><tr><th>Nerve</th><th>Record</th><th>Min latency <span class="u">ms</span></th><th>Persistence</th></tr></thead><tbody>' + fw + '</tbody></table></div>';
-  if (sen) h += '<h3>Sensory nerve conduction</h3><div class="repwrap"><table><thead><tr><th>Nerve</th><th>Stimulate → record</th><th>Peak latency <span class="u">ms</span></th><th>Amp <span class="u">µV</span></th><th>Dist <span class="u">cm</span></th><th>CV <span class="u">m/s</span></th></tr></thead><tbody>' + sen + '</tbody></table></div>';
-  if (emgRows) h += '<h3>Needle EMG</h3><div class="repwrap"><table><thead><tr><th>Muscle</th>' + (st.selfGrade ? '<th>Fibs / PSWs</th><th>Fasciculations</th><th>Motor units</th><th>Recruitment</th>' : '<th>Insertional</th><th>Fibs / PSWs</th><th>Fasciculations</th><th>Motor units</th><th>Recruitment</th><th>Interference</th>') + '</tr></thead><tbody>' + emgRows + '</tbody></table></div>';
-  $('report').innerHTML = h || '<p class="note">Results appear here as you test.</p>';
+  if (mot) h += '<h3>Motor NCS</h3><div class="repwrap"><table class="ncsrep"><thead><tr><th>Nerve / Sites</th><th>Latency <span class="u">ms</span></th><th>Amplitude <span class="u">mV</span></th><th>Segments</th><th>Distance <span class="u">mm</span></th><th>CV <span class="u">m/s</span></th></tr></thead><tbody>' + mot + '</tbody></table></div>';
+  if (fw) h += '<h3>F Wave</h3><div class="repwrap"><table class="ncsrep fw"><thead><tr><th>Nerve / Sites</th><th>F-Lat (min) <span class="u">ms</span></th><th>Persistence <span class="u">%</span></th></tr></thead><tbody>' + fw + '</tbody></table></div>';
+  if (sen) h += '<h3>Sensory NCS</h3><div class="repwrap"><table class="ncsrep"><thead><tr><th>Nerve / Sites</th><th>Peak Lat <span class="u">ms</span></th><th>Amplitude <span class="u">µV</span></th><th>Segments</th><th>Distance <span class="u">mm</span></th><th>CV <span class="u">m/s</span></th></tr></thead><tbody>' + sen + '</tbody></table></div>';
+  if (emgRows) h += '<h3>EMG</h3><div class="repwrap"><table class="ncsrep emgrep"><thead><tr><th>Side</th><th>Muscle</th><th>Nerve</th><th>Root</th><th>Ins Act</th><th>Fibs / PSW</th><th>Fasc</th><th>Amp</th><th>Dur</th><th>Poly</th><th>Recrt</th><th>Int Pat</th><th>Comment</th></tr></thead><tbody>' + emgRows + '</tbody></table></div>' +
+    (st.selfGrade ? '<p class="note">Automated readings are hidden: enter your own grades above. Muscles you have not activated have no motor unit columns.</p>' : '');
+  const pc = st.c, nN = sides.reduce((t, s) => t + Object.values(st.ncs[s]).filter(x => x.done.length).length, 0), nM = sides.reduce((t, s) => t + Object.values(st.emg[s]).filter(x => x.read).length, 0);
+  const head = `<h1>Nerve Conduction and EMG Report</h1><div class="ptline"><span><b>Patient ${CASES.indexOf(pc) + 1}</b> · ${pc.who}</span><span>Referral: ${pc.title}</span><span>Symptoms ${pc.weeks} weeks</span></div>`;
+  $('report').innerHTML = head + (h || '<p class="note">No results yet. Stimulate a nerve or needle a muscle, then come back here.</p>') + (h ? '<p class="note" style="margin-top:12px">Red: outside the reference range, or a fall in amplitude of 20% or more from the previous site.</p>' : '');
+  $('rep-sum').textContent = nN || nM ? `${nN} nerve stud${nN === 1 ? 'y' : 'ies'} and ${nM} muscle${nM === 1 ? '' : 's'} so far.` : 'Results go into the report as you test.';
   for (const s of $('report').querySelectorAll('select[data-m]')) s.onchange = () => { st.emg[s.dataset.s][s.dataset.m].user[s.dataset.k] = s.value; };
 }
 
@@ -2300,15 +2403,19 @@ $('submit').onclick = () => {
   h += `<p class="dx">${c.dx}</p><ul>${c.teach.map(t => `<li>${t}</li>`).join('')}</ul>`;
   h += `<h3>Tests that settle it</h3><ul class="keylist">${c.key.map(([lab, ids]) => `<li class="${ids.some(did) ? 'y' : 'x'}">${lab}</li>`).join('')}</ul>`;
   h += `<h3>Lesion in the model</h3><p class="note" style="margin-top:0">${c.lesions.length ? c.lesions.map(lesionText).join('<br>') + (c.ongoing ? '<br>Motor neuron loss is ongoing: these are the losses reached at one year.' : '') : 'No lesion.'}${c.left ? '<br>Left side: ' + c.left.filter(x => x.at.startsWith('R_')).map(lesionText).join('; ') : ''}</p>`;
-  if (st.selfGrade) {
-    const rows = [];
+  { // compare any grades entered by hand with the model's readings
+    const rows = [], fi = v => GRADES.fib.findIndex(g => g[0] === v);
     for (const s of ['R', 'L']) for (const [n, e] of Object.entries(st.emg[s])) {
-      if (!e.read) continue;
+      if (!e.read || !GKEYS.some(k => e.user[k])) continue;
       const mg = modelGrade(e.read), u = e.user;
-      const cell = k => { const ok = u[k] && (k === 'fib' ? Math.abs(GRADES.fib.indexOf(u[k]) - GRADES.fib.indexOf(mg[k])) <= 1 : u[k] === mg[k]); return `<td class="${u[k] ? (ok ? '' : 'bad') : 'note'}">${u[k] || '—'} / ${mg[k]}</td>`; };
-      rows.push(`<tr><td>${n} ${s}</td>${cell('fib')}${cell('fasc')}${e.act ? cell('muap') + cell('recruit') : '<td colspan="2" class="note">not activated</td>'}</tr>`);
+      const cell = k => {
+        const m = mg[k], none = m === '—';
+        const ok = u[k] ? (k === 'fib' ? Math.abs(fi(u[k]) - fi(m)) <= 1 : u[k] === m) : none;
+        return `<td class="${u[k] || none ? (ok ? '' : 'bad') : 'note'}">${u[k] ? GLABEL(k, u[k]) : '—'} / ${none ? '—' : GLABEL(k, m)}</td>`;
+      };
+      rows.push(`<tr><td>${n} ${s}</td>${['ia', 'fib', 'fasc'].map(cell).join('')}${e.act ? ACT_KEYS.map(cell).join('') : '<td colspan="5" class="note">not activated</td>'}</tr>`);
     }
-    if (rows.length) h += `<h3>Your needle grades / the model's</h3><p class="note" style="margin-top:0">Fibrillation grades within one step count as agreeing.</p><div class="repwrap"><table><thead><tr><th>Muscle</th><th>Fibs / PSWs</th><th>Fasciculations</th><th>Motor units</th><th>Recruitment</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+    if (rows.length) h += `<h3>Your needle grades / the model's</h3><p class="note" style="margin-top:0">Fibrillation grades within one step count as agreeing. Red: your grade differs.</p><div class="repwrap"><table><thead><tr><th>Muscle</th><th>Ins Act</th><th>Fibs / PSW</th><th>Fasc</th><th>Amp</th><th>Dur</th><th>Poly</th><th>Recrt</th><th>Int Pat</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
   }
   h += `<div class="row" style="margin-top:12px"><button class="btn primary" type="button" id="next">Next patient</button></div>`;
   $('result').innerHTML = `<div class="result">${h}</div>`;
@@ -2328,7 +2435,11 @@ $('submit').onclick = () => {
   $('g-refs').innerHTML = `<div class="repwrap"><table><thead><tr><th>Study</th><th>Amplitude</th><th>Latency</th><th>Velocity</th><th>F wave</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 })();
 const guideEl = $('guide');
-$('open-guide').onclick = () => { if (guideEl.showModal) guideEl.showModal(); else guideEl.setAttribute('open', ''); };
+const repEl = $('repdlg');
+$('open-rep').onclick = () => { renderReport(); if (repEl.showModal) repEl.showModal(); else repEl.setAttribute('open', ''); };
+$('r-close').onclick = () => { if (repEl.close) repEl.close(); else repEl.removeAttribute('open'); };
+repEl.addEventListener('click', e => { if (e.target === repEl) $('r-close').onclick(); });
+$('open-guide').onclick =() => { if (guideEl.showModal) guideEl.showModal(); else guideEl.setAttribute('open', ''); };
 $('g-close').onclick = () => { if (guideEl.close) guideEl.close(); else guideEl.removeAttribute('open'); };
 guideEl.addEventListener('click', e => { if (e.target === guideEl) $('g-close').onclick(); });
 
