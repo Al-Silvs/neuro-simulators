@@ -2009,7 +2009,7 @@ function setSide(s, quiet) {
   st.side = s;
   for (const k of ['R', 'L']) $('side-' + k).setAttribute('aria-pressed', String(k === s));
   const w = s === 'R' ? 'Right' : 'Left';
-  $('cap-ant').innerHTML = `<b>Front</b>${w} arm, anterior view`; $('cap-post').innerHTML = `<b>Back</b>${w} arm, posterior view`;
+  $('cap-ant').innerHTML = `<b>Anterior</b>`; $('cap-post').innerHTML = `<b>Posterior</b>`;
   $('figs').classList.toggle('left', s === 'L'); // the left arm is the right arm's mirror image
   st.muscle = null; emgStop();
   if (!quiet) renderAll();
