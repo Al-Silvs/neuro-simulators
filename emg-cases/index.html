@@ -2638,7 +2638,7 @@ function useSignal(sig) {
     const nvis = r.firing.filter(f => vis.includes(f.u)).length;
     const topu = r.firing.slice().sort((a, b) => b.rate - a.rate)[0];
     const lvl = `${Math.round(em.eff * 100)}% effort`;
-    $('sc-lbl').textContent = r.firing.length ? `${lvl} · ${nvis} unit${nvis === 1 ? '' : 's'} firing near the needle · fastest ${Math.round(topu.rate)} Hz` : `${lvl} · no voluntary units`;
+    $('sc-lbl').textContent = r.firing.length ? `${lvl} · ${nvis} unit${nvis === 1 ? '' : 's'} firing near the needle` : `${lvl} · no voluntary units`;
   } else $('sc-lbl').textContent = ins && sig === ins.sig ? 'At rest · needle just moved' : em.hold ? `At rest · needle left in · ${2 * (em.chunk + 1)} s` : 'At rest';
   const c = document.createElement('canvas'); c.width = stripC.width; c.height = stripC.height;
   const ctx = c.getContext('2d');
