@@ -13,7 +13,8 @@
   --bg:#eef0ee; --panel:#fbfcfb; --ink:#18202b; --muted:#5a6472; --line:#d5d9de; --grid:#e3e7eb;
   --accent:#1f56c9; --accent-soft:#dbe5fa; --lesion:#c3352a; --lesion-soft:#f7dedb; --ok:#2f7d4f; --ok-soft:#dcefe3; --warn:#b26a00; --warn-soft:#fbecd3;
   --trace:#18202b; --trace2:#1f56c9; --on-accent:#fff; --outline:#6b5a52;
-  --musc:#bcd4e6; --musc-done:#8fb3d4; --musc-hl:#6f9bff; --musc-sel:#1f56c9; --musc-off:#d9dde2;
+  /* muscles: pink-red; examined = deeper red, hover = bright, selected = crimson. --done-ui keeps the blue "done" cue on study buttons */
+  --musc:#f2828f; --musc-done:#d9505f; --musc-hl:#ff5d73; --musc-sel:#b3122e; --musc-off:#d9dde2; --done-ui:#8fb3d4;
   --font-display:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;
   --font-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
   --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -24,14 +25,14 @@
     --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440; --grid:#232b36;
     --accent:#6f9bff; --accent-soft:#1d2a47; --lesion:#ff6a5c; --lesion-soft:#3a1e1c; --ok:#5fc48a; --ok-soft:#173225; --warn:#f0a640; --warn-soft:#3a2c14;
     --trace:#e6e9ee; --trace2:#6f9bff; --on-accent:#0b1220; --outline:#8b95a3;
-    --musc:#9db8cf; --musc-done:#7095b8; --musc-hl:#6f9bff; --musc-sel:#3a63c9; --musc-off:#5d6672; color-scheme:dark;
+    --musc:#f48a96; --musc-done:#d9505f; --musc-hl:#ff7a8e; --musc-sel:#c4203d; --musc-off:#5d6672; --done-ui:#7095b8; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440; --grid:#232b36;
   --accent:#6f9bff; --accent-soft:#1d2a47; --lesion:#ff6a5c; --lesion-soft:#3a1e1c; --ok:#5fc48a; --ok-soft:#173225; --warn:#f0a640; --warn-soft:#3a2c14;
   --trace:#e6e9ee; --trace2:#6f9bff; --on-accent:#0b1220; --outline:#8b95a3;
-  --musc:#9db8cf; --musc-done:#7095b8; --musc-hl:#6f9bff; --musc-sel:#3a63c9; --musc-off:#5d6672; color-scheme:dark;
+  --musc:#f48a96; --musc-done:#d9505f; --musc-hl:#ff7a8e; --musc-sel:#c4203d; --musc-off:#5d6672; --done-ui:#7095b8; color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -44,7 +45,10 @@ h1{font-family:var(--font-display);font-weight:600;font-size:24px;margin:0}
 header p{margin:0;color:var(--muted);font-size:14px;flex:1;min-width:280px}
 main{padding:0 16px 24px;display:grid;gap:12px}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
-.panel h2{font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:.4px;text-transform:uppercase;margin:0 0 10px;color:var(--muted)}
+.panel h2{font-family:var(--font-display);font-weight:600;font-size:18px;margin:0 0 10px;color:var(--ink)}
+.ico{width:1.05em;height:1.05em;vertical-align:-.17em;flex:none;fill:currentColor}
+.btn .ico{margin-right:5px}
+.ghead .btn .ico{margin:0 0 0 5px}
 .panel h3{font-size:14px;margin:14px 0 6px}
 .row{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
 .between{justify-content:space-between}
@@ -74,12 +78,14 @@ kbd{font-family:var(--font-mono);font-size:11.5px;border:1px solid var(--line);b
 .ref{font-size:12.5px;color:var(--muted);margin:6px 0 0;font-family:var(--font-mono)}
 
 /* patients */
-.caselist{display:flex;flex-wrap:wrap;gap:6px}
-.caselist .btn{display:inline-flex;gap:7px;align-items:baseline}
-.caselist .num{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
-.caselist .btn[aria-pressed="true"] .num{color:inherit;opacity:.8}
-.caselist .tick{color:var(--ok);font-weight:600}
-.caselist .btn[aria-pressed="true"] .tick{color:inherit}
+.patbar{padding:10px 16px}
+.patbar h2{margin:0!important}
+#caselist{width:auto;flex:1 1 300px;max-width:520px;min-width:0}
+.patbar .count{font-size:13px;color:var(--muted);white-space:nowrap}
+.why{margin:6px 0 10px;padding:8px 12px;border-left:3px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;font-size:14px}
+.why b{font-weight:600}
+.recall{margin:12px 0 4px;padding:8px 12px;border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:0 8px 8px 0;background:var(--panel);font-size:14px}
+.recall .rl{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-bottom:2px}
 
 /* the lab: referral | patient | machine */
 .lab{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
@@ -87,7 +93,7 @@ kbd{font-family:var(--font-mono);font-size:11.5px;border:1px solid var(--line);b
 @media (min-width:1320px){.lab{grid-template-columns:minmax(250px,.62fr) minmax(400px,1.05fr) minmax(0,1.45fr)}#machine{grid-column:auto}}
 .who{font-weight:600;font-size:16px;margin:0 0 4px}
 .hx,.exam{margin:0 0 6px;font-size:14.5px}
-#referral h3{margin:10px 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+#referral h3{margin:10px 0 2px;font-size:13.5px;font-weight:600;color:var(--muted)}
 .sidepick{margin-top:12px}
 .sidepick .lbl{font-size:13px;color:var(--muted);margin-right:4px}
 .imp label{display:grid;gap:3px;font-size:13px;color:var(--muted);margin-top:8px}
@@ -100,25 +106,31 @@ select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .pgroup .plab{font-size:12.5px;color:var(--muted);padding-top:7px}
 .pgroup .btns{display:flex;flex-wrap:wrap;gap:5px}
 .pgroup .btn{font-size:13px;padding:4px 9px;min-height:30px}
-.pgroup .btn.done:not([aria-pressed="true"]){border-color:var(--musc-done);box-shadow:inset 0 -3px 0 var(--musc-done)}
+.pgroup .btn.done:not([aria-pressed="true"]){border-color:var(--done-ui);box-shadow:inset 0 -3px 0 var(--done-ui)}
 .figs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
 .figs figure{margin:0;min-width:0}
-.figs figcaption{text-align:center;font-size:12.5px;color:var(--muted)}
+.figs figure{display:flex;flex-direction:column}
+/* caption above each drawing: "Back" or "Front" in large type, then the side and view */
+.figs figcaption{order:-1;text-align:center;font-size:12.5px;color:var(--muted);margin:0 0 2px;line-height:1.25}
+.figs figcaption b{display:block;font-family:var(--font-display);font-size:20px;font-weight:600;color:var(--ink)}
 svg.body{width:100%;height:auto;display:block;touch-action:manipulation}
 /* left arm: mirror each drawing, keep text readable, and swap the two figures so the trunk stays on the outside */
 .figs.left svg.body{transform:scaleX(-1)}
 .figs.left svg.body text{transform:scaleX(-1);transform-box:fill-box;transform-origin:center}
 .figs.left figure:first-child{order:2}
-/* structures that cannot be needled here, and tendons: pale, so they do not read as findings */
-svg.body .n.off{fill:var(--musc-off)}
+/* muscles not tested here: drawn like the others but not clickable; tendons pale */
+svg.body .n.off{fill:var(--musc);stroke:rgba(40,40,60,.35);stroke-width:.7;cursor:default}
 svg.body .n.tendon{fill:#fbf8f3}
 svg.body.ncs .n{opacity:.4}
 svg.body .nerve{fill:none;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .figkey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin:6px 0 0}
 .figkey i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px;border:1px solid rgba(40,40,60,.35)}
 .figkey i.nv{width:18px;height:3px;border:0;border-radius:2px;background:#d99a00;vertical-align:2px}
-svg.body .m{fill:var(--musc);stroke:rgba(40,40,60,.35);stroke-width:.7;transition:fill .12s}
+svg.body .m{fill:var(--musc);stroke:rgba(110,20,40,.5);stroke-width:.8;transition:fill .12s}
 svg.body.emg .m{cursor:pointer}
+svg.body.emg .m:hover{stroke:#6b0f24;stroke-width:1.5}
+svg.body .landmark{fill:none;stroke:rgba(70,10,25,.42);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+svg.body .landmark.soft{stroke-width:1;stroke:rgba(70,10,25,.3)}svg.body.ncs .landmark{opacity:.6}
 svg.body.emg .m.done{fill:var(--musc-done)}
 svg.body.emg .m.hl{fill:var(--musc-hl)}
 svg.body.emg .m.sel{fill:var(--musc-sel)}
@@ -129,11 +141,6 @@ svg.body .stim circle{fill:#ffd54a;stroke:#7a5a00;stroke-width:1.6}
 svg.body .stim:hover circle,svg.body .stim:focus-visible circle{fill:#ffb300;stroke-width:2.6}
 svg.body .stim.done circle{fill:#ffe9a0}
 svg.body .stim:focus{outline:none}
-svg.body .tgt{cursor:pointer}
-svg.body .tgt circle{fill:var(--panel);stroke:var(--musc-sel);stroke-width:2.5}
-svg.body .tgt.done circle{fill:var(--musc-done)}
-svg.body .tgt.sel circle,svg.body .tgt:hover circle,svg.body .tgt:focus-visible circle{fill:var(--musc-sel)}
-svg.body .tgt:focus{outline:none}
 svg.body .elab{font:600 19px var(--font-body);fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:5px;stroke-linejoin:round;pointer-events:none}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 .chips .lab{font-size:12.5px;color:var(--muted);width:100%}
@@ -153,7 +160,7 @@ svg.plot .stimlab{cursor:pointer}
 svg.plot .stimlab:hover text.sl,svg.plot .stimlab:focus-visible text.sl{fill:var(--accent);text-decoration:underline}
 svg.plot .stimlab:focus{outline:none}
 table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{font-weight:500;color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;text-align:left;padding:4px}
+th{font-weight:500;color:var(--muted);font-size:12.5px;text-align:left;padding:4px}
 td{padding:4px;border-top:1px solid var(--line);vertical-align:middle}
 th .u{text-transform:none}
 td.n{font-family:var(--font-mono);font-size:12.5px;white-space:nowrap}
@@ -167,6 +174,17 @@ td.bad::after,dd.bad::after{content:"*";color:var(--lesion)}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13.5px;margin:0}
 .kv dt{color:var(--muted)}
 .kv dd{margin:0;font-family:var(--font-mono);font-size:13px}
+.scoperow{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px;align-items:start}
+@media (max-width:700px){.scoperow{grid-template-columns:minmax(0,1fr)}.npad{max-width:260px}}
+.npad h3{margin:6px 0 4px;font-size:13.5px}
+.npad svg{width:100%;height:auto;display:block;background:#0f1a14;border-radius:8px;cursor:crosshair;touch-action:none}
+.npad svg:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.npad .note{font-size:12px;margin:5px 0 0}
+.npad .note.hit{color:#c3352a;font-weight:600}
+.gradeform{display:grid;gap:5px;margin:4px 0 2px}
+.gradeform .grow{display:grid;grid-template-columns:minmax(0,1fr) 8.5em;gap:8px;align-items:center;font-size:13px}
+.gradeform select{font:inherit;font-size:13px;padding:2px 4px}
+.gradeform select:disabled{opacity:.5}
 .readbox{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 .readbox h3{margin:0 0 6px}
 .pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap;font-family:var(--font-body)}
@@ -174,7 +192,7 @@ td.bad::after,dd.bad::after{content:"*";color:var(--lesion)}
 .pill.good{border-color:var(--ok);color:var(--ok)}
 
 /* report */
-.rep h3{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.rep h3{margin:12px 0 4px;font-size:13.5px;font-weight:600;color:var(--muted)}
 .rep table{margin-bottom:4px}
 .rep td.grp{font-weight:600}
 /* NCS report in the layout of a clinical machine report: a nerve heading row, then indented site rows */
@@ -230,6 +248,10 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
 .gcontent ul,.gcontent ol{padding-left:20px}
 .gcontent li{margin-bottom:5px}
 .gcontent table{font-size:13px;margin:6px 0}
+/* embedded in the brachial plexus simulator: no case list, no answer checking, no link home */
+.embed header .home,.embed header p,.embed section[aria-labelledby="h-cases"],.embed .imp,.embed #result-panel{display:none!important}
+.embed header{padding-top:6px}
+.embed header h1{font-size:18px}
 </style>
 </head>
 <body>
@@ -240,9 +262,17 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
   <button class="btn" type="button" id="open-guide">Guide</button>
 </header>
 <main>
-  <section class="panel" aria-labelledby="h-cases">
-    <div class="row between" style="margin-bottom:8px"><h2 id="h-cases" style="margin:0">Patients</h2><button class="btn sm" type="button" id="rand">Random patient</button></div>
-    <div class="caselist" id="caselist" role="group" aria-label="Patients"></div>
+  <section class="panel patbar" aria-labelledby="h-cases">
+    <div class="row between">
+      <div class="row" style="flex:1 1 auto;min-width:0">
+        <h2 id="h-cases">Patient</h2>
+        <button class="btn sm" type="button" id="pt-prev" aria-label="Previous patient">&lsaquo;</button>
+        <select id="caselist" aria-labelledby="h-cases"></select>
+        <button class="btn sm" type="button" id="pt-next" aria-label="Next patient">&rsaquo;</button>
+        <span class="count" id="casecount"></span>
+      </div>
+      <button class="btn sm" type="button" id="rand">Random patient</button>
+    </div>
   </section>
 
   <div class="lab">
@@ -270,8 +300,8 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
         <p class="note" style="margin:0 0 6px">Click a muscle on the arm to insert the needle. Deep and axial muscles are listed below the figure.</p>
       </div>
       <div class="figs" id="figs">
-        <figure><svg id="fig-post" class="body ncs" viewBox="0 -14 318 784" role="group" aria-label="Arm, back"></svg><figcaption id="cap-post">Right arm, back</figcaption></figure>
-        <figure><svg id="fig-ant" class="body ncs" viewBox="62 -14 318 784" role="group" aria-label="Arm, front"></svg><figcaption id="cap-ant">Right arm, front</figcaption></figure>
+        <figure><svg id="fig-post" class="body ncs" viewBox="0 -14 318 784" role="group" aria-label="Arm, posterior view"></svg><figcaption id="cap-post"><b>Posterior</b></figcaption></figure>
+        <figure><svg id="fig-ant" class="body ncs" viewBox="62 -14 318 784" role="group" aria-label="Arm, anterior view"></svg><figcaption id="cap-ant"><b>Anterior</b> </figcaption></figure>
       </div>
       <p class="figkey" id="figkey"></p>
       <div id="emg-chips" class="hidden">
@@ -301,7 +331,7 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
         <div id="emg-live" class="hidden">
           <div class="row">
             <button class="btn sm" type="button" id="ins" title="Keyboard shortcut: Space">Move needle <kbd>Space</kbd></button>
-            <button class="btn sm" type="button" id="snd" aria-pressed="false">🔈 Sound off</button>
+            <button class="btn sm" type="button" id="snd" aria-pressed="false"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 6v4h2.8L8 13V3L4.3 6z"/><path d="M10.6 6.2l3.6 3.6M14.2 6.2l-3.6 3.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Sound off</button>
             <button class="btn sm" type="button" id="pause" aria-pressed="false">Pause</button>
             <button class="btn sm" type="button" id="hold" aria-pressed="false" title="Keep recording at this spot at rest, without repeating, to catch slow or irregular discharges">Leave needle in</button>
             <label class="gainsel">Sensitivity <select id="gain-sel" aria-label="Sensitivity, per vertical division"></select></label>
@@ -314,8 +344,17 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
             </div>
             <output id="eff-out" for="eff">At rest</output>
           </div>
-          <div class="scopehead"><span id="sc-lbl"></span><span id="sc-gain"></span></div>
-          <div class="scope"><canvas id="sweep" width="1300" height="380" aria-label="Oscilloscope sweep, 100 ms"></canvas></div>
+          <div class="scoperow">
+            <div>
+              <div class="scopehead"><span id="sc-lbl"></span><span id="sc-gain"></span></div>
+              <div class="scope"><canvas id="sweep" width="1300" height="380" aria-label="Oscilloscope sweep, 100 ms"></canvas></div>
+            </div>
+            <div class="npad">
+              <h3>Needle position</h3>
+              <svg id="pad" viewBox="0 0 240 160" tabindex="0" role="slider" aria-label="Needle position in the muscle. Drag, or use the arrow keys." aria-valuetext=""></svg>
+              <p class="note" id="pad-st">Drag the dot, or focus the pad and use the arrow keys, to move the needle in small steps.</p>
+            </div>
+          </div>
           <div class="scopehead"><span>Same recording, 2 s strip</span><span id="sc-gain2"></span></div>
           <div class="scope"><canvas id="strip" width="1300" height="150" aria-label="Two-second strip of the recording"></canvas></div>
           <div class="murow">
@@ -342,20 +381,21 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
 </main>
 
 <dialog id="repdlg" aria-labelledby="r-title">
-  <div class="ghead"><h2 id="r-title">Report</h2><button class="btn" type="button" id="r-close">Close ✕</button></div>
+  <div class="ghead"><h2 id="r-title">Report</h2><button class="btn" type="button" id="r-close">Close<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
   <div class="paper"><div class="rep" id="report"><p class="note">Results appear here as you test.</p></div></div>
 </dialog>
 
 <dialog id="guide" aria-labelledby="g-title">
-  <div class="ghead"><h2 id="g-title">Guide</h2><button class="btn" type="button" id="g-close">Close ✕</button></div>
+  <div class="ghead"><h2 id="g-title">Guide</h2><button class="btn" type="button" id="g-close">Close<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
   <div class="gcontent">
     <h3>How to use it</h3>
     <ol>
       <li>Pick a patient. Read the referral: the history and examination are all you get, as in a real lab.</li>
       <li><b>Nerve conduction.</b> Choose a study. The arm shows the recording electrode (dark) and the stimulation sites (yellow). Click a site to stimulate it, on the arm or beside the traces. Stimulate each site you need; the latency, amplitude and segment velocity fill in. Median and ulnar motor studies also offer F waves.</li>
-      <li><b>Needle EMG.</b> Click a muscle on the arm, or a deep or axial muscle from the list. The needle goes in at rest: watch and listen (turn the sound on) for insertional activity, fibrillations, positive sharp waves and fasciculations. Press <kbd>Space</kbd> to move the needle and sample another spot. Then ask for minimal, moderate and maximal effort to judge the motor units and their recruitment.</li>
+      <li><b>Needle EMG.</b> Click a muscle on the arm, or a deep or axial muscle from the list. The needle goes in at rest: watch and listen (turn the sound on) for insertional activity, fibrillations, positive sharp waves and fasciculations. Press <kbd>Space</kbd> to move the needle and sample another spot. Then ask for minimal, moderate and maximal effort to judge the motor units and their recruitment. During effort, a unit is captured in the triggered panel when its spikes cross the red trigger line: move the needle on the needle pad until one does, or press <kbd>Space</kbd> to jump beside another firing unit.</li>
       <li>Use the <b>Left arm</b> button for side-to-side comparisons. Proximal studies (musculocutaneous, axillary, MABC) are best judged against the other side.</li>
-      <li>When you have enough, choose the localisation and pathophysiology and check your answer. The answer lists the tests that settle the case and which of them you did.</li>
+      <li>When you have enough, choose the localisation and pathophysiology and check your answer. The answer explains why a wrong choice does not fit, lists the tests that settle the case and which of them you did, and ends with a one-line pattern to remember.</li>
+      <li><b>Marking.</b> Localisation must match exactly. For pathophysiology, "Axon loss" is the answer when there is no focal slowing or block. When a case has focal slowing or conduction block (carpal tunnel, ulnar neuropathy at the elbow, radial neuropathy at the spiral groove), "Demyelination" and "Demyelination and axon loss" are both accepted, and the answer names the better fit.</li>
     </ol>
     <p>The machine's automated needle readings are hidden at first, as when you write a report yourself. Grade each muscle in the EMG table of the report (Show report): insertional activity, fibrillations and positive sharp waves, fasciculations, motor unit amplitude, duration and polyphasia, recruitment and interference pattern. Check my answer then compares your grades with the model's. Press "Show automated readings" beside the scope to see the machine's grades instead.</p>
     <h3>Reading the screen</h3>
@@ -1277,7 +1317,7 @@ const CASES = [
     exam: 'Wasting of the first dorsal interosseous. FDI 4−, ADM 4, FDP to the ring and little fingers 4, FCU 5−. Froment sign positive. APB, EIP and finger extensors normal. Reduced pinprick on the little finger, the ulnar half of the ring finger and the dorsal ulnar hand; medial forearm normal. Tinel sign at the elbow.',
     lesions: [{ at: 'ULN1', axon: 0.6, dem: 0.65, focal: 40, spread: 0.6, block: 0.35 }],
     dx: 'Right ulnar neuropathy at the elbow: focal demyelination (slowing and partial conduction block across the elbow) with axon loss.',
-    answer: { loc: 'uln-elbow', path: ['both'] },
+    answer: { loc: 'uln-elbow', path: ['both', 'demy'] },
     teach: [
       'Ulnar velocity across the elbow is slowed (below 50 m/s, and more than 10 m/s slower than the forearm segment), and the CMAP is smaller above the elbow than below it: the lesion is at the elbow.',
       'The dorsal ulnar cutaneous SNAP is reduced. Its branch leaves the ulnar nerve in the forearm, so the lesion is proximal to the wrist. (In real ulnar neuropathy at the elbow it is often spared, so a normal DUC does not exclude it.)',
@@ -1453,6 +1493,150 @@ const CASES = [
     key: [['Median motor and sensory', ['ncs:medM', 'ncs:medS']], ['Ulnar motor and sensory', ['ncs:ulnM', 'ncs:ulnS']], ['A sensitive comparison study (palmar)', ['ncs:medP']], ['Needle at least one hand muscle', ['emg:APB', 'emg:First dorsal interosseous', 'emg:ADM']]]
   }
 ];
+
+// Teaching additions for the answer panel.
+//   pattern: the one-line finding-to-lesion rule to remember (the recall summary).
+//   wrong:   for each tempting wrong localisation (ids from LOCS), why the findings in this case argue against it.
+const LT_WHY = 'Lower trunk or medial cord: the ulnar SNAP and the dorsal ulnar cutaneous and MABC SNAPs would be low (postganglionic), median C8–T1 muscles (APB, FPL) would be involved, and there would be no focal slowing across the elbow.';
+const CASE_EXTRA = {
+  cts: {
+    pattern: 'Prolonged median distal motor and sensory latencies, normal forearm velocity, normal ulnar studies and normal proximal median muscles: median neuropathy at the wrist.',
+    wrong: {
+      c6: 'C6 radiculopathy is preganglionic, so the median SNAP would be normal, and C6 muscles (biceps, brachioradialis, pronator teres) would be denervated. Here the median SNAP is abnormal, the slowing sits between wrist and hand, and pronator teres and FCR are normal.',
+      c8: 'A C8 root or lower trunk lesion would also thin the thenar muscles, but median digit-2 fibres (C6–7) are spared in both, so the median SNAP would be normal, and a root lesion causes no focal slowing. Here the median SNAP and distal latencies are abnormal.',
+      lt: 'A C8 root or lower trunk lesion would also thin the thenar muscles, but median digit-2 fibres (C6–7) are spared in both, so the median SNAP would be normal. Here the median SNAP and distal latencies are abnormal.',
+      pn: 'A polyneuropathy would lower or slow other nerves too. The ulnar motor and sensory studies are normal, so the problem is confined to the median nerve.',
+      normal: 'The study is not normal: the median distal latencies are prolonged and the palmar median–ulnar difference is increased.'
+    }
+  },
+  une: {
+    pattern: 'Slowing and a CMAP drop across the elbow, low ulnar responses, and normal median and C8 muscles outside the ulnar nerve: ulnar neuropathy at the elbow.',
+    wrong: {
+      c8: 'C8 radiculopathy is preganglionic: the ulnar and dorsal ulnar cutaneous SNAPs would be normal despite the numbness, there would be no focal slowing, and C8 muscles outside the ulnar nerve (APB, EIP, FPL) would be denervated. Here the slowing and block are across the elbow and those muscles are normal.',
+      lt: LT_WHY, mc: LT_WHY,
+      'uln-wrist': 'A lesion at the wrist would leave the elbow segment normal and spare FCU and FDP 4–5. Here the velocity is slow and the CMAP smaller across the elbow.'
+    }
+  },
+  c7: {
+    pattern: 'Normal conduction studies and SNAPs despite sensory loss, plus denervation in C7 muscles of different nerves and in the paraspinals: C7 radiculopathy.',
+    wrong: {
+      c6: 'C6 radiculopathy would weaken biceps, brachioradialis and deltoid and reduce the biceps and brachioradialis reflexes. Here those are normal, and the triceps and wrist and finger extensors are involved with a reduced triceps reflex.',
+      c8: 'C8 radiculopathy would weaken the hand intrinsics and finger flexors with ulnar-border numbness. Here the hand is normal and the numbness is in the middle finger.',
+      pc: 'A posterior cord lesion is postganglionic, so the superficial radial SNAP would be low, and deltoid would be weak. Here the SNAPs are normal and deltoid is normal.',
+      'rad-sg': 'A single radial lesion cannot explain denervation in the median-innervated FCR and pronator teres, or in the paraspinals.'
+    }
+  },
+  c8: {
+    pattern: 'Normal SNAPs despite ulnar-border numbness, plus denervation in C8 muscles of the ulnar, median and radial nerves and the paraspinals: C8 radiculopathy.',
+    wrong: {
+      'uln-elbow': 'Ulnar neuropathy at the elbow would slow conduction or block across the elbow and spare muscles outside the ulnar nerve. Here conduction across the elbow is normal, and the median (APB, FPL) and radial (EIP) C8 muscles and the paraspinals are denervated.',
+      lt: 'A lower trunk or medial cord lesion is postganglionic, so the ulnar and dorsal ulnar cutaneous SNAPs would be low. Here they are normal despite the numbness, which puts the lesion proximal to the dorsal root ganglion.',
+      mc: 'A lower trunk or medial cord lesion is postganglionic, so the ulnar and dorsal ulnar cutaneous SNAPs would be low. Here they are normal despite the numbness, which puts the lesion proximal to the dorsal root ganglion.',
+      c7: 'C7 radiculopathy would weaken triceps, FCR and pronator teres, with numbness in the middle finger. Here the weakness is in the C8–T1 hand muscles and the numbness is on the ulnar border.',
+      'uln-wrist': 'A lesion at the wrist would give a low ulnar SNAP and spare muscles outside the ulnar nerve. Here the SNAP is normal, and APB and EIP are involved.'
+    }
+  },
+  ut: {
+    pattern: 'Low LABC, superficial radial and median digit-2 SNAPs, with denervated C5–6 muscles including supra- and infraspinatus but normal rhomboids, serratus anterior and paraspinals: upper trunk.',
+    wrong: {
+      avul: 'A root avulsion is preganglionic: the SNAPs would be normal, and the rhomboids, serratus anterior and cervical paraspinals would be denervated. Here the SNAPs are low and those muscles are normal.',
+      c5: 'A C5 or C6 radiculopathy is preganglionic: the SNAPs would be normal and the paraspinals, rhomboids and serratus anterior would be involved. Here the SNAPs are low and those muscles are normal.',
+      c6: 'A C5 or C6 radiculopathy is preganglionic: the SNAPs would be normal and the paraspinals, rhomboids and serratus anterior would be involved. Here the SNAPs are low and those muscles are normal.',
+      lc: 'A lateral cord lesion would weaken biceps and the median-innervated muscles (pronator teres) but would spare supraspinatus, infraspinatus and deltoid. Here all three are denervated.',
+      pc: 'A posterior cord lesion would spare biceps, supraspinatus and infraspinatus. Here all three are weak.',
+      ssn: 'A single nerve cannot explain weakness across suprascapular, axillary, musculocutaneous and radial (brachioradialis) territories with low SNAPs.',
+      axn: 'A single nerve cannot explain weakness across suprascapular, axillary, musculocutaneous and radial (brachioradialis) territories with low SNAPs.',
+      mcn: 'A single nerve cannot explain weakness across suprascapular, axillary, musculocutaneous and radial (brachioradialis) territories with low SNAPs.'
+    }
+  },
+  avul: {
+    pattern: 'Dense C5–6 weakness and numbness with normal SNAPs, plus denervated rhomboids, serratus anterior and paraspinals: root avulsion.',
+    wrong: {
+      ut: 'An upper trunk lesion gives the same weakness, but it is postganglionic: the LABC, superficial radial and median digit-2 SNAPs would be low, and the rhomboids, serratus anterior and paraspinals would be normal. Here the SNAPs are normal despite no sensation, and those muscles are denervated.',
+      c5: 'A compressive single-root radiculopathy rarely causes complete loss of strength and sensation. Complete C5–6 loss after high-energy trauma, with normal SNAPs, means both roots have been pulled from the cord.',
+      c6: 'A compressive single-root radiculopathy rarely causes complete loss of strength and sensation. Complete C5–6 loss after high-energy trauma, with normal SNAPs, means both roots have been pulled from the cord.'
+    }
+  },
+  rad: {
+    pattern: 'A CMAP that falls with stimulation above the spiral groove, triceps spared, brachioradialis involved, a near-normal superficial radial SNAP and reduced recruitment with few fibrillations: radial neuropathy at the spiral groove (conduction block).',
+    wrong: {
+      pin: 'A posterior interosseous lesion spares brachioradialis, ECRL (wrist extension) and the superficial radial sensory territory. Here brachioradialis is weak, the wrist drops and the dorsal first web space is numb.',
+      pc: 'A posterior cord lesion would also weaken deltoid and latissimus dorsi and lower the superficial radial SNAP. Here deltoid and triceps are normal and the conduction block is at the spiral groove.',
+      c7: 'C7 radiculopathy would weaken triceps, FCR and pronator teres and reduce the triceps reflex. Here triceps and its reflex are normal and the motor study shows a block above the spiral groove.',
+      ut: 'An upper trunk lesion would weaken deltoid and the other shoulder muscles and lower the lateral forearm and thumb SNAPs. Here deltoid is normal, triceps is normal and the block is at the spiral groove.'
+    }
+  },
+  pin: {
+    pattern: 'A low radial motor amplitude without block, a normal superficial radial SNAP, denervation of the finger and thumb extensors and ECU, and normal brachioradialis, ECRL and triceps: posterior interosseous neuropathy.',
+    wrong: {
+      'rad-sg': 'A lesion at the spiral groove would also weaken brachioradialis and ECRL (the wrist would drop) and numb the dorsal first web space. Here brachioradialis is normal, wrist extension is preserved and sensation is normal.',
+      c7: 'C7 radiculopathy would also weaken triceps, FCR and pronator teres and reduce the triceps reflex. Here triceps and the reflexes are normal.',
+      c8: 'C8 radiculopathy would also weaken the hand intrinsics and finger flexors and usually causes sensory symptoms. Here the weakness is confined to the extensors supplied by the posterior interosseous nerve, with no sensory loss.'
+    }
+  },
+  pc: {
+    pattern: 'Denervation in axillary, radial and thoracodorsal muscles with a low superficial radial SNAP, and normal supra- and infraspinatus and biceps: posterior cord.',
+    wrong: {
+      ut: 'An upper trunk lesion would weaken supraspinatus, infraspinatus and biceps and spare triceps and the wrist and finger extensors. Here the pattern is the reverse.',
+      axn: 'An axillary nerve lesion would affect deltoid only. Here triceps, brachioradialis, the wrist and finger extensors and latissimus dorsi are involved too.',
+      'rad-sg': 'A radial lesion at the spiral groove spares triceps and deltoid. Here deltoid, triceps and latissimus dorsi are weak, which a single radial lesion cannot explain.',
+      c7: 'C7 radiculopathy would spare deltoid and the SNAPs would be normal. Here deltoid is weak and the superficial radial SNAP is low.',
+      lc: 'A lateral cord lesion would weaken biceps and the median-innervated muscles. Here biceps is normal and the weakness is in axillary and radial muscles.'
+    }
+  },
+  na: {
+    pattern: 'Normal routine conduction studies, with patchy denervation in suprascapular, long thoracic and anterior interosseous muscles that fit no single root, trunk or cord, after a painful onset: neuralgic amyotrophy.',
+    wrong: {
+      ut: 'An upper trunk lesion would weaken deltoid and biceps and lower the SNAPs. Here deltoid and biceps are normal, sensation is normal, and the anterior interosseous muscles (FPL, index FDP) lie outside the trunk pattern.',
+      c6: 'No single root explains it: supraspinatus, serratus anterior and the anterior interosseous muscles are involved while deltoid, biceps, pronator teres and the paraspinals are normal.',
+      c7: 'No single root explains it: supraspinatus, serratus anterior and the anterior interosseous muscles are involved while deltoid, biceps, pronator teres and the paraspinals are normal.',
+      ain: 'An anterior interosseous lesion explains the FPL, index FDP and pronator quadratus weakness, but not the denervation of supraspinatus, infraspinatus and serratus anterior.',
+      ssn: 'A suprascapular lesion explains supraspinatus and infraspinatus, but not the serratus anterior winging or the weakness of FPL and index FDP.',
+      mnd: 'Motor neuron disease is progressive and painless, and spreads over months. Here the onset was a few weeks ago with severe pain, after an illness, and sensation is normal.'
+    }
+  },
+  als: {
+    pattern: 'Normal SNAPs with low motor amplitudes, plus fibrillations, fasciculations and reinnervation in several body regions (cervical, thoracic, bulbar, lumbosacral) and no conduction block: motor neuron disease.',
+    wrong: {
+      c7: 'A radiculopathy involves one or two roots in one region and usually causes sensory symptoms. Here denervation spans several cervical roots, the thoracic paraspinals, the tongue and the leg, on both sides, with no sensory loss.',
+      c8: 'A radiculopathy involves one or two roots in one region and usually causes sensory symptoms. Here denervation spans several cervical roots, the thoracic paraspinals, the tongue and the leg, on both sides, with no sensory loss.',
+      mmn: 'Multifocal motor neuropathy shows conduction block on the motor studies and causes no upper motor neuron signs. Here there is no block, the reflexes are brisk with a Hoffmann sign, and the denervation reaches the thoracic paraspinals, tongue and leg.',
+      pn: 'A polyneuropathy is usually sensory and length-dependent. Here the SNAPs and sensation are normal and the denervation is widespread in several regions.',
+      na: 'Neuralgic amyotrophy has a painful, abrupt onset and a monophasic course within one limb girdle. Here the course is slow and progressive, with fasciculations, brisk reflexes and spread to the other arm, chest and tongue.'
+    }
+  },
+  guyon: {
+    pattern: 'A low ulnar CMAP and digit-5 SNAP with a normal dorsal ulnar cutaneous SNAP, normal FCU and FDP 4–5, and a normal elbow segment: ulnar neuropathy at the wrist.',
+    wrong: {
+      'uln-elbow': 'An elbow lesion would slow or block conduction across the elbow, involve FCU and FDP 4–5, and reduce sensation on the dorsal ulnar hand. Here the dorsal ulnar hand is normal, FCU and FDP are 5, and the elbow segment is normal.',
+      c8: 'C8 radiculopathy is preganglionic: the digit-5 SNAP would be normal, and C8 muscles outside the ulnar nerve would be denervated. Here the SNAP is low.',
+      lt: 'A lower trunk lesion also lowers the ulnar SNAP, but the dorsal ulnar cutaneous and MABC SNAPs would be low and median C8–T1 muscles (APB, FPL) would be weak. Here the dorsal branch is normal.',
+      mc: 'A medial cord lesion also lowers the ulnar SNAP, but the dorsal ulnar cutaneous and MABC SNAPs would be low and median C8–T1 muscles (APB, FPL) would be weak. Here the dorsal branch is normal.'
+    }
+  },
+  normal: {
+    pattern: 'Normal motor and sensory studies including the palmar comparison, and normal needle EMG across several roots and nerves: a normal study. The report should say what was tested.',
+    wrong: {
+      'med-wrist': 'Carpal tunnel syndrome would prolong the median distal motor and sensory latencies or the palmar median–ulnar difference (≥0.4 ms). Here all are within limits.',
+      c6: 'Radiculopathy would show fibrillations or reinnervated units on needle EMG in the muscles of the affected root. These muscles are normal.',
+      c7: 'Radiculopathy would show fibrillations or reinnervated units on needle EMG in the muscles of the affected root. These muscles are normal.',
+      c8: 'Radiculopathy would show fibrillations or reinnervated units on needle EMG in the muscles of the affected root. These muscles are normal.',
+      'uln-elbow': 'Ulnar neuropathy at the elbow would slow conduction or reduce the CMAP across the elbow. Both are normal.',
+      pn: 'A polyneuropathy would lower the SNAP amplitudes, usually first and most. All SNAPs are normal.'
+    }
+  }
+};
+CASES.forEach(c => Object.assign(c, CASE_EXTRA[c.id]));
+// Why the chosen pathophysiology does not fit this case
+function pathWhy(c, path) {
+  const a = c.answer.path;
+  if (!path) return '';
+  if (a.includes('none')) return 'The study is normal: there is no axon loss and no demyelination.';
+  if (path === 'none') return 'The study is abnormal: it shows ' + (a.includes('axonal') ? 'axon loss' : 'focal slowing or conduction block') + '.';
+  if (path === 'axonal') return 'Axon loss alone gives low amplitudes at every site with preserved velocities. Here there is also focal slowing or conduction block.';
+  if (a.includes('axonal')) return 'There is no focal slowing or block here: the amplitudes are low and the velocities are preserved, with fibrillations on needle EMG. That is axon loss.';
+  return '';
+}
 
 function lesionsFor(c, side) { return side === 'L' ? (c.left || []) : c.lesions; }
 // fraction of a lesion's axon loss present at the time of study (motor neuron disease accrues over a year)
@@ -1702,6 +1886,14 @@ const DEEP = ['Subscapularis', 'Supinator', 'EIP', 'EPL', 'FDP 2–3', 'FDP 4–
 // ===================== helpers =====================
 const $ = id => document.getElementById(id);
 const SVGNS = 'http://www.w3.org/2000/svg';
+// icons (inline SVG, take the text colour)
+const BOLT_D = 'M9.6 0.8 3 9.2h4.2L6.2 15.2l6.8-8.6H8.8z';
+const ICON = {
+  bolt: `<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="${BOLT_D}"/></svg>`,
+  soundOn: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 6v4h2.8L8 13V3L4.3 6z"/><path d="M10.2 5.4a3.6 3.6 0 0 1 0 5.2M12.1 3.6a6.2 6.2 0 0 1 0 8.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  soundOff: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 6v4h2.8L8 13V3L4.3 6z"/><path d="M10.6 6.2l3.6 3.6M14.2 6.2l-3.6 3.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  close: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+};
 function E(tag, attrs, parent, text) {
   const e = document.createElementNS(SVGNS, tag);
   for (const k in attrs) if (attrs[k] !== null && attrs[k] !== undefined) e.setAttribute(k, attrs[k]);
@@ -1746,7 +1938,13 @@ const LESNAME = {
   R_C5: 'C5 root', R_C6: 'C6 root', R_C7: 'C7 root', R_C8: 'C8 root', R_T1: 'T1 root', UT: 'Upper trunk', PC: 'Posterior cord',
   MEDW: 'Median nerve at the carpal tunnel', ULN1: 'Ulnar nerve at the elbow', ULNW: 'Ulnar nerve at the wrist (Guyon canal)',
   RAD2: 'Radial nerve at the spiral groove', PIN: 'Posterior interosseous nerve', SSN: 'Suprascapular nerve', LTN: 'Long thoracic nerve',
-  AIN: 'Anterior interosseous nerve', THOR: 'Thoracic anterior horn cells', BULB: 'Bulbar (hypoglossal) motor neurons', LUMB: 'Lumbosacral anterior horn cells'
+  AIN: 'Anterior interosseous nerve', THOR: 'Thoracic anterior horn cells', BULB: 'Bulbar (hypoglossal) motor neurons', LUMB: 'Lumbosacral anterior horn cells',
+  // other segments the brachial plexus simulator can lesion (names as on that page)
+  MT: 'Middle trunk', LT: 'Lower trunk', UTa: 'Upper trunk, anterior division', UTp: 'Upper trunk, posterior division',
+  MTa: 'Middle trunk, anterior division', MTp: 'Middle trunk, posterior division', LTa: 'Lower trunk, anterior division', LTp: 'Lower trunk, posterior division',
+  LC: 'Lateral cord', MC: 'Medial cord', DSC: 'Dorsal scapular nerve', LPN: 'Lateral pectoral nerve', MPN: 'Medial pectoral nerve',
+  MCN: 'Musculocutaneous nerve', SUB: 'Subscapular nerves', TDN: 'Thoracodorsal nerve', AXN: 'Axillary nerve', RAD1: 'Radial nerve, axilla',
+  SRN: 'Superficial radial nerve', MED1: 'Median nerve, elbow', MABC: 'Medial antebrachial cutaneous nerve', MBC: 'Medial brachial cutaneous nerve'
 };
 const LOCS = [
   ['', [['', 'Choose…']]],
@@ -1772,27 +1970,33 @@ const solved = new Set();
 let order = 0;
 
 // ===================== patients =====================
-const caselist = $('caselist');
-CASES.forEach((c, i) => {
-  const b = document.createElement('button');
-  b.className = 'btn'; b.type = 'button'; b.setAttribute('aria-pressed', 'false');
-  b.innerHTML = `<span class="num">${i + 1}</span><span>${c.title}</span><span class="tick" hidden>✓</span>`;
-  b.onclick = () => loadCase(i);
-  caselist.appendChild(b);
-});
+const caselist = $('caselist'); // a menu of patients; a ✓ marks those already answered
+function caseLabel(i) { return `${i + 1} · ${CASES[i].title}${solved.has(CASES[i].id) ? '  ✓' : ''}`; }
+function renderCaseList() {
+  caselist.innerHTML = '';
+  if (st.ci < 0) caselist.appendChild(Object.assign(document.createElement('option'), { value: '', textContent: 'Lesion from the brachial plexus simulator' }));
+  CASES.forEach((c, i) => caselist.appendChild(Object.assign(document.createElement('option'), { value: String(i), textContent: caseLabel(i) })));
+  caselist.value = st.ci < 0 ? '' : String(st.ci);
+  $('casecount').textContent = st.ci < 0 ? '' : `${st.ci + 1} of ${CASES.length} · ${solved.size} answered`;
+}
+caselist.onchange = () => { if (caselist.value !== '') loadCase(+caselist.value); };
+$('pt-prev').onclick = () => loadCase((Math.max(st.ci, 0) + CASES.length - 1) % CASES.length);
+$('pt-next').onclick = () => loadCase((st.ci + 1) % CASES.length);
 $('rand').onclick = () => {
   const pool = CASES.map((_, i) => i).filter(i => i !== st.ci && !solved.has(CASES[i].id));
   const from = pool.length ? pool : CASES.map((_, i) => i).filter(i => i !== st.ci);
   loadCase(from[Math.floor(Math.random() * from.length)]);
 };
-function loadCase(i) {
-  st.ci = i; st.c = CASES[i];
+function loadCase(i, custom) {
+  st.ci = i; st.c = custom || CASES[i];
   st.ncs = { R: {}, L: {} }; st.emg = { R: {}, L: {} };
   st.study = null; st.muscle = null; st.submitted = false; order = 0;
-  [...caselist.children].forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+  renderCaseList();
   const c = st.c, wk = c.weeks;
-  const onset = wk < 8 ? `${wk} weeks` : wk < 52 ? `about ${Math.round(wk / 4.35)} months` : 'about a year';
-  $('referral').innerHTML = `<p class="who">Patient ${i + 1} · ${c.who}</p><p class="hx">${c.hx}</p><h3>Examination</h3><p class="exam">${c.exam}</p><p class="note">Symptoms began ${onset} before this study.</p>`;
+  const onset = wk < 8 ? `${wk} week${wk === 1 ? '' : 's'}` : wk < 52 ? `about ${Math.round(wk / 4.35)} months` : wk < 78 ? 'about a year' : `about ${Math.round(wk / 52)} years`;
+  $('referral').innerHTML = c.custom
+    ? `<p class="who">Lesion from the brachial plexus simulator</p><p class="hx">${c.mystery ? 'Hidden: this is the mystery lesion. Localise it from the studies.' : c.lesions.length ? c.lesions.map(x => LESNAME[x.at] || x.at).join(', ') + `: ${Math.round(c.sev * 100)}% of axons lost.` : 'No lesion: a normal study.'}</p><p class="note">Studied ${onset} after onset. The left arm is normal, for comparison.</p>`
+    : `<p class="who">Patient ${i + 1} · ${c.who}</p><p class="hx">${c.hx}</p><h3>Examination</h3><p class="exam">${c.exam}</p><p class="note">Symptoms began ${onset} before this study.</p>`;
   $('imp-loc').value = ''; $('imp-path').value = '';
   $('result-panel').classList.add('hidden');
   setSide('R', true);
@@ -1805,7 +2009,7 @@ function setSide(s, quiet) {
   st.side = s;
   for (const k of ['R', 'L']) $('side-' + k).setAttribute('aria-pressed', String(k === s));
   const w = s === 'R' ? 'Right' : 'Left';
-  $('cap-ant').textContent = `${w} arm, front`; $('cap-post').textContent = `${w} arm, back`;
+  $('cap-ant').innerHTML = `<b>Front</b>${w} arm, anterior view`; $('cap-post').innerHTML = `<b>Back</b>${w} arm, posterior view`;
   $('figs').classList.toggle('left', s === 'L'); // the left arm is the right arm's mirror image
   st.muscle = null; emgStop();
   if (!quiet) renderAll();
@@ -1883,6 +2087,15 @@ function buildFigure(svgEl, defs, surf) {
     p.addEventListener('pointermove', e => { if (st.mode === 'emg') showTip(e, `<b>${name}</b><br>${muscleLabel(MBY[name])}`); });
     p.addEventListener('pointerleave', () => { hl(name, false); hideTip(); });
     p.addEventListener('click', () => { if (st.mode === 'emg') selectMuscle(name); });
+  }
+  // faint landmarks, drawn over the muscles so front and back are obvious at a glance:
+  // the scapula and its spine on the back view (the captions above the drawings say Front and Back)
+  const lm = E('g', { 'aria-hidden': 'true' }, g);
+  if (surf === 'post') {
+
+    E('path', { d: 'M 180 36 C 222 24 292 28 338 58 C 340 100 334 150 308 192 C 276 182 238 152 212 112 C 198 90 188 62 180 36 Z', class: 'landmark' }, lm);   // scapula outline
+    E('path', { d: 'M 184 46 C 232 50 292 58 338 70', class: 'landmark' }, lm);                                                                          // spine
+    E('path', { d: 'M 184 46 C 178 52 176 60 180 66', class: 'landmark soft' }, lm);                                                                     // acromion
   }
   E('g', { id: 'ov-' + surf }, svgEl);
 }
@@ -1998,12 +2211,13 @@ function drawOverlay() {
   const at = (pos) => { const [s, x, y] = pos; return [s, s === 'post' ? AW - x : x, y]; };
   const label = (g, x, y, text, s) => { const right = s === 'ant'; /* labels point away from the trunk */ E('text', { x: x + (right ? 19 : -19), y: y + 6, 'text-anchor': right ? 'start' : 'end', class: 'elab' }, g, text); };
   $('figkey').innerHTML = st.mode === 'emg'
-    ? '<span><i style="background:var(--musc)"></i>Muscle you can needle</span><span><i style="background:var(--musc-done)"></i>Already needled</span><span><i style="background:var(--musc-off)"></i>Not tested here</span><span><i style="background:#fbf8f3"></i>Tendon</span>'
-    : st.study && NV[st.study] ? `<span><i class="nv"></i>Course of the ${NV_NAME[st.study]} nerve${NV[st.study][1].some(r => r[1]) ? ' (dotted where it runs behind)' : ''}, simplified</span>` : '';
+    ? ''
+    : st.study && NV[st.study] ? `<span><i class="nv"></i>Course of the ${NV_NAME[st.study]} nerve${NV[st.study][1].some(r => r[1]) ? ' (faded where it runs behind)' : ''}, simplified</span>` : '';
   if (st.mode === 'ncs' && st.study && NV[st.study]) {
     const [s, runs] = NV[st.study];
-    for (const [pts, isDeep, v = s] of runs) E('path', { d: nervePath(pts, v), class: 'nerve', stroke: 'var(--panel)', 'stroke-width': isDeep ? 7 : 6.5, 'stroke-linecap': 'round', 'stroke-dasharray': isDeep ? '0.1 7' : null, opacity: .9 }, ov[v]);
-    for (const [pts, isDeep, v = s] of runs) E('path', { d: nervePath(pts, v), class: 'nerve', stroke: '#d99a00', 'stroke-width': isDeep ? 3.6 : 3.2, 'stroke-linecap': 'round', 'stroke-dasharray': isDeep ? '0.1 7' : null }, ov[v]);
+    // stretches that run behind bone or the far side of the limb are drawn faded, as if seen through it
+    for (const [pts, isDeep, v = s] of runs) if (!isDeep) E('path', { d: nervePath(pts, v), class: 'nerve', stroke: 'var(--panel)', 'stroke-width': 6.5, opacity: .9 }, ov[v]);
+    for (const [pts, isDeep, v = s] of runs) E('path', { d: nervePath(pts, v), class: 'nerve', stroke: '#d99a00', 'stroke-width': 3.2, opacity: isDeep ? .45 : 1 }, ov[v]);
   }
   if (st.mode === 'ncs' && st.study) {
     const S = NCS.STUDIES[st.study], cur = ncsEntry(st.study);
@@ -2024,20 +2238,12 @@ function drawOverlay() {
     }
   }
   if (st.mode === 'emg') {
-    for (const n in TARGETS) {
-      const [s, x, y] = at(TARGETS[n]);
-      const g = E('g', { class: 'tgt' + (st.muscle === n ? ' sel' : st.emg[st.side][n] ? ' done' : ''), tabindex: 0, role: 'button', 'aria-label': `Needle ${n}` }, ov[s]);
-      E('circle', { cx: x, cy: y, r: 9 }, g);
-      g.addEventListener('pointermove', e => showTip(e, `<b>${n}</b> (deep)<br>${muscleLabel(MBY[n])}`));
-      g.addEventListener('pointerleave', hideTip);
-      g.addEventListener('click', () => selectMuscle(n));
-      g.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); selectMuscle(n); } });
-    }
+    // deep and axial muscles are chosen from the list under the figure; the needle is still drawn where it goes in
     if (st.muscle) for (const s of ['ant', 'post']) {
       const p = MPOS[s][st.muscle]; if (!p) continue;
       const [x, y] = p, g = E('g', { 'pointer-events': 'none' }, ov[s]);
       E('line', { x1: x + 26, y1: y - 30, x2: x, y2: y, stroke: '#18202b', 'stroke-width': 2.4, 'stroke-linecap': 'round' }, g);
-      E('rect', { x: x + 22, y: y - 40, width: 12, height: 9, rx: 2, transform: `rotate(-49 ${x + 28} ${y - 35})`, fill: '#c3352a', stroke: '#fff', 'stroke-width': 1 }, g);
+      E('rect', { x: x + 22, y: y - 40, width: 12, height: 9, rx: 2, transform: `rotate(-49 ${x + 28} ${y - 35})`, fill: '#18202b', stroke: '#fff', 'stroke-width': 1.6 }, g);
     }
   }
 }
@@ -2105,7 +2311,7 @@ function drawNcs() {
   // stimulate buttons
   const bt = $('ncs-btns'); bt.innerHTML = '';
   const sites = S.kind === 'motor' ? S.sites.map(s => s.name) : [S.stim];
-  sites.forEach((n, i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm'; b.textContent = '⚡ ' + n; b.onclick = () => stimulate(i); bt.appendChild(b); });
+  sites.forEach((n, i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm'; b.innerHTML = ICON.bolt; b.append(n); b.onclick = () => stimulate(i); bt.appendChild(b); });
   if (S.F) { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm'; b.textContent = 'F waves'; b.onclick = () => { cur.f = true; if (!cur.order) cur.order = ++order; drawNcs(); renderReport(); renderTally(); }; bt.appendChild(b); }
   // traces
   const svg = $('ncs-plot'); svg.innerHTML = ''; rowEls = [];
@@ -2125,7 +2331,8 @@ function drawNcs() {
     const done = cur.done.includes(r.i), animating = anim && anim.i === r.i;
     const lab = E('g', { class: 'stimlab', tabindex: 0, role: 'button', 'aria-label': `Stimulate at ${r.name}` }, svg);
     E('rect', { x: 0, y: base - 50, width: X0 - 6, height: 54, fill: 'transparent' }, lab);
-    E('text', { x: 4, y: base - 30, 'font-size': 13.5, 'font-weight': 600, fill: 'var(--ink)', class: 'sl' }, lab, '⚡ ' + r.name);
+    E('path', { d: BOLT_D, transform: `translate(4 ${base - 42}) scale(.8)`, fill: '#e0a000', stroke: '#7a5a00', 'stroke-width': 1 }, lab);
+    E('text', { x: 21, y: base - 30, 'font-size': 13.5, 'font-weight': 600, fill: 'var(--ink)', class: 'sl' }, lab, r.name);
     E('text', { x: 4, y: base - 12, 'font-size': 12.5, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, lab,
       !done || animating ? 'not stimulated' : !r.m ? 'no response' : motor ? `${fmt(r.m.onset)} ms ${fmt(r.m.amp)} mV` : `${fmt(r.m.peakLat, 2)} ms ${fmt(r.m.amp)} µV`);
     lab.addEventListener('click', () => stimulate(r.i));
@@ -2225,21 +2432,64 @@ function selectMuscle(name) {
   if (!e) {
     const r = EMG.rng(hashStr(st.c.id + st.side + name));
     e = st.emg[st.side][name] = { nx: 0.45 + r() * (EMG.W - 0.9), ny: 0.4 + r() * (EMG.H - 0.8), act: false, order: ++order, user: {} };
+    // first insertion lands beside a fibre of the first unit to be recruited, so minimal effort shows one close unit
+    const S0 = emgStudy(st.c, st.side, MBY[name], e.nx, e.ny).S;
+    const first = EMG.recruit(S0, 1).firing.map(f => f.u).sort((a, b) => EMG.M.units[a].rank - EMG.M.units[b].rank);
+    for (const u of first) if (placeNear(S0, e, u)) break;
   }
   em.eff = 0; syncEff();
   $('musc-select').value = name;
   emgCompute(true);
   syncMuscleClasses(); renderChips(); drawOverlay(); renderReport(); renderTally();
 }
-function emgCompute(insert) {
+// Amplitude trigger, as on the machine: a firing unit is captured when its main (negative, drawn upward) peak
+// crosses the red trigger line. In normal muscle at minimal effort the largest firing unit peaks at ~0.3-1.0 mV
+// at a random needle spot, and the first units recruited peak at ~0.5-1.2 mV with the needle beside one of
+// their fibres (checked in this model), so a 0.6 mV line is crossed at some spots and not others, and moving the
+// needle finds one. A modelling choice, not a published figure. Large reinnervated units cross it more easily,
+// as on a real machine.
+const TRIG = 0.6; // mV
+const peakOf = y => { let m = 0; for (const v of y) if (v > m) m = v; return m; };
+function computeTrig(target) {
+  const keep = em.trig && em.trig.length ? em.trig[em.ui % em.trig.length].u : undefined;
+  em.trig = null; em.ui = 0;
+  if (!em.cur || em.eff <= 0 || !actSig) return;
+  const S = em.cur.S, out = [];
+  for (const { u } of actSig.rec.firing) { const ui = EMG.unitInfo(S, u); if (ui.m && peakOf(ui.y) >= TRIG) out.push(ui); }
+  out.sort((a, b) => a.rise - b.rise || b.m.pp - a.m.pp); // sharpest (closest) first
+  em.trig = out;
+  const want = target !== undefined ? target : keep, k = out.findIndex(x => x.u === want);
+  if (k >= 0) em.ui = k;
+}
+// Put the needle beside a muscle fibre of unit u (0.01-0.03 mm away), away from the edges of the model patch,
+// at the spot (of up to 10 tried, in random order) where the unit's peak is highest, as when the needle is
+// adjusted for the sharpest unit. Returns false if the unit cannot be made to cross the trigger line.
+function placeNear(S, e, u) {
+  const m = 0.3, fib = [];
+  EMG.M.fibres.forEach((f, i) => { const s = S.F[i]; if (s.owner === u && !s.dead && !s.necrotic && f.x > m && f.x < EMG.W - m && f.y > m && f.y < EMG.H - m) fib.push(f); });
+  for (let i = fib.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [fib[i], fib[j]] = [fib[j], fib[i]]; }
+  const ox = S.p.nx, oy = S.p.ny;
+  let best = null;
+  for (const f of fib.slice(0, 10)) {
+    const a = Math.random() * Math.PI * 2, d = 0.01 + Math.random() * 0.02, x = f.x + Math.cos(a) * d, y = f.y + Math.sin(a) * d;
+    S.p.nx = x; S.p.ny = y;
+    const pk = peakOf(EMG.muapTrace(EMG.unitFibres(S, u), null));
+    if (!best || pk > best[0]) best = [pk, x, y];
+  }
+  S.p.nx = ox; S.p.ny = oy;
+  if (!best || best[0] < TRIG) return false;
+  e.nx = best[1]; e.ny = best[2];
+  return true;
+}
+function emgCompute(insert, target) {
   const e = emgEntry(); if (!e) return;
   const r = emgStudy(st.c, st.side, MBY[st.muscle], e.nx, e.ny);
   em.cur = r; e.read = r.read;
-  const byAmp = r.SM.infos.slice(0, 5).map((x, k) => [x.m.pp, k]).sort((a, b) => a[0] - b[0]);
-  em.ui = byAmp.length ? byAmp[Math.floor(byAmp.length / 2)][1] : 0;
   em.chunk = 0; em.lastT = clock.now(); // a new needle position starts a new recording
   restSig = EMG.restSignal(r.S, 2, null);
   actSig = em.eff > 0 ? EMG.activeSignal(r.S, em.eff, 2) : null;
+  computeTrig(target);
+  drawPad();
   ins = null;
   if (insert && em.eff === 0) {
     const t = (clock.now() + 15) % 2000, sig = EMG.restSignal(r.S, 2, null, t);
@@ -2259,15 +2509,15 @@ function emgPanel() {
 }
 // effort slider: 0–100 % of maximal voluntary force; the model recruits units in size order to meet it
 const effWord = v => v === 0 ? 'At rest' : v < 12 ? 'Minimal' : v < 50 ? 'Moderate' : v < 90 ? 'Strong' : 'Maximal';
-function syncEff() { const v = Math.round(em.eff * 100); $('eff').value = v; $('eff-out').textContent = v ? `${v}% · ${effWord(v)}` : 'At rest'; syncGainSel(); }
+function syncEff() { const v = Math.round(em.eff * 100); $('eff').value = v; $('eff-out').textContent = v ? `${v}% · ${effWord(v)}` : 'At rest'; syncGainSel(); syncInsBtn(); }
 let effPending = false;
 function applyEffort() {
   effPending = false;
   if (!em.cur) return;
   const e = emgEntry();
-  if (em.eff > 0) { e.act = true; actSig = EMG.activeSignal(em.cur.S, em.eff, 2); ins = null; useSignal(actSig); }
+  if (em.eff > 0) { e.act = true; actSig = EMG.activeSignal(em.cur.S, em.eff, 2); ins = null; computeTrig(); useSignal(actSig); }
   else useSignal(restSig);
-  drawMuap(); drawReadings(); renderReport();
+  drawPad(); drawMuap(); drawReadings(); renderReport();
 }
 $('eff').addEventListener('input', () => {
   const wasRest = em.eff === 0;
@@ -2289,14 +2539,69 @@ function insertNeedle() {
   e.ny = Math.max(0.25, Math.min(EMG.H - 0.25, e.ny + Math.sin(a) * d));
   emgCompute(true); renderReport();
 }
-$('ins').onclick = () => insertNeedle();
-$('nextunit').onclick = () => { if (!em.cur || !em.cur.SM.infos.length) return; em.ui = (em.ui + 1) % em.cur.SM.infos.length; drawMuap(); };
+// During voluntary effort: move the needle beside a fibre of a unit that is firing, so that unit is close
+// and sharp. Each press takes the next firing unit in recruitment order, so repeated presses sample
+// different units, as when the needle is adjusted to find units at minimal effort.
+function findUnit() {
+  const e = emgEntry(); if (!e || !em.cur || em.eff <= 0) return;
+  const S = em.cur.S, firing = EMG.recruit(S, em.eff).firing.map(f => f.u).sort((a, b) => EMG.M.units[a].rank - EMG.M.units[b].rank);
+  const start = firing.indexOf(em.lastFound) + 1;
+  for (let k = 0; k < firing.length; k++) {
+    const u = firing[(start + k) % firing.length];
+    if (placeNear(S, e, u)) { em.lastFound = u; emgCompute(false, u); renderReport(); return; }
+  }
+  $('sc-lbl').textContent = `${Math.round(em.eff * 100)}% effort · no firing unit to find`;
+}
+function spaceAction() { if (em.eff > 0) findUnit(); else insertNeedle(); }
+function syncInsBtn() { $('ins').innerHTML = em.eff > 0 ? 'Find a new unit <kbd>Space</kbd>' : 'Move needle <kbd>Space</kbd>'; $('ins').title = em.eff > 0 ? 'Move the needle beside another firing motor unit (Space)' : 'Move the needle to sample another spot (Space)'; }
+$('ins').onclick = () => spaceAction();
+$('nextunit').onclick = () => { if (!em.trig || !em.trig.length) return; em.ui = (em.ui + 1) % em.trig.length; drawMuap(); };
+// needle pad: the 2.4 x 1.6 mm patch of muscle the model holds, seen end-on. Units are not shown: you find them
+// by moving the needle until a unit crosses the trigger line, as at the machine.
+const PADK = 100; // pad units per mm
+function drawPad() {
+  const svg = $('pad'), e = emgEntry(); svg.innerHTML = '';
+  for (let x = 40; x < 240; x += 40) E('line', { x1: x, x2: x, y1: 0, y2: 160, stroke: '#21352a' }, svg);
+  for (let y = 40; y < 160; y += 40) E('line', { x1: 0, x2: 240, y1: y, y2: y, stroke: '#21352a' }, svg);
+  if (!e) return;
+  const hit = !!(em.trig && em.trig.length && em.eff > 0);
+  const cx = e.nx * PADK, cy = e.ny * PADK;
+  E('circle', { cx, cy, r: 0.45 * PADK, fill: 'none', stroke: 'rgba(126,240,162,.25)', 'stroke-dasharray': '3 4' }, svg); // pick-up radius
+  E('circle', { cx, cy, r: 7, fill: hit ? '#e5483b' : '#7ef0a2', stroke: '#fff', 'stroke-width': 1.5 }, svg);
+  svg.setAttribute('aria-valuetext', `${e.nx.toFixed(2)} mm across, ${e.ny.toFixed(2)} mm down${hit ? ', unit triggered' : ''}`);
+  const stt = $('pad-st');
+  stt.classList.toggle('hit', hit);
+  stt.textContent = em.eff <= 0 ? 'Drag the dot, or use the arrow keys, to move the needle in small steps. Ask for effort to look for units.'
+    : hit ? `Measuring ${em.trig.length} unit${em.trig.length === 1 ? '' : 's'}.`
+    : 'No unit crosses the red trigger line. Move the needle closer to one.';
+}
+let padBusy = false, padDrag = false;
+function padMove(nx, ny, done) {
+  const e = emgEntry(); if (!e) return;
+  e.nx = Math.max(0.25, Math.min(EMG.W - 0.25, nx)); e.ny = Math.max(0.25, Math.min(EMG.H - 0.25, ny));
+  if (em.eff > 0 || done) { // live while the patient contracts; at rest, recompute when the needle stops (insertional burst)
+    if (padBusy && !done) return;
+    padBusy = true;
+    requestAnimationFrame(() => { padBusy = false; emgCompute(em.eff === 0); if (done) renderReport(); });
+  } else drawPad();
+}
+function padPoint(ev) { const r = $('pad').getBoundingClientRect(); return [(ev.clientX - r.left) / r.width * 2.4, (ev.clientY - r.top) / r.height * 1.6]; }
+$('pad').addEventListener('pointerdown', ev => { if (!emgEntry()) return; padDrag = true; $('pad').setPointerCapture(ev.pointerId); padMove(...padPoint(ev), false); });
+$('pad').addEventListener('pointermove', ev => { if (padDrag) padMove(...padPoint(ev), false); });
+$('pad').addEventListener('pointerup', ev => { if (!padDrag) return; padDrag = false; padMove(...padPoint(ev), true); });
+$('pad').addEventListener('keydown', ev => {
+  const e = emgEntry(); if (!e) return;
+  const d = ev.shiftKey ? 0.1 : 0.03, mv = { ArrowLeft: [-d, 0], ArrowRight: [d, 0], ArrowUp: [0, -d], ArrowDown: [0, d] }[ev.key];
+  if (!mv) return;
+  ev.preventDefault(); ev.stopPropagation();
+  padMove(e.nx + mv[0], e.ny + mv[1], true);
+});
 const isTyping = t => t && (t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && !['range', 'checkbox'].includes(t.type)));
 document.addEventListener('keydown', e => {
   if (st.mode !== 'emg' || !st.muscle || e.key !== ' ' || isTyping(e.target) || e.ctrlKey || e.metaKey || e.altKey || $('guide').open) return;
   if (e.target && e.target.closest && e.target.closest('.stim, .stimlab, .tgt')) return;
   e.preventDefault();
-  if (!e.repeat) insertNeedle();
+  if (!e.repeat) spaceAction();
 }, true);
 document.addEventListener('keyup', e => { if (st.mode === 'emg' && st.muscle && e.key === ' ' && !isTyping(e.target) && !$('guide').open) e.preventDefault(); }, true);
 function emgStop() { audio.stop(true); em.cur = st.muscle ? em.cur : null; curSig = st.muscle ? curSig : null; }
@@ -2357,6 +2662,13 @@ function drawScope(play) {
   plotMinMax(sctx, buf, prev * FS / 1000, prev * FS / 1000 + n, W, H, gain, 'rgba(126,240,162,.35)', 8);
   sctx.restore();
   plotMinMax(sctx, buf, cur * FS / 1000, cur * FS / 1000 + n, W, H, gain, '#7ef0a2', 8, Math.floor(x));
+  if (em.eff > 0) { // amplitude trigger level
+    const ty = H / 2 - TRIG * (H / 8) / gain;
+    if (ty > 2) {
+      sctx.strokeStyle = '#e5483b'; sctx.lineWidth = 2.5; sctx.beginPath(); sctx.moveTo(0, ty); sctx.lineTo(W, ty); sctx.stroke();
+      sctx.fillStyle = '#e5483b';
+    }
+  }
   if (stripBase) {
     tctx.drawImage(stripBase, 0, 0);
     const px = play / 2000 * stripC.width;
@@ -2391,7 +2703,7 @@ const audio = {
 };
 $('snd').onclick = () => {
   em.sound = !em.sound;
-  $('snd').setAttribute('aria-pressed', String(em.sound)); $('snd').textContent = em.sound ? '🔊 Sound on' : '🔈 Sound off';
+  $('snd').setAttribute('aria-pressed', String(em.sound)); $('snd').innerHTML = em.sound ? ICON.soundOn + 'Sound on' : ICON.soundOff + 'Sound off';
   if (em.sound) audio.start(curSig); else audio.stop(true);
 };
 $('pause').onclick = () => {
@@ -2427,9 +2739,13 @@ function drawMuap() {
   const X0 = 40, W = 430, win = EMG.MUAP_WIN, ppm = W / win, base = 115, div = 30;
   for (let i = 0; i <= win; i += 3) E('line', { x1: X0 + i * ppm, x2: X0 + i * ppm, y1: 10, y2: 210, stroke: 'var(--grid)' }, svg);
   for (let j = -3; j <= 3; j++) E('line', { x1: X0, x2: X0 + W, y1: base + j * div, y2: base + j * div, stroke: j ? 'var(--grid)' : 'var(--line)' }, svg);
-  const e = emgEntry(), infos = em.cur ? em.cur.SM.infos : [];
-  if (!e || !e.act) { E('text', { x: X0 + W / 2, y: base - 8, 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--muted)' }, svg, 'Raise the effort slider to trigger on a unit'); $('mukv').innerHTML = ''; return; }
-  if (!infos.length) { E('text', { x: X0 + W / 2, y: base - 8, 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--muted)' }, svg, 'No voluntary motor units near the needle'); $('mukv').innerHTML = ''; return; }
+  const e = emgEntry(), infos = em.trig || [];
+  if (!e || !e.act || !em.trig) { E('text', { x: X0 + W / 2, y: base - 8, 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--muted)' }, svg, 'Raise the effort slider to trigger on a unit'); $('mukv').innerHTML = ''; return; }
+  if (!infos.length) {
+    E('text', { x: X0 + W / 2, y: base - 16, 'text-anchor': 'middle', 'font-size': 15, fill: 'var(--muted)' }, svg, 'No unit crosses the trigger line');
+    E('text', { x: X0 + W / 2, y: base + 8, 'text-anchor': 'middle', 'font-size': 13, fill: 'var(--muted)' }, svg, 'Move the needle on the pad, or press Space to find one');
+    $('mukv').innerHTML = ''; return;
+  }
   const ui = infos[em.ui % infos.length];
   const g = em.gainAct; // same fixed sensitivity as the scope, so unit size compares across muscles and patients
   for (const y of ui.sweeps) E('path', { d: pathFrom(y, EMG.MDT, X0, ppm, base, div / g, 8, 212), fill: 'none', stroke: 'var(--trace2)', 'stroke-width': 1, opacity: .45 }, svg);
@@ -2444,7 +2760,18 @@ function drawReadings() {
   const e = emgEntry(), box = $('readbox');
   if (!e) return;
   const tog = `<button class="btn sm" type="button" id="auto-tog" aria-pressed="${!st.selfGrade}">${st.selfGrade ? 'Show automated readings' : 'Hide automated readings'}</button>`;
-  if (st.selfGrade) { box.innerHTML = `<div class="row between"><h3>Your grading</h3>${tog}</div><p class="note">Watch and listen, then enter insertional activity, fibrillations, fasciculations, motor unit size and recruitment for this muscle in the EMG table of the report (Show report, at the bottom of the page).</p>`; $('auto-tog').onclick = toggleAuto; return; }
+  if (st.selfGrade) {
+    // the same grades as the EMG table of the report; either place can be used and both stay in step
+    const NAMES = { ia: 'Insertional activity', fib: 'Fibrillations / PSWs', fasc: 'Fasciculations', amp: 'MUAP amplitude', dur: 'MUAP duration', poly: 'Polyphasia', recruit: 'Recruitment', interference: 'Interference pattern' };
+    const rows = GKEYS.map(k => {
+      const off = ACT_KEYS.includes(k) && !e.act;
+      return `<label class="grow"><span>${NAMES[k]}</span><select data-k="${k}"${off ? ' disabled title="Ask for effort first"' : ''}><option value="">—</option>${GRADES[k].map(([v, l]) => `<option value="${v}"${e.user[k] === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>`;
+    }).join('');
+    box.innerHTML = `<div class="row between"><h3>Your grading</h3>${tog}</div><div class="gradeform">${rows}</div><p class="note">${e.act ? 'Saved to the EMG table of the report.' : 'Motor unit grades open once you ask for effort.'}</p>`;
+    $('auto-tog').onclick = toggleAuto;
+    for (const s of box.querySelectorAll('select[data-k]')) s.onchange = () => { e.user[s.dataset.k] = s.value; renderReport(); };
+    return;
+  }
   const r = e.read, a = e.act;
   box.innerHTML = `<div class="row between"><h3>Automated readings at this needle position</h3>${tog}</div><dl class="kv" id="readkv"></dl>`;
   $('auto-tog').onclick = toggleAuto;
@@ -2540,10 +2867,10 @@ function renderReport() {
   if (emgRows) h += '<h3>EMG</h3><div class="repwrap"><table class="ncsrep emgrep"><thead><tr><th>Side</th><th>Muscle</th><th>Nerve</th><th>Root</th><th>Ins Act</th><th>Fibs / PSW</th><th>Fasc</th><th>Amp</th><th>Dur</th><th>Poly</th><th>Recrt</th><th>Int Pat</th><th>Comment</th></tr></thead><tbody>' + emgRows + '</tbody></table></div>' +
     (st.selfGrade ? '<p class="note">Automated readings are hidden: enter your own grades above. Muscles you have not activated have no motor unit columns.</p>' : '');
   const pc = st.c, nN = sides.reduce((t, s) => t + Object.values(st.ncs[s]).filter(x => x.done.length).length, 0), nM = sides.reduce((t, s) => t + Object.values(st.emg[s]).filter(x => x.read).length, 0);
-  const head = `<h1>Nerve Conduction and EMG Report</h1><div class="ptline"><span><b>Patient ${CASES.indexOf(pc) + 1}</b> · ${pc.who}</span><span>Referral: ${pc.title}</span><span>Symptoms ${pc.weeks} weeks</span></div>`;
+  const head = `<h1>Nerve Conduction and EMG Report</h1><div class="ptline">${pc.custom ? `<span><b>${pc.title}</b></span>` : `<span><b>Patient ${CASES.indexOf(pc) + 1}</b> · ${pc.who}</span><span>Referral: ${pc.title}</span>`}<span>Symptoms ${pc.weeks} weeks</span></div>`;
   $('report').innerHTML = head + (h || '<p class="note">No results yet. Stimulate a nerve or needle a muscle, then come back here.</p>') + (h ? '<p class="note" style="margin-top:12px">Red: outside the reference range, or a fall in amplitude of 20% or more from the previous site.</p>' : '');
   $('rep-sum').textContent = nN || nM ? `${nN} nerve stud${nN === 1 ? 'y' : 'ies'} and ${nM} muscle${nM === 1 ? '' : 's'} so far.` : 'Results go into the report as you test.';
-  for (const s of $('report').querySelectorAll('select[data-m]')) s.onchange = () => { st.emg[s.dataset.s][s.dataset.m].user[s.dataset.k] = s.value; };
+  for (const s of $('report').querySelectorAll('select[data-m]')) s.onchange = () => { st.emg[s.dataset.s][s.dataset.m].user[s.dataset.k] = s.value; if (s.dataset.s === st.side && s.dataset.m === st.muscle) drawReadings(); };
 }
 
 // ===================== answer =====================
@@ -2561,8 +2888,12 @@ $('submit').onclick = () => {
   const locOk = loc === c.answer.loc, pathOk = c.answer.path.includes(path);
   const did = id => { const [kind, name] = id.split(':'); if (kind === 'ncs') { const x = st.ncs.R[name]; return !!(x && (x.done.length || x.f)); } if (kind === 'emg') return !!st.emg.R[name]; if (kind === 'side') return Object.values(st.ncs.L).some(x => x.done.length) || Object.keys(st.emg.L).length > 0; return false; };
   let h = `<div class="verdict"><span class="v ${locOk ? 'ok' : 'no'}">Localisation: ${locOk ? '✓ ' + LOCNAME[loc] : `you chose ${LOCNAME[loc]}; the answer is ${LOCNAME[c.answer.loc]}`}</span>` +
-    `<span class="v ${pathOk ? 'ok' : 'no'}">Pathophysiology: ${pathOk ? '✓ ' + PATHNAME[path] : `${path ? 'you chose ' + PATHNAME[path] + '; ' : ''}the answer is ${PATHNAME[c.answer.path[0]]}`}</span></div>`;
+    `<span class="v ${pathOk ? 'ok' : 'no'}">Pathophysiology: ${pathOk ? '✓ ' + PATHNAME[path] + (path !== c.answer.path[0] ? ` (accepted; best fit: ${PATHNAME[c.answer.path[0]]})` : '') : `${path ? 'you chose ' + PATHNAME[path] + '; ' : ''}the answer is ${PATHNAME[c.answer.path[0]]}`}</span></div>`;
+  // why the chosen answers do not fit, before the explanation of the right one
+  if (!locOk) h += `<p class="why"><b>Why not ${LOCNAME[loc]}?</b> ${(c.wrong && c.wrong[loc]) || 'That localisation would predict a different set of findings. Check which of the tests below it would have changed.'}</p>`;
+  if (!pathOk) { const pw = pathWhy(c, path); if (pw) h += `<p class="why"><b>Why not ${PATHNAME[path] ? PATHNAME[path].split(':')[0].toLowerCase() : 'that'}?</b> ${pw}</p>`; }
   h += `<p class="dx">${c.dx}</p><ul>${c.teach.map(t => `<li>${t}</li>`).join('')}</ul>`;
+  if (c.pattern) h += `<div class="recall"><span class="rl">Pattern to remember</span>${c.pattern}</div>`;
   h += `<h3>Tests that settle it</h3><ul class="keylist">${c.key.map(([lab, ids]) => `<li class="${ids.some(did) ? 'y' : 'x'}">${lab}</li>`).join('')}</ul>`;
   h += `<h3>Lesion in the model</h3><p class="note" style="margin-top:0">${c.lesions.length ? c.lesions.map(lesionText).join('<br>') + (c.ongoing ? '<br>Motor neuron loss is ongoing: these are the losses reached at one year.' : '') : 'No lesion.'}${c.left ? '<br>Left side: ' + c.left.filter(x => x.at.startsWith('R_')).map(lesionText).join('; ') : ''}</p>`;
   { // compare any grades entered by hand with the model's readings
@@ -2584,7 +2915,7 @@ $('submit').onclick = () => {
   $('result-panel').classList.remove('hidden');
   $('next').onclick = () => $('rand').onclick();
   st.submitted = true; solved.add(c.id);
-  caselist.children[st.ci].querySelector('.tick').hidden = false;
+  renderCaseList();
   $('result-panel').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
   $('result-panel').focus({ preventScroll: true });
 };
@@ -2605,7 +2936,19 @@ $('open-guide').onclick =() => { if (guideEl.showModal) guideEl.showModal(); els
 $('g-close').onclick = () => { if (guideEl.close) guideEl.close(); else guideEl.removeAttribute('open'); };
 guideEl.addEventListener('click', e => { if (e.target === guideEl) $('g-close').onclick(); });
 
-loadCase(0);
+// Embedded in the brachial plexus simulator: ../emg-cases/?embed=1&les=UT,R_C5&sev=0.8&weeks=6&mystery=0
+// The lesion is pure axon loss at the given severity on each segment, as in that simulator; the left arm is normal.
+const QS = new URLSearchParams(location.search);
+if (QS.get('embed') === '1') {
+  document.documentElement.classList.add('embed');
+  document.querySelector('header h1').textContent = 'EMG lab: study this lesion';
+  const sev = Math.min(1, Math.max(0.05, +QS.get('sev') || 1));
+  const weeks = Math.min(260, Math.max(0, Math.round(+QS.get('weeks') || 0)));
+  const les = (QS.get('les') || '').split(',').filter(id => Object.prototype.hasOwnProperty.call(LESNAME, id));
+  const mystery = QS.get('mystery') === '1';
+  loadCase(-1, { id: 'custom', custom: true, mystery, sev, weeks, title: mystery ? 'Mystery lesion (brachial plexus simulator)' : 'Lesion from the brachial plexus simulator',
+    lesions: les.map(at => ({ at, axon: sev })) });
+} else loadCase(0);
 setMode('ncs');
 </script>
 </body>
