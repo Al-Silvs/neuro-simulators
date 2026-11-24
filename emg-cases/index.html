@@ -567,7 +567,9 @@ const EMG = (() => {
   }
 
   // ---------- pathology over time ----------
-  const ADOPT_MIN = 4.5, ADOPT_SPAN = 12, MATURE = 14, DEATH = 80, FIB_ON = 2;
+  // Collateral sprouts reach orphaned fibres from 6 weeks (was 4.5), so motor units stay normal in the
+  // first weeks after an acute lesion: fibrillations with reduced recruitment of normal units.
+  const ADOPT_MIN = 6, ADOPT_SPAN = 12, MATURE = 14, DEATH = 80, FIB_ON = 2;
   function state(p) {
     const { fibres, units } = M;
     const lostAt = units.map(u => {
@@ -608,7 +610,7 @@ const EMG = (() => {
       if (p.myo) d *= Math.max(0.35, 1 + p.myo * 1.9 * (f.rSize - 0.5));
       if (s.owner === -1 && !s.dead) d *= Math.max(0.4, 1 - 0.45 * Math.min(1, (T - s.since) / 16));
       const mature = s.re === null ? 1 : Math.min(1, (T - s.re) / MATURE);
-      if (s.re !== null) d *= 1 + 0.08 * mature; // reinnervated fibres hypertrophy a little
+      if (s.re !== null) d *= 1 + 0.15 * mature; // reinnervated fibres hypertrophy (was 8%; raised so chronic units are clearly large)
       return {
         owner: s.owner, denervated: s.owner === -1 && !s.dead && !s.myoDead, since: s.since, dead: s.dead || s.myoDead, myoDead: s.myoDead,
         reinn: s.re !== null, mature, d, necrotic: s.necrotic,
@@ -1438,7 +1440,9 @@ function emgReading(S, SM, REF, p) {
   r.poly = noUnits ? '—' : SM.poly > Math.max(0.3, SM.refPoly + 0.2) ? 'increased' : 'normal';
   r.unstable = !noUnits && SM.unstable >= 2;
   // one summary word for the motor unit morphology
-  r.muap = noUnits ? 'none' : (ampC === 'hi' || durC === 'hi') ? (r.unstable ? 'large, unstable' : 'large') : (r.unstable || r.poly === 'increased') ? 'polyphasic, unstable' : (ampC === 'lo' || durC === 'lo') ? 'small' : 'normal';
+  // Early reinnervation: immature sprouts make units long, polyphasic and unstable before they grow in
+  // amplitude, so a long duration in unstable units of normal amplitude reads "polyphasic, unstable", not "large".
+  r.muap = noUnits ? 'none' : ampC === 'hi' ? (r.unstable ? 'large, unstable' : 'large') : durC === 'hi' && !r.unstable ? 'large' : (r.unstable || r.poly === 'increased' || durC === 'hi') ? 'polyphasic, unstable' : (ampC === 'lo' || durC === 'lo') ? 'small' : 'normal';
   const reduced = !noUnits && SM.recFreq > 12;
   const early = !noUnits && SM.lowEffortUnits >= Math.max(REF.lowEffortUnits + 2, REF.lowEffortUnits * 1.2);
   // fewer than two units left in the whole muscle: one unit fires alone, however hard the effort
