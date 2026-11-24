@@ -118,11 +118,12 @@ details ul{padding-left:18px;max-width:80ch}
 
   <div class="col">
     <section class="panel" aria-labelledby="h-p">
-      <h2 id="h-p">Pathway: click to lesion</h2>
+      <h2 id="h-p">Pathway</h2>
+      <p class="note" style="margin:-4px 0 6px">Click a segment to place or remove a lesion. The syndrome table has the same sites.</p>
       <svg class="path" id="path" viewBox="0 0 460 640" role="group" aria-label="Visual pathway viewed from above"></svg>
       <div class="key">
-        <span><i class="sw" style="background:var(--lf)"></i>Left visual field (to right hemisphere)</span>
-        <span><i class="sw" style="background:var(--rf)"></i>Right visual field (to left hemisphere)</span>
+        <span><i class="sw" style="background:var(--lf)"></i>Left visual field &rarr; right hemisphere</span>
+        <span><i class="sw" style="background:var(--rf)"></i>Right visual field &rarr; left hemisphere</span>
         <span><i class="sw" style="background:var(--lesion)"></i>Lesioned</span>
       </div>
     </section>
@@ -314,19 +315,20 @@ fmC.onclick = () => { state.mode = 'c30'; fmC.setAttribute('aria-pressed', 'true
 // ---------- pathway diagram ----------
 const svg = document.getElementById('path');
 const parts = {};
-const txt = (x, y, t, o) => { const e = el('text', Object.assign({ x, y, 'font-size': 12, fill: 'var(--muted)' }, o || {}), svg); e.textContent = t; return e; };
-// brain outline and labels
-el('path', { d: 'M 230 150 C 120 150 40 210 36 330 C 32 470 90 600 230 612 C 370 600 428 470 424 330 C 420 210 340 150 230 150 Z', fill: 'var(--stem)', stroke: 'var(--stem-edge)', 'stroke-width': 1.5 }, svg);
-txt(16, 632, "Patient's L", { 'font-weight': 600, fill: 'var(--ink)' });
-txt(444, 632, "Patient's R", { 'font-weight': 600, fill: 'var(--ink)', 'text-anchor': 'end' });
+// Labels carry a halo in the colour of what they sit on (head fill inside the outline, panel outside), so a line passing behind a label never cuts through it.
+const txt = (x, y, t, o) => { const e = el('text', Object.assign({ x, y, 'font-size': 12, fill: 'var(--muted)', stroke: 'var(--stem)', 'stroke-width': 4, 'stroke-linejoin': 'round', 'paint-order': 'stroke' }, o || {}), svg); e.textContent = t; return e; };
+const OUT = { stroke: 'var(--panel)' };
+// brain outline: light fill so the fibres, not the silhouette, carry the eye
+el('path', { d: 'M 230 150 C 120 150 40 210 36 330 C 32 470 90 600 230 612 C 370 600 428 470 424 330 C 420 210 340 150 230 150 Z', fill: 'var(--stem)', 'fill-opacity': .45, stroke: 'var(--stem-edge)', 'stroke-width': 1.5 }, svg);
 // eyes
 for (const [s, cx] of [['L', 120], ['R', 340]]) {
   el('circle', { cx, cy: 60, r: 36, fill: 'var(--panel)', stroke: 'var(--stem-edge)', 'stroke-width': 2 }, svg);
   el('path', { d: `M ${cx - 30} 78 A 36 36 0 0 0 ${cx + 30} 78`, fill: 'none', stroke: 'var(--muted)', 'stroke-width': 3, 'stroke-opacity': .5 }, svg);
   el('ellipse', { cx, cy: 26, rx: 14, ry: 6, fill: 'var(--stem)', stroke: 'var(--stem-edge)' }, svg);
-  txt(cx, 64, s + ' eye', { 'text-anchor': 'middle', 'font-weight': 600, fill: 'var(--ink)' });
-  txt(s === 'L' ? cx - 46 : cx + 46, 92, 'T', { 'text-anchor': 'middle', 'font-size': 11 });
-  txt(s === 'L' ? cx + 22 : cx - 22, 108, 'N', { 'text-anchor': 'middle', 'font-size': 11 });
+  txt(cx, 64, s + ' eye', Object.assign({ 'text-anchor': 'middle', 'font-weight': 600, fill: 'var(--ink)' }, OUT));
+  txt(cx, 12, `Patient's ${s}`, Object.assign({ 'text-anchor': 'middle', 'font-weight': 600, fill: 'var(--ink)' }, OUT));
+  txt(s === 'L' ? cx - 46 : cx + 46, 92, 'T', Object.assign({ 'text-anchor': 'middle' }, OUT));
+  txt(s === 'L' ? cx + 33 : cx - 33, 100, 'N', Object.assign({ 'text-anchor': 'middle' }, OUT));
 }
 // fibre lines (carry the colour of the hemifield they serve)
 const FIB = [
@@ -335,7 +337,12 @@ const FIB = [
   { d: 'M 348 94 L 254 194 L 252 214 L 310 312', c: '--lf' },          // R temporal retina, left field, stays right
   { d: 'M 332 94 L 244 192 L 212 214 L 150 312', c: '--rf' }           // R nasal retina, right field, crosses
 ];
-for (const f of FIB) el('path', { d: f.d, fill: 'none', stroke: `var(${f.c})`, 'stroke-width': 3, 'stroke-linejoin': 'round', 'stroke-opacity': .9 }, svg);
+// non-crossing (temporal) fibres first, then the crossing (nasal) fibres on top with a light edge so the decussation reads as an X
+for (const f of [FIB[0], FIB[2], FIB[1], FIB[3]]) {
+  const crossing = f === FIB[1] || f === FIB[3];
+  if (crossing) el('path', { d: f.d, fill: 'none', stroke: 'var(--panel)', 'stroke-width': 7, 'stroke-linejoin': 'round', 'stroke-opacity': .9 }, svg);
+  el('path', { d: f.d, fill: 'none', stroke: `var(${f.c})`, 'stroke-width': 3.5, 'stroke-linejoin': 'round' }, svg);
+}
 // radiations
 const RADP = {
   L: { meyer: 'M 146 318 C 70 316 46 360 60 410 C 74 460 110 500 150 528', par: 'M 150 322 C 150 380 154 450 160 528', post: 'M 150 528 L 160 548' },
@@ -343,7 +350,7 @@ const RADP = {
 };
 for (const s of ['L', 'R']) {
   const c = s === 'L' ? '--rf' : '--lf';
-  for (const k of ['meyer', 'par']) el('path', { d: RADP[s][k], fill: 'none', stroke: `var(${c})`, 'stroke-width': 3, 'stroke-opacity': .9 }, svg);
+  for (const k of ['meyer', 'par']) el('path', { d: RADP[s][k], fill: 'none', stroke: `var(${c})`, 'stroke-width': 3.5 }, svg);
 }
 function xMark(g, x, y) {
   el('circle', { cx: x, cy: y, r: 8, fill: 'var(--lesion)' }, g);
@@ -364,6 +371,10 @@ function hit(key, shape, label, markAt) {
   if (shape.label) { const tt = el('text', { x: shape.lx, y: shape.ly, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 600, fill: 'var(--ink)', 'pointer-events': 'none' }, g); tt.textContent = shape.label; }
   const mark = el('g', { visibility: 'hidden', 'pointer-events': 'none' }, g);
   xMark(mark, markAt[0], markAt[1]);
+  // hover cue: outline the segment unless it is lesioned (the lesion colour must stay visible)
+  const rest = { stroke: vis.getAttribute('stroke'), op: vis.getAttribute('stroke-opacity') };
+  g.addEventListener('mouseenter', () => { if (state.les[key]) return; vis.setAttribute('stroke', 'var(--accent)'); vis.setAttribute('stroke-opacity', shape.type === 'path' ? .35 : 1); });
+  g.addEventListener('mouseleave', () => { if (state.les[key]) return; vis.setAttribute('stroke', rest.stroke); if (rest.op === null) vis.removeAttribute('stroke-opacity'); else vis.setAttribute('stroke-opacity', rest.op); });
   g.addEventListener('click', () => toggle(key));
   g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(key); } });
   parts[key] = { g, vis, mark, shape };
@@ -391,24 +402,22 @@ for (const s of ['L', 'R']) {
   el('rect', { x: x0 + 1, y: y0 + 1, width: w - 2, height: h - 2, rx: 7, fill: `var(${c})`, 'fill-opacity': .14 }, svg);
   hit('ANTC_' + s, { type: 'rect', x: x0 + w - 16, y: y0, w: 16, h }, `${s === 'L' ? 'Left' : 'Right'} anterior calcarine`, [x0 + w - 8, y0 - 2]);
   hit('POLE_' + s, { type: 'rect', x: x0, y: y0, w: 18, h }, `${s === 'L' ? 'Left' : 'Right'} occipital pole`, [x0 + 9, y0 - 2]);
-  hit('CUN_' + s, { type: 'rect', x: x0 + 18, y: y0, w: w - 34, h: h / 2, label: 'cun', lx: x0 + w / 2 + 1, ly: y0 + 18 }, `${s === 'L' ? 'Left' : 'Right'} cuneus`, [x0 + w / 2 + 1, y0 + 8]);
-  hit('LING_' + s, { type: 'rect', x: x0 + 18, y: y0 + h / 2, w: w - 34, h: h / 2, label: 'ling', lx: x0 + w / 2 + 1, ly: y0 + h - 8 }, `${s === 'L' ? 'Left' : 'Right'} lingual gyrus`, [x0 + w / 2 + 1, y0 + h - 8]);
+  hit('CUN_' + s, { type: 'rect', x: x0 + 18, y: y0, w: w - 34, h: h / 2, label: 'cuneus', lx: x0 + w / 2 + 1, ly: y0 + 18 }, `${s === 'L' ? 'Left' : 'Right'} cuneus`, [x0 + w / 2 + 1, y0 + 8]);
+  hit('LING_' + s, { type: 'rect', x: x0 + 18, y: y0 + h / 2, w: w - 34, h: h / 2, label: 'lingual', lx: x0 + w / 2 + 1, ly: y0 + h - 8 }, `${s === 'L' ? 'Left' : 'Right'} lingual gyrus`, [x0 + w / 2 + 1, y0 + h - 8]);
 }
-txt(230, 558, 'calcarine', { 'text-anchor': 'middle', 'font-size': 10.5 });
-txt(230, 570, '(medial view)', { 'text-anchor': 'middle', 'font-size': 10.5 });
-txt(116, 576, 'pole', { 'text-anchor': 'end', 'font-size': 10.5 });
-txt(344, 576, 'pole', { 'font-size': 10.5 });
-txt(26, 360, "Meyer's", { 'font-size': 11 });
-txt(26, 373, 'loop', { 'font-size': 11 });
-txt(434, 360, "Meyer's", { 'font-size': 11, 'text-anchor': 'end' });
-txt(434, 373, 'loop', { 'font-size': 11, 'text-anchor': 'end' });
-txt(176, 470, 'parietal', { 'font-size': 11 });
-txt(284, 470, 'parietal', { 'font-size': 11, 'text-anchor': 'end' });
-txt(230, 236, 'chiasm', { 'text-anchor': 'middle', 'font-size': 11 });
-txt(150, 146, 'optic n.', { 'text-anchor': 'end', 'font-size': 11 });
-txt(310, 146, 'optic n.', { 'font-size': 11 });
-txt(176, 286, 'tract', { 'font-size': 11, 'text-anchor': 'end' });
-txt(284, 286, 'tract', { 'font-size': 11 });
+txt(230, 626, 'calcarine cortex (medial view)', Object.assign({ 'text-anchor': 'middle' }, OUT));
+txt(116, 578, 'pole', { 'text-anchor': 'end' });
+txt(344, 578, 'pole');
+// Meyer's loop: inside its curve, clear of both the loop and the parietal line
+txt(74, 398, "Meyer's loop");
+txt(386, 398, "Meyer's loop", { 'text-anchor': 'end' });
+txt(166, 470, 'parietal');
+txt(294, 470, 'parietal', { 'text-anchor': 'end' });
+txt(230, 238, 'chiasm', { 'text-anchor': 'middle' });
+txt(148, 146, 'optic n.', Object.assign({ 'text-anchor': 'end' }, OUT));
+txt(312, 146, 'optic n.', OUT);
+txt(162, 262, 'tract', { 'text-anchor': 'end' });
+txt(298, 262, 'tract');
 
 // ---------- lesion table ----------
 const tbody = document.querySelector('#lestable tbody');
