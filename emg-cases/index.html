@@ -116,7 +116,7 @@ svg.body.ncs .n{opacity:.4}
 svg.body .nerve{fill:none;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
 .figkey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin:6px 0 0}
 .figkey i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px;border:1px solid rgba(40,40,60,.35)}
-.figkey i.nv{width:18px;height:4px;border:0;border-radius:2px;background:#e0a800;vertical-align:2px}
+.figkey i.nv{width:18px;height:3px;border:0;border-radius:2px;background:#d99a00;vertical-align:2px}
 svg.body .m{fill:var(--musc);stroke:rgba(40,40,60,.35);stroke-width:.7;transition:fill .12s}
 svg.body.emg .m{cursor:pointer}
 svg.body.emg .m.done{fill:var(--musc-done)}
@@ -303,6 +303,7 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
             <button class="btn sm" type="button" id="ins" title="Keyboard shortcut: Space">Move needle <kbd>Space</kbd></button>
             <button class="btn sm" type="button" id="snd" aria-pressed="false">🔈 Sound off</button>
             <button class="btn sm" type="button" id="pause" aria-pressed="false">Pause</button>
+            <button class="btn sm" type="button" id="hold" aria-pressed="false" title="Keep recording at this spot at rest, without repeating, to catch slow or irregular discharges">Leave needle in</button>
             <label class="gainsel">Sensitivity <select id="gain-sel" aria-label="Sensitivity, per vertical division"></select></label>
           </div>
           <div class="effort">
@@ -540,6 +541,22 @@ const EMG = (() => {
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
+// ---------- where the numbers come from ----------
+// [P&S]  Preston DC, Shapiro BE. Electromyography and Neuromuscular Disorders, 4th ed. Elsevier, 2020
+//        (normal-value tables; spontaneous-activity and recruitment chapters). Same lower/upper limits in
+//        Katirji B, Preston DC, Shapiro BE. Continuum 2017;23(4):1024-49.
+// [Kr72] Kraft GH. Axillary, musculocutaneous and suprascapular nerve latency studies. Arch Phys Med Rehabil 1972;53:383-7.
+// [Bu09] Buschbacher RM et al. Normal motor NCS ... supraspinatus, infraspinatus, deltoid and biceps. PM R 2009;1:101-6. doi:10.1016/j.pmrj.2008.08.002
+// [Kr90] Kraft GH. Fibrillation potential amplitude and muscle atrophy following peripheral nerve injury.
+//        Muscle Nerve 1990;13:814-21. doi:10.1002/mus.880130907 (max fib amplitude: 612 uV in months 1-2,
+//        512 uV months 3-4, 320 uV months 5-6, none >100 uV after the first year)
+// [Bu54] Buchthal F, Pinelli P, Rosenfalck P. Action potential parameters in normal human muscle and their
+//        physiological determinants. Acta Physiol Scand 1954;32:219-29 (MUAP duration by muscle and age).
+// [Pe91] Petajan JH. AAEM minimonograph #3: motor unit recruitment. Muscle Nerve 1991;14:489-502.
+// [Du02] Dumitru D, Amato AA, Zwarts MJ. Electrodiagnostic Medicine, 2nd ed. Hanley & Belfus, 2002.
+// Anything marked "fitted" was tuned by eye to give the published output, not taken from a paper.
+  // D0: 55 um fibre diameter (adult limb muscle fibres 40-80 um [Du02]). NU, W, H: a 2.4 x 1.6 mm patch
+  // with ~1200 fibres from 40 units is a modelling choice, not a measured figure.
   const W = 2.4, H = 1.6, D0 = 0.055, NU = 40;
   const FS = 20000;          // samples/s for synthesised signals
   const PICKUP = 0.45;       // mm: fibres beyond this contribute nothing useful
@@ -555,6 +572,7 @@ const EMG = (() => {
       fibres.push({ x, y, d0: D0 * (0.88 + 0.24 * r()), ze: (r() + r() + r() + r() - 2), rMyo: r(), rSize: r(), rInfl: r(), rAdopt: r(), rSprout: r(), rFib: r(), rMyot: r() });
     }
     const units = [];
+    // unit territory radius 2.2-3 mm: territories are 5-10 mm across [Du02]
     for (let u = 0; u < NU; u++) units.push({ id: u, cx: -1.2 + r() * (W + 2.4), cy: -1.2 + r() * (H + 2.4), R: 2.2 + r() * 0.8, type: r() < 0.5 ? 1 : 2, rLoss: r(), rBlock: r(), rFasc: r(), hue: (u * 137.5) % 360, n: 0 });
     for (const f of fibres) {
       const cand = units.filter(u => Math.hypot(u.cx - f.x, u.cy - f.y) < u.R);
@@ -582,6 +600,11 @@ const EMG = (() => {
   // ---------- pathology over time ----------
   // Collateral sprouts reach orphaned fibres from 6 weeks (was 4.5), so motor units stay normal in the
   // first weeks after an acute lesion: fibrillations with reduced recruitment of normal units.
+  // weeks. FIB_ON: fibrillations from 10-14 days after axon loss, later when the lesion is far from the muscle
+  // [P&S]. DEATH: denervated fibres not reinnervated by ~18-24 months degenerate [P&S, Du02].
+  // ADOPT_MIN/SPAN (sprouting from ~6 weeks, spread to ~18) and MATURE (14 weeks for a sprout to stabilise)
+  // are fitted to the textbook course: unstable polyphasic units from weeks to a few months, large stable
+  // units after months [P&S]; no single paper gives these numbers.
   const ADOPT_MIN = 6, ADOPT_SPAN = 12, MATURE = 14, DEATH = 80, FIB_ON = 2;
   function state(p) {
     const { fibres, units } = M;
@@ -621,6 +644,8 @@ const EMG = (() => {
       const f = fibres[i];
       let d = f.d0;
       if (p.myo) d *= Math.max(0.35, 1 + p.myo * 1.9 * (f.rSize - 0.5));
+      // denervation atrophy (fitted): diameter falls to 55% over 16 weeks. Kraft's guinea pigs lost ~half their
+      // type I fibre diameter in 17 weeks [Kr90]; human atrophy, and so fib amplitude, falls more slowly.
       if (s.owner === -1 && !s.dead) d *= Math.max(0.4, 1 - 0.45 * Math.min(1, (T - s.since) / 16));
       const mature = s.re === null ? 1 : Math.min(1, (T - s.re) / MATURE);
       if (s.re !== null) d *= 1 + 0.15 * mature; // reinnervated fibres hypertrophy (was 8%; raised so chronic units are clearly large)
@@ -637,6 +662,9 @@ const EMG = (() => {
   const mexhat = (t, sg) => { const z = t / sg; return (1 - z * z) * Math.exp(-0.5 * z * z); };
   // single-fibre potential: a sharp near-field spike plus a broad, slowly decaying far-field
   // component; the far-field parts of distant fibres set the MUAP's initial and terminal phases
+  // Single-fibre potential shape and size (fitted): chosen so normal MUAPs measure ~0.2-1.5 mV peak to peak
+  // and mostly 5-12 ms with <=4 phases, as with a concentric needle in proximal limb muscles of adults
+  // [Bu54, P&S, Du02]. Muscle fibre conduction velocity 3.8 m/s (3-5 m/s [Du02]).
   const TUNE = { a: 0.6, r0: 0.16, s0: 0.14, s1: 0.55, fa: 0.0022, fr: 1.4, fs: 2.5, zs: 1.8, sc: 0.6, ve: 1.4 };
   function sfapParams(r, d) {
     const k = Math.pow(d / D0, 1.6);
@@ -716,6 +744,10 @@ const EMG = (() => {
   }
 
   // ---------- recruitment ----------
+  // Recruitment: a unit starts firing at ~5-7 Hz and the next unit joins when the first reaches ~10 Hz;
+  // recruitment frequency over ~15-20 Hz, or a firing-rate/unit ratio over 5, is reduced recruitment [Pe91, P&S].
+  // RMIN 6 Hz and DELTA 3.2 give a recruitment frequency of 9.2 Hz. RMAX 45 Hz: maximal voluntary firing in
+  // limb muscles is ~30-50 Hz [Du02].
   const RMIN = 6, RMAX = 45, KAPPA = 1, DELTA = 3.2;
   function unitForce(S, u, rate) {
     let n = 0;
@@ -768,9 +800,12 @@ const EMG = (() => {
   // Rest: fibrillations, positive sharp waves, fasciculations. With insAt (ms), adds the burst of
   // insertional activity from needle movement at that time, and any myotonic discharges it provokes.
   // The rest of the signal is identical with or without insAt, so the two can be swapped seamlessly.
-  function restSignal(S, dur, lib, insAt) {
+  // chunk (0, 1, 2, …) continues the same recording when the needle is left in: fibrillations keep their
+  // regular rhythm from one chunk to the next, and fasciculations fall at new random times.
+  function restSignal(S, dur, lib, insAt, chunk = 0) {
     const n = Math.round(dur * FS), buf = new Float64Array(n), r = rng(99 + Math.round(S.T * 10)), ev = [];
-    noise(buf, r, 0.004);
+    const rc = chunk ? rng(7001 + chunk * 7919 + Math.round(S.p.nx * 1000 + S.p.ny * 100)) : r, off = chunk * dur * 1000;
+    noise(buf, r, 0.004); // same draw order in every chunk, so the fibrillation phases below match
     const near = [];
     for (let i = 0; i < M.fibres.length; i++) {
       const f = M.fibres[i], dist = Math.hypot(f.x - S.p.nx, f.y - S.p.ny);
@@ -781,19 +816,25 @@ const EMG = (() => {
     const fibs = near.filter(([, i]) => S.F[i].fib).slice(0, 14);
     for (const [dist, i] of fibs) {
       const f = M.fibres[i], s = S.F[i];
-      const amp = 0.55 * Math.pow(s.d / D0, 1.6) / (1 + (dist / 0.06) ** 2);
-      const rate = 1 + 13 * f.rFib, ph = r() * 1000 / rate;
+      // Fibrillations: 1-5 ms, regular, 0.5-15 Hz, usually 20-200 uV [P&S]; the largest early after injury
+      // (up to ~600 uV in months 1-2) and shrinking with atrophy [Kr90]. Here up to ~250 uV beside the needle,
+      // smaller with distance and atrophy; PSWs a little larger, as seen when the needle injures the fibre.
+      const amp = 0.16 * Math.pow(s.d / D0, 1.6) / (1 + (dist / 0.06) ** 2);
+      const rate = 1 + 13 * f.rFib, ph = r() * 1000 / rate, per = 1000 / rate;
       const psw = dist < 0.07;
-      for (let t = ph; t < dur * 1000; t += 1000 / rate * (1 + 0.01 * (r() - 0.5))) {
+      const t0 = chunk ? ph + Math.ceil((off - ph) / per) * per - off : ph; // same rhythm, carried on from the last chunk
+      for (let t = t0; t < dur * 1000; t += per * (1 + 0.01 * (r() - 0.5))) {
         if (psw) addWave(buf, t, x => pswWave(x, amp * 1.4)); else addWave(buf, t, x => fibWave(x, amp, dist * 0.6));
         ev.push([t, [i], psw ? 'psw' : 'fib']);
       }
     }
     if (S.p.ongoing && S.p.loss) {
       const vis = visibleUnits(S).filter(v => !S.blocked[v.u]);
-      const k = Math.min(vis.length, 2);
+      // irregular: 0–2 per 2 s once the needle is left in. Fasciculations fire slowly and irregularly [P&S];
+      // this rate (~0.5 Hz at one spot) is not taken from a measured series.
+      const k = Math.min(vis.length, chunk ? Math.floor(rc() * 3) : 2);
       for (let j = 0; j < k; j++) {
-        const v = vis[Math.floor(r() * vis.length)], t = 150 + r() * (dur * 1000 - 300);
+        const v = vis[Math.floor(rc() * vis.length)], t = 150 + rc() * (dur * 1000 - 300);
         addMuap(buf, t - 4, v.y); ev.push([t, v.fibres, 'fasc']);
       }
     }
@@ -813,6 +854,7 @@ const EMG = (() => {
     const unstable = near.filter(([, i]) => S.F[i].denervated || S.F[i].necrotic).length / nn;
     const deadFrac = near.filter(([, i]) => S.F[i].dead).length / nn;
     if (!live.length) return 20;
+    // normal insertional activity lasts <300 ms [P&S]; longer with denervated or necrotic fibres
     const len = (140 + 100 * r() + 700 * unstable) * (1 - 0.6 * deadFrac);
     let t = 0;
     while (t < len) {
@@ -833,7 +875,7 @@ const EMG = (() => {
       let t = t0;
       while (t < t0 + len) {
         const ph = (t - t0) / len, env = Math.sin(Math.PI * Math.min(1, ph * 1.1)) ** 0.8;
-        const rate = 18 + 70 * Math.sin(Math.PI * Math.min(1, ph * 1.4)) ** 1.5;
+        const rate = 18 + 70 * Math.sin(Math.PI * Math.min(1, ph * 1.4)) ** 1.5; // waxing and waning, ~20-80 Hz [P&S]
         const a = amp * (0.25 + 0.75 * env);
         if (dist < 0.07) addWave(buf, t, x => pswWave(x, a * 1.3)); else addWave(buf, t, x => fibWave(x, a, 0.05));
         ev.push([t % (dur * 1000), [i], 'myot']);
@@ -859,7 +901,7 @@ const EMG = (() => {
       // ephaptic loop: a chain of adjacent fibres re-excite one another; identical complex repeats
       const chain = [near[0][1]];
       while (chain.length < 6) { const last = M.fibres[chain[chain.length - 1]]; const nx = last.nb.find(j => !chain.includes(j)); if (nx === undefined) break; chain.push(nx); }
-      // The pacemaker fibre's spike drives each neighbour in turn; the last re-excites the pacemaker,
+      // CRDs fire at a fixed 5-100 Hz with abrupt start and stop [P&S]. The pacemaker fibre's spike drives each neighbour in turn; the last re-excites the pacemaker,
       // so the loop time sets the (fixed) rate. Midway one fibre drops out of the loop: the complex
       // changes shape abruptly and the shorter loop fires slightly faster, as real CRDs can.
       const comp = chain.map((i, k) => [k * 0.9 + 0.3 * (k % 2), 0.08 + 0.18 * ((k * 37) % 5) / 5, i]);
@@ -869,6 +911,7 @@ const EMG = (() => {
       }
     } else if (lib === 'myok') {
       const vis = visibleUnits(S), v = vis[1];
+      // myokymia: grouped bursts of one unit, bursts ~0.1-10 Hz, 5-60 Hz within a burst [P&S]
       for (let b = 120; b < D - 100; b += 520) {
         const nb = 4 + Math.floor(r() * 4);
         for (let k = 0; k < nb; k++) { const t = b + k * 25 * (1 + 0.15 * r()); addMuap(buf, t - 4, v.y); ev.push([t, v.fibres, 'myok']); }
@@ -962,6 +1005,9 @@ const NCS = (() => {
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
+  // Axon populations (fitted): motor CV 42-59 m/s and sensory 40-60 m/s, so the fastest fibres give normal
+  // conduction velocities of ~57-60 m/s (lower limits 49 motor, 50 sensory [P&S]). Amplitudes are scaled so
+  // each study's normal response equals its `target` (below).
   const NM = 160, NSN = 200, DT = 0.02;
   function build(seed) {
     const r = rng(seed);
@@ -984,7 +1030,8 @@ const NCS = (() => {
   }
   const POP = build(20261119);
 
-  // unit waveforms, negative-up (EMG display convention)
+  // unit waveforms, negative-up (EMG display convention). Shapes fitted so the normal CMAP negative phase
+  // lasts ~4.5 ms and the SNAP negative phase ~1.3 ms with onset-to-peak ~0.65 ms, as in normal studies [P&S].
   const gam = (t, tau) => t <= 0 ? 0 : (t / tau) * (t / tau) * Math.exp(2 * (1 - t / tau));
   const gamk = (t, tau, k) => t <= 0 ? 0 : Math.pow(t / tau, k) * Math.exp(k * (1 - t / tau));
   const motorUnitWave = t => gamk(t, 1.5, 1.2) - 0.42 * gam(t - 2.2, 2.8);
@@ -996,6 +1043,13 @@ const NCS = (() => {
   // slowing at that lesion acts). `muscle` names the BP muscle whose axons make up the CMAP.
   // Sensory: antidromic or orthodromic over `len` mm; `root`/`nerve` give the BP route.
   // pos: [surface, x, y] in the anterior drawing frame of the arm figure.
+  // ref: lower limits of amplitude (mV motor, uV sensory) and CV, upper limits of distal/peak latency and
+  // minimum F latency, from the [P&S] normal-value tables at their standard distances (motor 7 cm wrist-APB/ADM,
+  // sensory antidromic 14 cm median D2, radial snuffbox 10 cm, LABC and MABC 12 cm, DUC 8 cm, palmar 8 cm).
+  // ulnFDI (>=7 mV, <=4.5 ms) matches commonly used lab limits; I could not confirm its source.
+  // mcnM and axnM latencies: mean + 2 SD from Erb's point [Kr72]; no amplitude limit (see [Bu09]).
+  // target: the model's normal amplitude, about 2x the lower limit (a typical mean); fitted, not from a table.
+  // Segment lengths are typical adult distances, not measured.
   const STUDIES = {
     medM: {
       kind: 'motor', name: 'Median motor', rec: 'APB', muscle: 'APB', residual: 2.1, window: 30, target: 8.5, F: true,
@@ -1846,32 +1900,36 @@ for (const n in TARGETS) { const [s, x, y] = TARGETS[n]; MPOS[s][n] = [s === 'po
 // Simplified course of each study's nerve, drawn on the front or back view where it runs.
 // Points are in the anterior frame like the study positions (P2(y, t): t = 0 radial edge, 1 ulnar edge);
 // each list passes through that study's stimulation and recording sites.
+// One unbroken line per study, on the view that holds its sites; stretches hidden behind bone, the clavicle
+// or the other side of the limb (as seen in that view) are dotted.
+// Each entry: [view, [runs]], a run being [points, behind]; consecutive runs share their joining point.
 const NV = (() => {
-  const plexus = [[262, 6], [238, 50], [214, 98], [200, 126]];       // Erb's point to the axilla, behind the clavicle
-  const medArm = [P2(200, .82), P2(270, .76), [160, 326]];             // medial arm with the brachial artery; cubital fossa medial to the biceps tendon
-  const medFore = [P2(400, .55), P2(480, .47), [136, 552], [133, 586]];  // between FDS and FDP; carpal tunnel
-  const ulnArm = [P2(200, .93), [192, 282], [196, 326], [190, 372]];   // medial arm; behind the medial epicondyle; under FCU
-  const ulnFore = [P2(450, .9), [163, 552], [171, 584]];               // forearm under FCU; Guyon canal
-  const radPost = [[200, 126], [164, 140], [120, 162], [100, 205], [92, 252]]; // posterior arm in the spiral groove, lateral below the deltoid
-  const radAnt = [[96, 262], [101, 296], [101, 318]];                  // lateral to the biceps, in front of the lateral epicondyle
-  const pinPost = [P2(338, .06), P2(380, .14), [116, 470], [146, 528]]; // through supinator to the posterior forearm and EIP
-  const srn = [P2(380, .05), P2(450, .04), P2(490, .03)];             // under brachioradialis
-  const ant = pts => ['ant', pts], post = pts => ['post', pts];
+  const ax = [200, 126];                                                        // axilla
+  const plexus = [[262, 6], [240, 46], [218, 92], ax];                          // Erb's point to the axilla, behind the clavicle (deep)
+  const medArm = [ax, P2(200, .82), P2(270, .76), [160, 326]];                 // medial arm with the brachial artery; cubital fossa medial to the biceps tendon
+  const medFore = [P2(400, .55), P2(480, .47), [136, 552], [133, 586]];        // between FDS and FDP; carpal tunnel
+  const ulnArm = [ax, P2(200, .93), [192, 282], [196, 326], [190, 372]];       // medial arm; behind the medial epicondyle; under FCU
+  const ulnFore = [P2(450, .9), [163, 552], [171, 584]];                       // forearm under FCU; Guyon canal
+  const radAx = [ax, [168, 140], [128, 166]];                                    // axilla to the spiral groove: in front of the humerus, so hidden in the back view
+  const radArm = [[128, 166], P2(215, .04), P2(262, .02), P2(300, .02), P2(320, .03)]; // spiral groove, then lateral above the elbow
+  const pin = [P2(345, .08), P2(390, .16), [116, 470], [146, 528]];            // through supinator to the posterior forearm and EIP
+  const srn = [P2(380, .04), P2(450, .04), P2(500, .05), P2(540, .08), [112, 580]]; // under brachioradialis to the snuffbox
+  const solid = pts => [pts, false], deep = pts => [pts, true]; // deep = behind something in this view: dotted
   return {
-    medM: [ant([...plexus, ...medArm, ...medFore, [124, 596], [116, 610]])],          // recurrent thenar branch to APB
-    medS: [ant([...plexus, ...medArm, ...medFore, [128, 614], [118, 650], [113, 706]])],
-    medP: [ant([...plexus, ...medArm, ...medFore, [132, 628]])],
-    ulnM: [ant([...plexus, ...ulnArm, ...ulnFore, [180, 600], [186, 622]])],
-    ulnFDI: [ant([...plexus, ...ulnArm, ...ulnFore, [158, 604], [136, 622], [120, 628]])], // deep branch across the palm to FDI
-    ulnS: [ant([...plexus, ...ulnArm, ...ulnFore, [180, 610], [187, 690]])],
-    ulnP: [ant([...plexus, ...ulnArm, ...ulnFore, [170, 632]])],
-    duc: [ant([...plexus, ...ulnArm, P2(450, .9), P2(495, .93)]), post([P2(495, .95), [180, 520], [178, 560], [176, 606]])], // dorsal branch winds round the ulna
-    radM: [ant(plexus), post(radPost), ant(radAnt), post(pinPost)],
-    radS: [ant(plexus), post(radPost), ant([...radAnt, ...srn]), post([P2(490, .02), P2(530, .06), [112, 580]])],
-    mcnM: [ant([...plexus, [196, 134], P2(175, .62), [142, 228]])],                  // through coracobrachialis to biceps
-    labc: [ant([...plexus, [196, 134], P2(175, .62), P2(240, .47), P2(300, .38), [132, 330], P2(390, .2), [112, 452]])],
-    axnM: [ant(plexus), post([[200, 126], P2(134, .6), P2(126, .25), P2(118, .02)]), ant([P2(118, .04), [108, 112]])], // round the surgical neck of the humerus
-    mabc: [ant([...plexus, P2(220, .9), P2(290, .84), [176, 322], P2(390, .8), [176, 452]])]
+    medM: ['ant', [solid([...medArm, ...medFore, [124, 596], [116, 610]])]],    // recurrent thenar branch to APB
+    medS: ['ant', [solid([...medArm, ...medFore, [128, 614], [118, 650], [113, 706]])]],
+    medP: ['ant', [solid([...medArm, ...medFore, [132, 628]])]],
+    ulnM: ['ant', [solid([...ulnArm, ...ulnFore, [180, 600], [186, 622]])]],
+    ulnFDI: ['ant', [solid([...ulnArm, ...ulnFore, [158, 604]]), deep([[158, 604], [136, 622], [120, 628]])]], // deep branch across the palm to FDI
+    ulnS: ['ant', [solid([...ulnArm, ...ulnFore, [180, 610], [187, 690]])]],
+    ulnP: ['ant', [solid([...ulnArm, ...ulnFore, [170, 632]])]],
+    duc: ['post', [deep([ax, P2(200, .93), [192, 282]]), solid([[192, 282], [196, 326], [190, 372]]), deep([[190, 372], P2(450, .92), P2(495, .94)]), solid([P2(495, .94), [180, 520], [178, 560], [176, 606]])]], // front of the arm (hidden), ulnar groove (seen), under FCU (hidden), then the dorsal branch winds round the ulna
+    radM: ['post', [deep(radAx), solid([...radArm, ...pin])]],
+    radS: ['post', [deep(radAx), solid([...radArm, ...srn])]],
+    mcnM: ['ant', [deep(plexus), solid([ax, [196, 134], P2(175, .62), [142, 228]])]],             // through coracobrachialis to biceps
+    labc: ['ant', [solid([ax, [196, 134], P2(175, .62), P2(240, .47), P2(300, .38), [132, 330], P2(390, .2), [112, 452]])]],
+    axnM: ['ant', [deep(plexus), deep([ax, P2(140, .5), P2(128, .2)]), solid([P2(128, .2), [108, 112]])]], // behind the surgical neck of the humerus to the deltoid
+    mabc: ['ant', [solid([ax, P2(220, .9), P2(290, .84), [176, 322], P2(390, .8), [176, 452]])]]
   };
 })();
 const NV_NAME = { medM: 'median', medS: 'median', medP: 'median', ulnM: 'ulnar', ulnFDI: 'ulnar', ulnS: 'ulnar', ulnP: 'ulnar', duc: 'ulnar (dorsal cutaneous branch)', radM: 'radial (posterior interosseous)', radS: 'radial (superficial branch)', mcnM: 'musculocutaneous', labc: 'musculocutaneous (lateral antebrachial cutaneous)', axnM: 'axillary', mabc: 'medial antebrachial cutaneous' };
@@ -1911,13 +1969,11 @@ function drawOverlay() {
   const label = (g, x, y, text, s) => { const right = s === 'ant'; /* labels point away from the trunk */ E('text', { x: x + (right ? 19 : -19), y: y + 6, 'text-anchor': right ? 'start' : 'end', class: 'elab' }, g, text); };
   $('figkey').innerHTML = st.mode === 'emg'
     ? '<span><i style="background:var(--musc)"></i>Muscle you can needle</span><span><i style="background:var(--musc-done)"></i>Already needled</span><span><i style="background:var(--musc-off)"></i>Not tested here</span><span><i style="background:#fbf8f3"></i>Tendon</span>'
-    : st.study && NV[st.study] ? `<span><i class="nv"></i>Course of the ${NV_NAME[st.study]} nerve</span>` : '';
+    : st.study && NV[st.study] ? `<span><i class="nv"></i>Course of the ${NV_NAME[st.study]} nerve${NV[st.study][1].some(r => r[1]) ? ' (dotted where it runs behind)' : ''}, simplified</span>` : '';
   if (st.mode === 'ncs' && st.study && NV[st.study]) {
-    for (const [s, pts] of NV[st.study]) {
-      const d = nervePath(pts, s);
-      E('path', { d, class: 'nerve', stroke: 'var(--panel)', 'stroke-width': 8, opacity: .85 }, ov[s]);
-      E('path', { d, class: 'nerve', stroke: '#e0a800', 'stroke-width': 4.5 }, ov[s]);
-    }
+    const [s, runs] = NV[st.study];
+    for (const [pts, isDeep] of runs) E('path', { d: nervePath(pts, s), class: 'nerve', stroke: 'var(--panel)', 'stroke-width': isDeep ? 7 : 6.5, 'stroke-linecap': 'round', 'stroke-dasharray': isDeep ? '0.1 7' : null, opacity: .9 }, ov[s]);
+    for (const [pts, isDeep] of runs) E('path', { d: nervePath(pts, s), class: 'nerve', stroke: '#d99a00', 'stroke-width': isDeep ? 3.6 : 3.2, 'stroke-linecap': 'round', 'stroke-dasharray': isDeep ? '0.1 7' : null }, ov[s]);
   }
   if (st.mode === 'ncs' && st.study) {
     const S = NCS.STUDIES[st.study], cur = ncsEntry(st.study);
@@ -1984,7 +2040,8 @@ function displayTrace(y, seed, sd, art) {
   const r = NCS.rng(seed), out = new Float64Array(y.length);
   for (let i = 0; i < y.length; i++) {
     const t = i * NCS.DT;
-    out[i] = y[i] + sd * (r() + r() + r() - 1.5) + (t < 0.25 ? art : t < 0.6 ? -0.5 * art * (1 - (t - 0.25) / 0.35) : 0);
+    // brief positive (downward) shock artifact with a small negative overshoot back to baseline
+    out[i] = y[i] + sd * (r() + r() + r() - 1.5) + (t < 0.15 ? -art : t < 0.5 ? 0.3 * art * (1 - (t - 0.15) / 0.35) : 0);
   }
   return out;
 }
@@ -2044,7 +2101,7 @@ function drawNcs() {
     lab.addEventListener('click', () => stimulate(r.i));
     lab.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); stimulate(r.i); } });
     if (!done) continue;
-    const yd = displayTrace(r.y, hashStr(st.c.id + st.side + st.study + r.i), motor ? 0.012 : 0.5, 0.35 * g);
+    const yd = displayTrace(r.y, hashStr(st.c.id + st.side + st.study + r.i), motor ? 0.012 : 0.5, 0.12 * g);
     const draw = fr => pathFrom(fr >= 1 ? yd : yd.slice(0, Math.max(2, Math.round(yd.length * fr))), NCS.DT, X0, ppm, base, div / g, rt + 2, base + 12, 2);
     const path = E('path', { d: draw(animating ? 0 : 1), fill: 'none', stroke: 'var(--trace)', 'stroke-width': 1.6, 'stroke-linejoin': 'round' }, svg);
     rowEls[r.i] = { path, draw };
@@ -2125,7 +2182,9 @@ function drawF(S, res) {
 }
 
 // ===================== needle EMG =====================
-const em = { eff: 0, sound: false, paused: REDUCED, cur: null, ui: 0, gainRest: 0.05, gainAct: 0.5 };
+// sensitivity in mV/div: 50 uV/div at rest, as usually used for spontaneous activity [P&S]; 500 uV/div for
+// voluntary activity (200 uV/div is also common for MUAP analysis)
+const em = { eff: 0, sound: false, paused: REDUCED, cur: null, ui: 0, gainRest: 0.05, gainAct: 0.5, hold: false, chunk: 0, lastT: 0 };
 let restSig = null, actSig = null, curSig = null, ins = null;
 function emgEntry() { return st.muscle ? st.emg[st.side][st.muscle] : null; }
 function selectMuscle(name) {
@@ -2148,6 +2207,7 @@ function emgCompute(insert) {
   em.cur = r; e.read = r.read;
   const byAmp = r.SM.infos.slice(0, 5).map((x, k) => [x.m.pp, k]).sort((a, b) => a[0] - b[0]);
   em.ui = byAmp.length ? byAmp[Math.floor(byAmp.length / 2)][1] : 0;
+  em.chunk = 0; em.lastT = clock.now(); // a new needle position starts a new recording
   restSig = EMG.restSignal(r.S, 2, null);
   actSig = em.eff > 0 ? EMG.activeSignal(r.S, em.eff, 2) : null;
   ins = null;
@@ -2227,7 +2287,7 @@ function useSignal(sig) {
     const topu = r.firing.slice().sort((a, b) => b.rate - a.rate)[0];
     const lvl = `${Math.round(em.eff * 100)}% effort`;
     $('sc-lbl').textContent = r.firing.length ? `${lvl} · ${nvis} unit${nvis === 1 ? '' : 's'} firing near the needle · fastest ${Math.round(topu.rate)} Hz` : `${lvl} · no voluntary units`;
-  } else $('sc-lbl').textContent = ins && sig === ins.sig ? 'At rest · needle just moved' : 'At rest';
+  } else $('sc-lbl').textContent = ins && sig === ins.sig ? 'At rest · needle just moved' : em.hold ? `At rest · needle left in · ${2 * (em.chunk + 1)} s` : 'At rest';
   const c = document.createElement('canvas'); c.width = stripC.width; c.height = stripC.height;
   const ctx = c.getContext('2d');
   drawGrid(ctx, c.width, c.height, 10, 4);
@@ -2309,6 +2369,11 @@ $('pause').onclick = () => {
   $('pause').setAttribute('aria-pressed', String(clock.paused)); $('pause').textContent = clock.paused ? 'Play' : 'Pause';
 };
 if (REDUCED) { $('pause').setAttribute('aria-pressed', 'true'); $('pause').textContent = 'Play'; }
+$('hold').onclick = () => {
+  em.hold = !em.hold; $('hold').setAttribute('aria-pressed', String(em.hold));
+  if (!em.hold && em.chunk && em.cur) { em.chunk = 0; restSig = EMG.restSignal(em.cur.S, 2, null); if (em.eff === 0 && !ins) useSignal(restSig); }
+  else if (curSig && em.eff === 0) useSignal(curSig); // refresh the label
+};
 function frame() {
   if (st.mode === 'emg' && st.muscle && curSig) {
     const t = clock.now();
@@ -2316,6 +2381,11 @@ function frame() {
       ins.left -= (t - ins.last + 2000) % 2000; ins.last = t;
       if (ins.left <= 0) { ins = null; useSignal(restSig); }
     }
+    // needle left in at rest: at each wrap of the 2 s buffer, carry on with the next stretch of the same recording
+    if (em.hold && em.eff === 0 && !ins && curSig === restSig && em.cur && t < em.lastT - 1000) {
+      em.chunk++; restSig = EMG.restSignal(em.cur.S, 2, null, undefined, em.chunk); useSignal(restSig);
+    }
+    em.lastT = t;
     drawScope(t);
   }
   requestAnimationFrame(frame);
