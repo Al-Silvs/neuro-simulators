@@ -3693,6 +3693,24 @@ function frame() {
 }
 requestAnimationFrame(frame);
 
+// Normal range for a triggered unit in this muscle: 10th to 90th centile of amplitude and duration of the units
+// that cross the trigger line in normal muscle, over 16 fixed needle spots at light effort. Computed once per
+// muscle with a fixed seed, so it stays the same as the needle moves. It comes from this model, not from a
+// published normal-values table.
+const muapNormCache = new Map();
+function muapNormRange(name) {
+  if (muapNormCache.has(name)) return muapNormCache.get(name);
+  const M = EMG.modelFor(name, unitIR(name)), pp = [], dur = [];
+  let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let k = 0; k < 16; k++) {
+    const S = EMG.state(Object.assign(EMG.defaults(), { nx: 0.45 + rnd() * (EMG.W - 0.9), ny: 0.4 + rnd() * (EMG.H - 0.8), M }));
+    for (const { u } of EMG.recruit(S, 0.3).firing) { const i = EMG.unitInfo(S, u); if (i.m && peakOf(i.y) >= TRIG) { pp.push(i.m.pp); dur.push(i.m.dur); } }
+  }
+  const q = (a, f) => { a = a.slice().sort((x, y) => x - y); return a[Math.floor(f * (a.length - 1))]; };
+  const r = pp.length >= 10 ? { pp: [q(pp, .1), q(pp, .9)], dur: [q(dur, .1), q(dur, .9)] } : null;
+  muapNormCache.set(name, r);
+  return r;
+}
 function drawMuap() {
   const svg = $('muplot'); svg.innerHTML = '';
   const X0 = 40, W = 430, win = EMG.MUAP_WIN, ppm = W / win, base = 130, div = 24, NJ = 4, TOP = base - NJ * div, BOT = base + NJ * div;
@@ -3734,9 +3752,10 @@ function drawMuap() {
   }
   E('text', { x: X0, y: 257, 'font-size': 12, fill: 'var(--muted)', 'font-family': 'var(--font-mono)' }, svg, `${g < 1 ? Math.round(g * 1000) + ' µV' : g + ' mV'}/div · 3 ms/div · unit ${em.ui % infos.length + 1} of ${infos.length}`);
   E('text', { x: X0, y: 272, 'font-size': 12, fill: 'var(--muted)' }, svg, st.selfGrade ? 'blue: 6 discharges superimposed · dark: average' : 'blue: 6 discharges · dark: average · dashed: normal muscle');
-  const nref = (v, d, u) => nm ? ` <span class="nref">normal ${fmt(v, d)} ${u}</span>` : '';
+  const nr = st.selfGrade ? null : muapNormRange(st.muscle);
+  const nref = (r, d, u) => r ? ` <span class="nref">normal ${fmt(r[0], d)}–${fmt(r[1], d)} ${u}</span>` : '';
   $('mukv').innerHTML = st.selfGrade ? '' :
-    `<dt>Amplitude</dt><dd>${fmt(ui.m.pp, 2)} mV${nref(nm && nm.m.pp, 2, 'mV')}</dd><dt>Duration</dt><dd>${fmt(ui.m.dur)} ms${nref(nm && nm.m.dur, 1, 'ms')}</dd><dt>Phases</dt><dd>${ui.m.phases}</dd><dt>Stability</dt><dd>${ui.unstable ? 'unstable' : 'stable'}</dd>`;
+    `<dt>Amplitude</dt><dd>${fmt(ui.m.pp, 2)} mV${nref(nr && nr.pp, 2, 'mV')}</dd><dt>Duration</dt><dd>${fmt(ui.m.dur)} ms${nref(nr && nr.dur, 1, 'ms')}</dd><dt>Phases</dt><dd>${ui.m.phases}</dd><dt>Stability</dt><dd>${ui.unstable ? 'unstable' : 'stable'}</dd>`;
 }
 const P = (t, bad) => `<span class="pill ${bad ? 'bad' : 'good'}">${t}</span>`;
 function drawReadings() {
