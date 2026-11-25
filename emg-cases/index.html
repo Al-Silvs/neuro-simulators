@@ -81,6 +81,11 @@ kbd{font-family:var(--font-mono);font-size:11.5px;border:1px solid var(--line);b
 .patbar{padding:10px 16px}
 .patbar h2{margin:0!important}
 #caselist{width:auto;flex:1 1 300px;max-width:520px;min-width:0}
+#caseset{width:auto;flex:0 1 340px;min-width:0}
+.settag{display:inline-block;font-size:12px;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:1px}
+.second{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.second summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink)}
+.second[open] summary{margin-bottom:2px}
 .patbar .count{font-size:13px;color:var(--muted);white-space:nowrap}
 .why{margin:6px 0 10px;padding:8px 12px;border-left:3px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0;font-size:14px}
 .why b{font-weight:600}
@@ -111,6 +116,11 @@ kbd{font-family:var(--font-mono);font-size:11.5px;border:1px solid var(--line);b
 .who{font-weight:600;font-size:16px;margin:0 0 4px}
 .hx,.exam{margin:0 0 6px;font-size:14.5px}
 #referral h3{margin:10px 0 2px;font-size:13.5px;font-weight:600;color:var(--muted)}
+#referral dl{margin:0;display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 10px;font-size:14.5px}
+#referral dt{font-size:12.5px;font-weight:600;color:var(--muted);padding-top:2px}
+#referral dd{margin:0}
+#referral .refhead{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--grid);margin:6px 0 2px}
+#referral dl.exam{gap:6px 10px}
 .sidepick{margin-top:12px}
 .sidepick .lbl{font-size:13px;color:var(--muted);margin-right:4px}
 .imp label{display:grid;gap:3px;font-size:13px;color:var(--muted);margin-top:8px}
@@ -283,6 +293,7 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
     <div class="row between">
       <div class="row" style="flex:1 1 auto;min-width:0">
         <h2 id="h-cases">Patient</h2>
+        <select id="caseset" aria-label="Case set" title="Which group of patients to work through"></select>
         <button class="btn sm" type="button" id="pt-prev" aria-label="Previous patient">&lsaquo;</button>
         <select id="caselist" aria-labelledby="h-cases"></select>
         <button class="btn sm" type="button" id="pt-next" aria-label="Next patient">&rsaquo;</button>
@@ -303,7 +314,15 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
       <section class="panel imp" aria-labelledby="h-imp">
         <h2 id="h-imp">Your impression</h2>
         <label>Localisation <select id="imp-loc"></select></label>
+        <label>Side <select id="imp-side"></select></label>
         <label>Pathophysiology <select id="imp-path"></select></label>
+        <details class="second" id="imp2">
+          <summary>Second lesion (optional)</summary>
+          <p class="note" style="margin-top:4px">Use this only if one lesion cannot explain all the findings. A lesion on both sides counts as one lesion: choose "Both sides" above.</p>
+          <label>Localisation <select id="imp-loc2"></select></label>
+          <label>Side <select id="imp-side2"></select></label>
+          <label>Pathophysiology <select id="imp-path2"></select></label>
+        </details>
         <div class="row" style="margin-top:10px"><button class="btn primary" type="button" id="submit">Check my answer</button></div>
       </section>
     </div>
@@ -350,7 +369,6 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
             <button class="btn sm" type="button" id="ins" title="Keyboard shortcut: Space">Move needle <kbd>Space</kbd></button>
             <button class="btn sm" type="button" id="snd" aria-pressed="false"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 6v4h2.8L8 13V3L4.3 6z"/><path d="M10.6 6.2l3.6 3.6M14.2 6.2l-3.6 3.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>Sound off</button>
             <button class="btn sm" type="button" id="pause" aria-pressed="false">Pause</button>
-            <button class="btn sm" type="button" id="hold" aria-pressed="false" title="Keep recording at this spot at rest, without repeating, to catch slow or irregular discharges">Leave needle in</button>
             <label class="gainsel">Sensitivity <select id="gain-sel" aria-label="Sensitivity, per vertical division"></select></label>
           </div>
           <div class="effort">
@@ -407,12 +425,13 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
   <div class="gcontent">
     <h3>How to use it</h3>
     <ol>
-      <li>Pick a patient. Read the referral: the history and examination are all you get, as in a real lab.</li>
+      <li>Pick a patient. Read the referral: the history and examination are all you get, as in a real lab. The study opens on the arm the patient complains of; some patients have left-sided or bilateral problems.</li>
+      <li><b>Case sets.</b> The menu beside the patient list groups the patients in three levels. <i>Easy</i>: one lesion with a textbook story. <i>Moderate</i>: one lesion, but at another severity or stage (mild, severe, very early, years old), on the other side, or with a less typical story. <i>Advanced</i>: two separate lesions, one lesion on both sides, a vague history, an examination limited by pain or another injury, or a referral question that points the wrong way. "All patients" mixes them, so the level does not hint at the answer.</li>
       <li><b>Nerve conduction.</b> Choose a study. The arm shows the recording electrode (dark) and the stimulation sites (yellow). Click a site to stimulate it, on the arm or beside the traces. Stimulate each site you need; the latency, amplitude and segment velocity fill in. Median and ulnar motor studies also offer F waves.</li>
-      <li><b>Needle EMG.</b> Click a muscle on the arm, or a deep or axial muscle from the list. The needle goes in at rest: watch and listen (turn the sound on) for insertional activity, fibrillations, positive sharp waves and fasciculations. Press <kbd>Space</kbd> to move the needle and sample another spot. Then ask for minimal, moderate and maximal effort to judge the motor units and their recruitment. During effort, a unit is captured in the triggered panel when its spikes cross the red trigger line: move the needle on the needle pad until one does, or press <kbd>Space</kbd> to jump beside another firing unit.</li>
+      <li><b>Needle EMG.</b> Click a muscle on the arm, or a deep or axial muscle from the list. The needle goes in and the monitor is blank. Press <kbd>Space</kbd> (or drag the needle on the pad) to move the needle: watch and listen (turn the sound on) for insertional activity, fibrillations, positive sharp waves and fasciculations, and keep moving it to sample other spots. Then ask for minimal, moderate and maximal effort to judge the motor units and their recruitment. During effort, a unit is captured in the triggered panel when its spikes cross the red trigger line: move the needle on the needle pad until one does, or press <kbd>Space</kbd> to jump beside another firing unit.</li>
       <li>Use the <b>Left arm</b> button for side-to-side comparisons. Proximal studies (musculocutaneous, axillary, MABC) are best judged against the other side.</li>
       <li>When you have enough, choose the localisation and pathophysiology and check your answer. The answer explains why a wrong choice does not fit, lists the tests that settle the case and which of them you did, and ends with a one-line pattern to remember.</li>
-      <li><b>Marking.</b> Localisation must match exactly. For pathophysiology, "Axon loss" is the answer when there is no focal slowing or block. When a case has focal slowing or conduction block (carpal tunnel, ulnar neuropathy at the elbow, radial neuropathy at the spiral groove), "Demyelination" and "Demyelination and axon loss" are both accepted, and the answer names the better fit.</li>
+      <li><b>Marking.</b> Localisation must match exactly, and the side is marked too ("Both sides" for one lesion on both arms; a normal study needs no side). Open <b>Second lesion</b> only when one lesion cannot explain all the findings: each real lesion is marked whichever slot you put it in, a lesion you missed is named with the findings that show it, and a second lesion that is not there is marked wrong. For pathophysiology, "Axon loss" is the answer when there is no focal slowing or block. When a case has focal slowing or conduction block (carpal tunnel, ulnar neuropathy at the elbow, radial neuropathy at the spiral groove), "Demyelination" and "Demyelination and axon loss" are both accepted, and the answer names the better fit.</li>
     </ol>
     <p>The machine's automated needle readings are hidden at first, as when you write a report yourself. Grade each muscle in the EMG table of the report (Show report): insertional activity, fibrillations and positive sharp waves, fasciculations, motor unit amplitude, duration and polyphasia, recruitment and interference pattern. Check my answer then compares your grades with the model's. Press "Show automated readings" beside the scope to see the machine's grades instead.</p>
     <h3>Reading the screen</h3>
@@ -430,10 +449,14 @@ dialog#repdlg::backdrop{background:rgba(10,14,20,.45)}
       <li>The lesion sits on the brachial plexus simulator's wiring: each muscle and each sensory nerve is reached by a route from root to trunk, division, cord and nerve, with the same root weights. A lesion removes, blocks or slows the axons that pass through it.</li>
       <li>Root lesions are preganglionic: they remove motor axons but spare the sensory axons, so SNAPs stay normal even where the skin is numb.</li>
       <li>Conduction studies come from the EMG &amp; NCS simulator's axon population (160 motor and 200 sensory axons with their own velocities). Focal demyelination slows a stretch of one segment; conduction block stops a fraction of the axons in a segment.</li>
-      <li>Needle EMG comes from the same simulator's muscle model: 40 motor units in a cross-section, with denervation, collateral sprouting and reinnervation over time. Every muscle uses the same generic model, so size differences between muscles (for example deltoid versus a hand muscle) are not shown.</li>
+      <li>Needle EMG comes from the same simulator's muscle model: a small cross-section of muscle with about 1100 fibres shared among 29–64 motor units (the number depends on the muscle), with denervation, collateral sprouting and reinnervation over time. Each muscle has its own arrangement of units, so the units you find are not in the same place in every muscle, and units differ in size, in the spread of their end-plates, in fibre size and in having a late-arriving branch, which gives them different shapes.</li>
+      <li>Unit size by muscle: <span id="g-units"></span></li>
       <li>Wallerian degeneration is assumed complete. Studies done in the first week or two after an injury, when distal stimulation can still look normal, are not modelled.</li>
       <li>Each hand muscle has the same root weights, so the split hand of ALS and the APB-predominant wasting of thoracic outlet syndrome cannot be shown. Fascicular sparing (for example FCU in cubital tunnel lesions) is not modelled.</li>
       <li>Insertional activity, temperature, age and stimulus intensity are idealised: every stimulus is supramaximal.</li>
+      <li>The patient always gives full effort, so poor activation (a few normal units firing slowly, from pain or poor effort) cannot be shown.</li>
+      <li>Multifocal motor neuropathy is modelled as a motor-only conduction block in the median or ulnar forearm segment; the sensory fibres in the same segment are spared.</li>
+      <li>Two lesions in one patient can be of different ages; each muscle takes the age of the lesion that affects it most.</li>
       <li>The clinical vignettes are written by hand to match the lesion; they are teaching cases, not real patients.</li>
     </ul>
   </div>
@@ -614,32 +637,72 @@ const EMG = (() => {
 // Anything marked "fitted" was tuned by eye to give the published output, not taken from a paper.
   // D0: 55 um fibre diameter (adult limb muscle fibres 40-80 um [Du02]). NU, W, H: a 2.4 x 1.6 mm patch
   // with ~1200 fibres from 40 units is a modelling choice, not a measured figure.
-  const W = 2.4, H = 1.6, D0 = 0.055, NU = 40;
+  const W = 2.4, H = 1.6, D0 = 0.055, NU0 = 40, IR0 = 500;
   const FS = 20000;          // samples/s for synthesised signals
   const PICKUP = 0.45;       // mm: fibres beyond this contribute nothing useful
 
-  function build(seed) {
-    const r = rng(seed);
+  // Muscle size. The patch holds ~1140 fibres whatever the muscle, so a muscle with larger units (more fibres
+  // per unit, the innervation ratio ir) has fewer units reaching the patch, each with more fibres in it.
+  // Units in the patch = 40 * (500/ir)^0.5, limited to 24-64 (the exponent is fitted, not measured). Fewer, larger units
+  // would otherwise give bigger and longer MUAPs in big muscles, which is not what is reported (duration is similar,
+  // 8-14 ms, in most limb muscles). So each fibre's contribution is scaled by 1.15 * (units/40)^1.5 (TUNE.gk, TUNE.ge,
+  // fitted): the MUAP then stays near 0.5-1 mV and 6-10 ms in every muscle, and unit size shows as the number of units.
+  function unitCount(ir) { return ir ? Math.max(24, Math.min(64, Math.round(NU0 * Math.pow(IR0 / ir, 0.5)))) : NU0; }
+
+  function build(seed, ir) {
+    const r = rng(seed), rs = rng((seed ^ 0x5bd1e995) >>> 0), NU = unitCount(ir);
+    const gauss = () => { let s = 0; for (let k = 0; k < 6; k++) s += rs(); return (s - 3) * Math.SQRT2; };
     const fibres = [];
     const dx = 0.062, dy = dx * 0.866;
     for (let j = 0; dy * j < H - 0.02; j++) for (let i = 0; dx * i < W - 0.02; i++) {
       const x = 0.03 + dx * i + (j % 2 ? dx / 2 : 0) + (r() - 0.5) * 0.012;
       const y = 0.03 + dy * j + (r() - 0.5) * 0.012;
       if (x > W - 0.025) continue;
-      fibres.push({ x, y, d0: D0 * (0.88 + 0.24 * r()), ze: (r() + r() + r() + r() - 2), rMyo: r(), rSize: r(), rInfl: r(), rAdopt: r(), rSprout: r(), rFib: r(), rMyot: r() });
+      fibres.push({ x, y, d0: D0 * (0.88 + 0.24 * r()), ze: (r() + r() + r() + r() - 2), rMyo: r(), rSize: r(), rInfl: r(), rAdopt: r(), rSprout: r(), rFib: r(), rMyot: r(), rBr: rs() });
     }
+    // Unit centres lie on a jittered grid over the patch and a 0.5 mm margin, so the units (and the small units
+    // recruited first) are spread over the whole patch, not clustered on one side. Each unit's fibres lie in an
+    // elongated cloud of random width and direction, with a few scattered beyond it: territories are 5-10 mm across
+    // [Du02], far larger than the patch, so the patch sees only part of each. Unit size varies (log-normal weight).
+    const mg = 0.5, GW = W + 2 * mg, GH = H + 2 * mg;
+    const cols = Math.ceil(Math.sqrt(NU * GW / GH)), rows = Math.ceil(NU / cols), cells = [];
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) cells.push([i, j]);
+    for (let k = cells.length - 1; k > 0; k--) { const m = Math.floor(rs() * (k + 1)); [cells[k], cells[m]] = [cells[m], cells[k]]; }
     const units = [];
-    // unit territory radius 2.2-3 mm: territories are 5-10 mm across [Du02]
-    for (let u = 0; u < NU; u++) units.push({ id: u, cx: -1.2 + r() * (W + 2.4), cy: -1.2 + r() * (H + 2.4), R: 2.2 + r() * 0.8, type: r() < 0.5 ? 1 : 2, rLoss: r(), rBlock: r(), rFasc: r(), hue: (u * 137.5) % 360, n: 0 });
+    for (let u = 0; u < NU; u++) {
+      const ax = 1.2 + rs() * 1.6;
+      units.push({ id: u, cx: -mg + (cells[u][0] + rs()) * GW / cols, cy: -mg + (cells[u][1] + rs()) * GH / rows, ax, ay: ax * (0.35 + 0.65 * rs()), th: rs() * Math.PI, w: Math.exp(0.5 * gauss()),
+        type: rs() < 0.5 ? 1 : 2, rLoss: r(), rBlock: r(), rFasc: r(), hue: (u * 137.5) % 360, n: 0 });
+    }
     for (const f of fibres) {
-      const cand = units.filter(u => Math.hypot(u.cx - f.x, u.cy - f.y) < u.R);
-      const u = cand.length ? cand[Math.floor(r() * cand.length)] : units[Math.floor(r() * NU)];
-      f.u0 = u.id; u.n++;
+      let tot = 0;
+      const wt = units.map(u => {
+        const ddx = f.x - u.cx, ddy = f.y - u.cy, c = Math.cos(u.th), s = Math.sin(u.th), a = (ddx * c + ddy * s) / u.ax, b = (-ddx * s + ddy * c) / u.ay;
+        const v = u.w * (0.25 + 0.75 * Math.exp(-0.5 * (a * a + b * b))); tot += v; return v;
+      });
+      let t = r() * tot, k = 0;
+      while (k < NU - 1 && t > wt[k]) { t -= wt[k]; k++; }
+      f.u0 = k; units[k].n++;
     }
     // recruitment order: small units first, type 1 before type 2
     const order = units.slice().sort((a, b) => a.n * (a.type === 2 ? 1.6 : 1) * (0.8 + 0.4 * a.rFasc) - b.n * (b.type === 2 ? 1.6 : 1) * (0.8 + 0.4 * b.rFasc));
     order.forEach((u, k) => { u.rank = k; });
     for (const u of units) u.type = u.rank < NU * 0.45 ? 1 : 2;
+    // Which units are lost or blocked in a lesion is decided by rLoss and rBlock. They are spread evenly along the
+    // recruitment order (golden-ratio spacing, random start), not drawn independently, so a given fraction lost is spread
+    // across small and large units. With independent draws the first two units, which set the recruitment frequency, were
+    // lost or kept by chance, and recruitment looked normal in muscles that had lost half their axons.
+    const o1 = rs(), o2 = rs();
+    for (const u of units) { u.rLoss = ((u.rank * 0.6180339887 + o1 + (rs() - 0.5) * 0.5 / NU) % 1 + 1) % 1; u.rBlock = ((u.rank * 0.7548776662 + o2 + (rs() - 0.5) * 0.5 / NU) % 1 + 1) % 1; }
+    // Unit-to-unit variety in MUAP shape (modelling choices, not measured): fibre size (type 2 larger, so
+    // taller and faster), the spread of end-plates along the fibres (duration), spike width (sharpness), and
+    // in about a third of units a thin branch whose fibres arrive 0.7-2.5 ms late (a satellite or notch).
+    for (const u of units) {
+      u.dm = u.type === 2 ? 1.05 + 0.2 * rs() : 0.95 + 0.1 * rs();
+      u.zsp = 0.85 + 0.7 * rs();
+      u.sgm = 0.85 + 0.35 * rs();
+      u.br = rs() < 0.3 ? { frac: 0.1 + 0.18 * rs(), off: 0.7 + 1.8 * rs() } : null;
+    }
     // neighbours within 0.14 mm for collateral sprouting
     for (const f of fibres) f.nb = [];
     for (let a = 0; a < fibres.length; a++) for (let b = a + 1; b < fibres.length; b++) {
@@ -648,7 +711,15 @@ const EMG = (() => {
     }
     return { fibres, units };
   }
-  const M = build(1119);
+  // One model per muscle, built on first use. The seed comes from the muscle name, so every muscle has its own
+  // layout of units; ir (fibres per unit) sets how many units reach the patch.
+  const MODELS = new Map();
+  function modelFor(name, ir) {
+    let m = MODELS.get(name);
+    if (!m) { let h = 2166136261; for (const ch of name) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); m = build((h >>> 0) || 1119, ir); m.name = name; m.ir = ir; calibrate(m); MODELS.set(name, m); }
+    return m;
+  }
+  const DEFAULT = build(1119);
 
   function defaults() {
     return { loss: 0, ongoing: false, block: 0, weeks: 0, myo: 0, infl: false, myotonia: false, nx: 1.2, ny: 0.8 };
@@ -664,7 +735,7 @@ const EMG = (() => {
   // units after months [P&S]; no single paper gives these numbers.
   const ADOPT_MIN = 6, ADOPT_SPAN = 12, MATURE = 14, DEATH = 80, FIB_ON = 2;
   function state(p) {
-    const { fibres, units } = M;
+    const M = p.M || DEFAULT, { fibres, units } = M, NU = units.length;
     const lostAt = units.map(u => {
       if (!p.loss || u.rLoss >= p.loss) return Infinity;
       return p.ongoing ? (u.rLoss / p.loss) * 52 : 0; // MND: losses spread over the first year
@@ -712,7 +783,7 @@ const EMG = (() => {
         fib: (s.owner === -1 && !s.dead && !s.myoDead && T - s.since >= FIB_ON) || s.necrotic
       };
     });
-    return { F: out, lostAt, blocked, T, p, events };
+    return { F: out, lostAt, blocked, T, p, events, M };
   }
 
   // ---------- potentials ----------
@@ -722,27 +793,28 @@ const EMG = (() => {
   // Single-fibre potential shape and size (fitted): chosen so normal MUAPs measure ~0.2-1.5 mV peak to peak
   // and mostly 5-12 ms with <=4 phases, as with a concentric needle in proximal limb muscles of adults
   // [Bu54, P&S, Du02]. Muscle fibre conduction velocity 3.8 m/s (3-5 m/s [Du02]).
-  const TUNE = { a: 0.6, r0: 0.16, s0: 0.14, s1: 0.55, fa: 0.0022, fr: 1.4, fs: 2.5, zs: 1.8, sc: 0.6, ve: 1.4 };
+  const TUNE = { gk: 1.2, ge: 1.5, a: 0.6, r0: 0.16, s0: 0.14, s1: 0.55, fa: 0.0022, fr: 1.4, fs: 2.5, zs: 1.8, sc: 0.6, ve: 1.4 };
   function sfapParams(r, d) {
     const k = Math.pow(d / D0, 1.6);
     return { amp: TUNE.a * k / (1 + Math.pow(r / TUNE.r0, 2)), sg: TUNE.s0 + TUNE.s1 * r, famp: TUNE.fa * k / (1 + Math.pow(r / TUNE.fr, 2)), fsg: TUNE.fs };
   }
   // fibre contributions of unit u: [latency ms, amp mV, sigma ms, jitter sd ms, block prob]
   function unitFibres(S, u) {
-    const out = [];
+    const out = [], M = S.M, U = M.units[u], gc = TUNE.gk * Math.pow(M.units.length / NU0, TUNE.ge);
     for (let i = 0; i < M.fibres.length; i++) {
       const s = S.F[i];
       if (s.owner !== u || s.dead || s.necrotic) continue;
       const f = M.fibres[i];
       const r = Math.hypot(f.x - S.p.nx, f.y - S.p.ny);
       if (r > 1.6) continue;
-      const { amp, sg, famp, fsg } = sfapParams(r, s.d);
-      const v = 3.8 * Math.pow(s.d / D0, TUNE.ve);
+      const dd = s.d * U.dm;
+      const sf = sfapParams(r, dd), amp = sf.amp * gc, sg = sf.sg, famp = sf.famp * gc, fsg = sf.fsg;
+      const v = 3.8 * Math.pow(dd / D0, TUNE.ve);
       // collateral sprouts: long, thin and slow while immature; once mature they still add
       // endplate scatter, which widens the unit's temporal spread (longer duration)
       const sprout = s.reinn ? (1 - s.mature) * (1.2 + 3.5 * f.rSprout) + TUNE.sc * (f.rSprout - 0.3) : 0;
-      const lat = 1.0 + Math.abs(ZN - f.ze * TUNE.zs) / v + sprout;
-      out.push([lat, amp, sg, s.reinn ? 0.02 + (1 - s.mature) * 0.35 : 0.02, s.reinn ? (1 - s.mature) * 0.35 : 0, i, famp, fsg]);
+      const lat = 1.0 + Math.abs(ZN - f.ze * TUNE.zs * U.zsp) / v + sprout + (U.br && f.rBr < U.br.frac ? U.br.off : 0);
+      out.push([lat, amp, sg * U.sgm, s.reinn ? 0.02 + (1 - s.mature) * 0.35 : 0.02, s.reinn ? (1 - s.mature) * 0.35 : 0, i, famp, fsg]);
     }
     return out;
   }
@@ -808,16 +880,17 @@ const EMG = (() => {
   const RMIN = 6, RMAX = 45, KAPPA = 1, DELTA = 3.2;
   function unitForce(S, u, rate) {
     let n = 0;
-    for (let i = 0; i < M.fibres.length; i++) { const s = S.F[i]; if (s.owner === u && !s.dead && !s.necrotic) n += (s.d / D0) * (s.d / D0); }
+    const dm = S.M.units[u].dm;
+    for (let i = 0; i < S.M.fibres.length; i++) { const s = S.F[i]; if (s.owner === u && !s.dead && !s.necrotic) n += (s.d * dm / D0) * (s.d * dm / D0); }
     return n * (1 - Math.exp(-rate / 14));
   }
-  function available(S) { return M.units.filter(u => S.lostAt[u.id] > S.T && !S.blocked[u.id]); }
-  let FMAX = null;
+  function available(S) { return S.M.units.filter(u => S.lostAt[u.id] > S.T && !S.blocked[u.id]); }
   function recruit(S, effort) {
     const av = available(S);
     const fu = new Map(av.map(u => [u.id, unitForce(S, u.id, 1000)]));
     const rateAt = (u, D) => D < u.rank * DELTA ? 0 : Math.min(RMAX, RMIN + KAPPA * (D - u.rank * DELTA));
     const total = D => { let s = 0; for (const u of av) { const r = rateAt(u, D); if (r) s += fu.get(u.id) * (1 - Math.exp(-r / 14)); } return s; };
+    const FMAX = S.M.fmax, NU = S.M.units.length;
     const target = effort * FMAX;
     const Dmax = NU * DELTA + (RMAX - RMIN) / KAPPA;
     let lo = 0, hi = Dmax;
@@ -863,7 +936,7 @@ const EMG = (() => {
     const n = Math.round(dur * FS), buf = new Float64Array(n), r = rng(99 + Math.round(S.T * 10)), ev = [];
     const rc = chunk ? rng(7001 + chunk * 7919 + Math.round(S.p.nx * 1000 + S.p.ny * 100)) : r, off = chunk * dur * 1000;
     noise(buf, r, 0.004); // same draw order in every chunk, so the fibrillation phases below match
-    const near = [];
+    const near = [], M = S.M;
     for (let i = 0; i < M.fibres.length; i++) {
       const f = M.fibres[i], dist = Math.hypot(f.x - S.p.nx, f.y - S.p.ny);
       if (dist < 0.4) near.push([dist, i]);
@@ -957,7 +1030,7 @@ const EMG = (() => {
     } else if (lib === 'crd') {
       // ephaptic loop: a chain of adjacent fibres re-excite one another; identical complex repeats
       const chain = [near[0][1]];
-      while (chain.length < 6) { const last = M.fibres[chain[chain.length - 1]]; const nx = last.nb.find(j => !chain.includes(j)); if (nx === undefined) break; chain.push(nx); }
+      while (chain.length < 6) { const last = S.M.fibres[chain[chain.length - 1]]; const nx = last.nb.find(j => !chain.includes(j)); if (nx === undefined) break; chain.push(nx); }
       // CRDs fire at a fixed 5-100 Hz with abrupt start and stop [P&S]. The pacemaker fibre's spike drives each neighbour in turn; the last re-excites the pacemaker,
       // so the loop time sets the (fixed) rate. Midway one fibre drops out of the loop: the complex
       // changes shape abruptly and the shorter loop fires slightly faster, as real CRDs can.
@@ -980,7 +1053,7 @@ const EMG = (() => {
   // units the needle hears: pp > 50 µV
   function visibleUnits(S) {
     const out = [];
-    for (const u of M.units) {
+    for (const u of S.M.units) {
       if (S.lostAt[u.id] <= S.T) continue;
       const fl = unitFibres(S, u.id);
       if (!fl.length) continue;
@@ -1013,26 +1086,26 @@ const EMG = (() => {
     return { buf, ev, rec };
   }
 
-  function calibrate() {
-    const S = state(defaults());
+  function calibrate(M) {
+    const S = state(Object.assign(defaults(), { M }));
     let s = 0;
     for (const u of M.units) s += unitForce(S, u.id, 1000);
-    FMAX = s * (1 - Math.exp(-RMAX / 14));
+    M.fmax = s * (1 - Math.exp(-RMAX / 14));
   }
-  calibrate();
+  calibrate(DEFAULT);
 
   // summary across visible units
   function summary(S) {
     const vis = visibleUnits(S).filter(v => !S.blocked[v.u]);
     const near = vis.filter(v => riseTime(v.y) <= 0.5 || v.m.pp > 0.2);
-    const set = (near.length >= 3 ? near : vis).slice().sort((a, b) => M.units[a.u].rank - M.units[b.u].rank).slice(0, 10);
+    const set = (near.length >= 3 ? near : vis).slice().sort((a, b) => S.M.units[a.u].rank - S.M.units[b.u].rank).slice(0, 10);
     const infos = set.map(v => unitInfo(S, v.u));
     const mean = k => infos.length ? infos.reduce((a, x) => a + x.m[k], 0) / infos.length : null;
     const poly = infos.length ? infos.filter(x => x.m.phases > 4).length / infos.length : null;
     const unstable = infos.filter(x => x.unstable).length;
     let fibN = 0, fibAny = 0;
-    for (let i = 0; i < M.fibres.length; i++) {
-      const f = M.fibres[i]; if (Math.hypot(f.x - S.p.nx, f.y - S.p.ny) < 0.4 && S.F[i].fib) fibN++;
+    for (let i = 0; i < S.M.fibres.length; i++) {
+      const f = S.M.fibres[i]; if (Math.hypot(f.x - S.p.nx, f.y - S.p.ny) < 0.4 && S.F[i].fib) fibN++;
     }
     for (const s of S.F) if (s.fib) fibAny++;
     const lo = recruit(S, 0.08);
@@ -1041,7 +1114,10 @@ const EMG = (() => {
 
   function grade(n) { return n === 0 ? '0' : n <= 3 ? '1+' : n <= 12 ? '2+' : n <= 40 ? '3+' : '4+'; }
 
-  return { TUNE, M, W, H, D0, FS, PICKUP, defaults, state, unitInfo, unitFibres, muapTrace, measureMuap, recruit, restSignal, activeSignal, visibleUnits, summary, grade, MDT, MUAP_WIN, riseTime, rng };
+  // flat baseline: amplifier noise only, as when the needle has just been placed and nothing has been moved or fired
+  function blankSignal() { const buf = new Float64Array(2 * FS); noise(buf, rng(4242), 0.004); return { buf, ev: [], insLen: 0 }; }
+
+  return { TUNE, blankSignal, modelFor, unitCount, DEFAULT, W, H, D0, FS, PICKUP, defaults, state, unitInfo, unitFibres, muapTrace, measureMuap, recruit, restSignal, activeSignal, visibleUnits, summary, grade, MDT, MUAP_WIN, riseTime, rng };
 })();
 </script>
 <script>
@@ -1110,19 +1186,19 @@ const NCS = (() => {
   const STUDIES = {
     medM: {
       kind: 'motor', name: 'Median motor', rec: 'APB', muscle: 'APB', residual: 2.1, window: 30, target: 8.5, F: true,
-      segs: [{ id: 'd', len: 70, bp: ['MEDW'] }, { id: 'f', len: 230 }, { id: 'a', len: 150, mult: 1.05, bp: ['MED1'] }, { id: 'p', len: 220, mult: 1.1 }, { id: 'r', len: 70, mult: 1.1 }],
+      segs: [{ id: 'd', len: 70, bp: ['MEDW'] }, { id: 'f', len: 230, bp: ['MEDF'] }, { id: 'a', len: 150, mult: 1.05, bp: ['MED1'] }, { id: 'p', len: 220, mult: 1.1 }, { id: 'r', len: 70, mult: 1.1 }],
       sites: [{ name: 'Wrist', k: 1, pos: ['ant', 136, 552] }, { name: 'Elbow', k: 2, pos: ['ant', 160, 326] }],
       recPos: ['ant', 116, 610], ref: { amp: 4.0, dl: 4.4, cv: 49, f: 31 }
     },
     ulnM: {
       kind: 'motor', name: 'Ulnar motor', rec: 'ADM', muscle: 'ADM', residual: 1.6, window: 30, target: 10, F: true,
-      segs: [{ id: 'd', len: 70, bp: ['ULNW'] }, { id: 'f', len: 200 }, { id: 'e', len: 100, bp: ['ULN1'] }, { id: 'a', len: 100, mult: 1.05 }, { id: 'p', len: 220, mult: 1.1 }, { id: 'r', len: 70, mult: 1.1 }],
+      segs: [{ id: 'd', len: 70, bp: ['ULNW'] }, { id: 'f', len: 200, bp: ['ULNF'] }, { id: 'e', len: 100, bp: ['ULN1'] }, { id: 'a', len: 100, mult: 1.05 }, { id: 'p', len: 220, mult: 1.1 }, { id: 'r', len: 70, mult: 1.1 }],
       sites: [{ name: 'Wrist', k: 1, pos: ['ant', 163, 552] }, { name: 'Below elbow', k: 2, pos: ['ant', 190, 372] }, { name: 'Above elbow', k: 3, pos: ['ant', 192, 282] }],
       recPos: ['ant', 186, 622], ref: { amp: 6.0, dl: 3.3, cv: 49, f: 32 }
     },
     ulnFDI: {
       kind: 'motor', name: 'Ulnar motor', rec: 'FDI', muscle: 'First dorsal interosseous', residual: 2.0, window: 30, target: 11,
-      segs: [{ id: 'd', len: 90, bp: ['ULNW'] }, { id: 'f', len: 200 }, { id: 'e', len: 100, bp: ['ULN1'] }, { id: 'a', len: 100, mult: 1.05 }, { id: 'p', len: 220, mult: 1.1 }, { id: 'r', len: 70, mult: 1.1 }],
+      segs: [{ id: 'd', len: 90, bp: ['ULNW'] }, { id: 'f', len: 200, bp: ['ULNF'] }, { id: 'e', len: 100, bp: ['ULN1'] }, { id: 'a', len: 100, mult: 1.05 }, { id: 'p', len: 220, mult: 1.1 }, { id: 'r', len: 70, mult: 1.1 }],
       sites: [{ name: 'Wrist', k: 1, pos: ['ant', 163, 552] }, { name: 'Below elbow', k: 2, pos: ['ant', 190, 372] }, { name: 'Above elbow', k: 3, pos: ['ant', 192, 282] }],
       recPos: ['post', 114, 632], ref: { amp: 7.0, dl: 4.5, cv: 49 }
     },
@@ -1304,26 +1380,52 @@ const EXTRA_MUSCLES = [
 ];
 const MUSCLES = BP.MUSCLES.concat(EXTRA_MUSCLES);
 const MBY = Object.fromEntries(MUSCLES.map(m => [m.name, m]));
+// Motor unit size: innervation ratio, in muscle fibres per motor unit. Only a few human muscles have been counted
+// (motor axons and fibres in whole muscles). Measured, as tabulated in Karpati, Disorders of Voluntary Muscle (2010) p.7:
+//   biceps 750 (774 axons, 580,000 fibres; Buchthal 1961); brachioradialis 410 (315 axons, 129,200 fibres) and first dorsal
+//   interosseous 340 (119 axons, 40,500 fibres); tibialis anterior 657 (445 axons, 292,500 fibres), all Feinstein et al. 1955,
+//   Acta Anat 23:127-42. Large muscles have larger units than small ones [Buchthal and Schmalbruch 1980, Physiol Rev 60:90-142].
+// Gath and Stalberg (1981) found far lower values for biceps (209) and deltoid (239) by a different method (fibres within the
+// range of an electrode, not whole-muscle counts), so the two sets are not comparable.
+// Every other value is an ESTIMATE by analogy with the measured muscle of similar size and role; no counts were found.
+const UNIT_SIZE = {
+  'Biceps': [750, 'measured'], 'Brachioradialis': [410, 'measured'], 'First dorsal interosseous': [340, 'measured'], 'Tibialis anterior': [657, 'measured'],
+  'Brachialis': [750, 'estimated'], 'Triceps': [700, 'estimated'], 'Deltoid': [650, 'estimated'], 'Latissimus dorsi': [700, 'estimated'],
+  'Pectoralis major, clavicular': [650, 'estimated'], 'Pectoralis major, sternal': [700, 'estimated'], 'Subscapularis': [600, 'estimated'],
+  'Supraspinatus': [550, 'estimated'], 'Infraspinatus': [550, 'estimated'], 'Serratus anterior': [600, 'estimated'], 'Rhomboids': [550, 'estimated'],
+  'Pronator teres': [450, 'estimated'], 'ECRL': [450, 'estimated'], 'FCR': [400, 'estimated'], 'FCU': [450, 'estimated'], 'FDS': [450, 'estimated'],
+  'EDC': [400, 'estimated'], 'Supinator': [350, 'estimated'], 'ECU': [350, 'estimated'], 'FDP 2–3': [400, 'estimated'], 'FDP 4–5': [400, 'estimated'],
+  'FPL': [300, 'estimated'], 'EIP': [250, 'estimated'], 'EPL': [250, 'estimated'], 'Pronator quadratus': [300, 'estimated'],
+  'APB': [330, 'estimated'], 'Opponens pollicis': [330, 'estimated'], 'ADM': [320, 'estimated'], 'Adductor pollicis': [330, 'estimated'],
+  'Cervical paraspinals, C5–6': [800, 'estimated'], 'Cervical paraspinals, C7–T1': [800, 'estimated'], 'Thoracic paraspinals': [800, 'estimated'],
+  'Genioglossus (tongue)': [150, 'estimated']
+};
+const unitIR = name => (UNIT_SIZE[name] || [500])[0];
 // PPR = posterior primary ramus: leaves the root just outside the foramen, before the plexus.
 // AX = muscles outside the arm, reached only by the motor neuron disease case.
+// MEDF and ULNF are the median and ulnar nerves in the forearm, between the elbow branches and the wrist (used for
+// the conduction block of multifocal motor neuropathy). They lie on the route to the hand (MEDW, ULNW) only.
 function routeOf(root, nk) {
   if (nk === 'PPR') return ['R_' + root];
   if (nk === 'AX') return [root];
-  return BP.route(root, nk);
+  const r = BP.route(root, nk);
+  if (nk === 'MEDW') r.push('MEDF');
+  if (nk === 'ULNW') r.push('ULNF');
+  return r;
 }
 
 const CASES = [
   {
     id: 'cts', title: 'Night-time hand tingling', who: '54-year-old woman', weeks: 35,
     hx: 'Eight months of tingling in the right thumb, index and middle fingers that wakes her at night; she shakes the hand to relieve it. Lately she drops things. No neck pain.',
-    exam: 'Mild thenar wasting. Thumb abduction (APB) 4; finger flexion, wrist and elbow strength normal. Reduced pinprick on the tips of digits 1–3; the skin over the thenar eminence is normal. Reflexes normal. Tinel and Phalen signs positive at the wrist.',
-    lesions: [{ at: 'MEDW', axon: 0.25, dem: 0.68, focal: 35, spread: 0.25, block: 0.1 }],
+    exam: 'Mild thenar wasting. Strength 5 for shoulder abduction, elbow flexion, elbow extension, wrist flexion, wrist extension, finger flexion and finger abduction. Reduced pinprick on the tips of digits 1–3; the skin over the thenar eminence is normal. Reflexes normal. Tinel and Phalen signs positive at the wrist.',
+    lesions: [{ at: 'MEDW', axon: 0.45, dem: 0.68, focal: 35, spread: 0.25, block: 0.1 }], // 0.45 (was 0.25): enough loss for APB to show the reinnervated units the teaching describes
     dx: 'Right median neuropathy at the wrist (carpal tunnel syndrome), moderate: focal demyelination with secondary axon loss.',
     answer: { loc: 'med-wrist', path: ['both', 'demy'] },
     teach: [
       'Prolonged median distal motor latency and median sensory peak latency, with a normal forearm velocity: the slowing lies between the wrist and the hand.',
       'Ulnar motor and sensory studies are normal, so the slowing is focal, not a polyneuropathy.',
-      'APB shows reinnervated motor units; pronator teres and FCR (C6–7, median nerve above the wrist) are normal, which excludes a C6–7 radiculopathy and a proximal median lesion.',
+      'The median CMAP is low and APB shows large, reinnervated motor units: there is axon loss as well as slowing. Pronator teres and FCR (C6–7, median nerve above the wrist) are normal, which excludes a C6–7 radiculopathy and a proximal median lesion.',
       'The palmar comparison (median minus ulnar peak latency ≥0.4 ms) earns its place in mild cases, when the routine studies are borderline.'
     ],
     key: [['Median motor (APB)', ['ncs:medM']], ['Median sensory', ['ncs:medS', 'ncs:medP']], ['An ulnar study for comparison', ['ncs:ulnM', 'ncs:ulnS', 'ncs:ulnP', 'ncs:ulnFDI']], ['Needle APB', ['emg:APB']], ['A C6–7 muscle outside the median hand territory', ['emg:Pronator teres', 'emg:FCR', 'emg:Triceps', 'emg:Biceps', 'emg:Brachioradialis', 'emg:EDC']]]
@@ -1331,7 +1433,7 @@ const CASES = [
   {
     id: 'une', title: 'Numb little finger and a clumsy hand', who: '61-year-old man', weeks: 26,
     hx: 'Six months of numbness in the right ring and little fingers and on the back of the hand on that side. Trouble with buttons and keys. He drives long distances with his elbow on the window ledge.',
-    exam: 'Wasting of the first dorsal interosseous. FDI 4−, ADM 4, FDP to the ring and little fingers 4, FCU 5−. Froment sign positive. APB, EIP and finger extensors normal. Reduced pinprick on the little finger, the ulnar half of the ring finger and the dorsal ulnar hand; medial forearm normal. Tinel sign at the elbow.',
+    exam: 'Wasting of the first dorsal interosseous. Strength: shoulder abduction 5, elbow flexion 5, elbow extension 5, wrist flexion 5−, wrist extension 5, finger flexion 4+, finger abduction 4−. Froment sign positive. Reduced pinprick on the little finger, the ulnar half of the ring finger and the dorsal ulnar hand; medial forearm normal. Tinel sign at the elbow.',
     lesions: [{ at: 'ULN1', axon: 0.6, dem: 0.65, focal: 40, spread: 0.6, block: 0.35 }],
     dx: 'Right ulnar neuropathy at the elbow: focal demyelination (slowing and partial conduction block across the elbow) with axon loss.',
     answer: { loc: 'uln-elbow', path: ['both', 'demy'] },
@@ -1346,7 +1448,7 @@ const CASES = [
   {
     id: 'c7', title: 'Neck pain into the back of the arm', who: '47-year-old woman', weeks: 7,
     hx: 'Seven weeks of neck pain radiating down the back of the right arm into the middle finger, worse looking up. Tingling in the middle finger.',
-    exam: 'Triceps 4, wrist flexion 4+, finger extension 4+; deltoid, biceps and hand intrinsics normal. Triceps reflex reduced; biceps and brachioradialis reflexes normal. Reduced pinprick on the middle finger. Spurling sign positive.',
+    exam: 'Strength: shoulder abduction 5, elbow flexion 5, elbow extension 4, wrist flexion 4+, wrist extension 4+, finger flexion 5, finger abduction 5. Triceps reflex reduced; biceps and brachioradialis reflexes normal. Reduced pinprick on the middle finger. Spurling sign positive.',
     lesions: [{ at: 'R_C7', axon: 0.55 }],
     dx: 'Right C7 radiculopathy with active denervation.',
     answer: { loc: 'c7', path: ['axonal'] },
@@ -1361,7 +1463,7 @@ const CASES = [
   {
     id: 'c8', title: 'Weak grip and a numb little finger', who: '58-year-old man', weeks: 12,
     hx: 'Three months of neck and medial scapular pain, then numbness of the right ring and little fingers and weakness gripping and turning keys.',
-    exam: 'FDI 4, ADM 4+, APB 4+, FPL 4+, EIP 4+, finger flexors 4. Finger flexor reflex reduced. Reduced pinprick on the little and ring fingers, the ulnar border of the hand and the distal medial forearm. No Tinel sign at the elbow.',
+    exam: 'Strength: shoulder abduction 5, elbow flexion 5, elbow extension 5, wrist flexion 4+, wrist extension 5−, finger flexion 4, finger abduction 4. Finger flexor reflex reduced. Reduced pinprick on the little and ring fingers, the ulnar border of the hand and the distal medial forearm. No Tinel sign at the elbow.',
     lesions: [{ at: 'R_C8', axon: 0.6 }],
     dx: 'Right C8 radiculopathy.',
     answer: { loc: 'c8', path: ['axonal'] },
@@ -1376,7 +1478,7 @@ const CASES = [
   {
     id: 'ut', title: 'Cannot lift the arm after a bike crash', who: '24-year-old man', weeks: 6,
     hx: 'Six weeks ago he went over the handlebars of his mountain bike and landed on the right shoulder with his head forced to the left. Since then he cannot lift the arm or bend the elbow well. The outer arm and forearm and the thumb feel numb.',
-    exam: 'Deltoid 2, supraspinatus 2, infraspinatus 2, biceps 2, brachioradialis 2; triceps 4+, hand normal. No scapular winging; rhomboids normal. Biceps and brachioradialis reflexes absent. Reduced sensation over the lateral arm, lateral forearm and thumb.',
+    exam: 'Strength: shoulder abduction 2, elbow flexion 2, elbow extension 4+, wrist flexion 4+, wrist extension 4, finger flexion 5, finger abduction 5. No scapular winging. Biceps and brachioradialis reflexes absent. Reduced sensation over the lateral arm, lateral forearm and thumb.',
     lesions: [{ at: 'UT', axon: 0.8 }],
     dx: 'Right upper trunk brachial plexopathy, axonal (postganglionic).',
     answer: { loc: 'ut', path: ['axonal'] },
@@ -1391,7 +1493,7 @@ const CASES = [
   {
     id: 'avul', title: 'Flail shoulder after a motorcycle crash', who: '22-year-old man', weeks: 5,
     hx: 'Five weeks ago he was thrown from a motorcycle onto his head and right shoulder. The shoulder and elbow have not moved since. The outer arm is numb and he has burning pain in the hand.',
-    exam: 'Deltoid 0, supraspinatus 0, infraspinatus 0, biceps 0, brachioradialis 1, rhomboids 2, serratus anterior 3 with mild winging. Triceps 4, hand normal. Biceps and brachioradialis reflexes absent. No sensation over the lateral arm, lateral forearm and thumb. No Horner syndrome.',
+    exam: 'Strength: shoulder abduction 0, elbow flexion 0, elbow extension 4, wrist flexion 4, wrist extension 3, finger flexion 5, finger abduction 5. Mild scapular winging. Biceps and brachioradialis reflexes absent. No sensation over the lateral arm, lateral forearm and thumb. No Horner syndrome.',
     lesions: [{ at: 'R_C5', axon: 0.95 }, { at: 'R_C6', axon: 0.9 }],
     dx: 'Right C5 and C6 root avulsion (preganglionic).',
     answer: { loc: 'avul', path: ['axonal'] },
@@ -1405,7 +1507,7 @@ const CASES = [
   {
     id: 'rad', title: 'Wrist drop after a night out', who: '35-year-old man', weeks: 3,
     hx: 'Three weeks ago he woke after a heavy night of drinking with his right arm hooked over the back of a chair. He could not lift the wrist or fingers. The back of the hand near the thumb is numb. Slowly improving.',
-    exam: 'Wrist extension 2, finger extension at the knuckles 1, thumb extension 1, brachioradialis 3. Triceps 5, deltoid 5. With the wrist passively supported, finger abduction is normal. Brachioradialis reflex reduced, triceps reflex normal. Reduced sensation over the dorsal first web space.',
+    exam: 'Strength: shoulder abduction 5, elbow flexion 4+, elbow extension 5, wrist flexion 5, wrist extension 2, finger flexion 5. With the wrist passively supported, finger abduction is 5. Brachioradialis reflex reduced, triceps reflex normal. Reduced sensation over the dorsal first web space.',
     lesions: [{ at: 'RAD2', axon: 0.08, block: 0.8 }],
     dx: 'Right radial neuropathy at the spiral groove: mainly conduction block (neurapraxia), with minor axon loss.',
     answer: { loc: 'rad-sg', path: ['demy', 'both'] },
@@ -1421,7 +1523,7 @@ const CASES = [
   {
     id: 'pin', title: 'Fingers that will not straighten', who: '45-year-old man', weeks: 14,
     hx: 'Over three months he has lost the ability to straighten the fingers and thumb of the right hand. He can still lift the wrist, though it drifts towards the thumb. Aching at the outer elbow. No numbness.',
-    exam: 'Finger extension at the knuckles 2, thumb extension 2, wrist extension 4 with radial deviation. Brachioradialis 5, triceps 5, supination 5. Sensation normal. Reflexes normal.',
+    exam: 'Strength: shoulder abduction 5, elbow flexion 5, elbow extension 5, wrist flexion 5, wrist extension 4 with radial deviation, finger flexion 5, finger abduction 5 with the fingers supported. Sensation normal. Reflexes normal.',
     lesions: [{ at: 'PIN', axon: 0.75 }],
     dx: 'Right posterior interosseous neuropathy, axonal.',
     answer: { loc: 'pin', path: ['axonal'] },
@@ -1436,7 +1538,7 @@ const CASES = [
   {
     id: 'pc', title: 'Weak arm after a shoulder dislocation', who: '68-year-old woman', weeks: 6,
     hx: 'Six weeks ago she fell and dislocated her right shoulder forwards. After it was reduced she could not lift the arm sideways or straighten the wrist and fingers. There is a numb patch on the outer shoulder and on the back of the hand.',
-    exam: 'Deltoid 2, triceps 3, latissimus dorsi 4, brachioradialis 3, wrist extension 2, finger extension 2. Supraspinatus, infraspinatus and biceps 5; hand intrinsics 5. Triceps reflex reduced. Reduced sensation over the lateral shoulder and the dorsoradial hand.',
+    exam: 'Strength: shoulder abduction 2, elbow flexion 4+, elbow extension 3, wrist flexion 5, wrist extension 2, finger flexion 5, finger abduction 5. Triceps reflex reduced. Reduced sensation over the lateral shoulder and the dorsoradial hand.',
     lesions: [{ at: 'PC', axon: 0.7 }],
     dx: 'Right posterior cord brachial plexopathy, axonal.',
     answer: { loc: 'pc', path: ['axonal'] },
@@ -1451,7 +1553,7 @@ const CASES = [
   {
     id: 'na', title: 'Shoulder pain, then weakness', who: '38-year-old man', weeks: 5,
     hx: 'Five weeks ago, a week after a flu-like illness, he woke with severe right shoulder pain that kept him awake for ten days. As the pain settled he found he could not lift the arm overhead or pinch with the thumb and index finger.',
-    exam: "Supraspinatus 3, infraspinatus 2, serratus anterior 3 with winging. FPL 2, FDP to the index finger 2, pronation with the elbow flexed weak. Deltoid, biceps, triceps, APB and FDI 5. He cannot make an 'OK' sign: the pinch is flat. Sensation normal. Reflexes normal.",
+    exam: "Strength: shoulder abduction 4+, elbow flexion 5, elbow extension 5, wrist flexion 5, wrist extension 5, finger flexion 4+, finger abduction 5. Scapular winging. He cannot make an 'OK' sign: the pinch is flat. Sensation normal. Reflexes normal.",
     lesions: [{ at: 'SSN', axon: 0.75 }, { at: 'LTN', axon: 0.6 }, { at: 'AIN', axon: 0.8 }],
     dx: 'Neuralgic amyotrophy (Parsonage–Turner syndrome): right suprascapular, long thoracic and anterior interosseous neuropathies.',
     answer: { loc: 'na', path: ['axonal'] },
@@ -1466,11 +1568,11 @@ const CASES = [
   {
     id: 'als', title: 'Progressive hand weakness and twitching', who: '63-year-old man', weeks: 44, ongoing: true,
     hx: 'Ten months of progressive weakness and wasting of the right hand, now spreading up the arm. Cramps, and twitching in both arms and the chest. No numbness or pain. The left hand has recently started to feel weak.',
-    exam: 'Wasting of the right FDI and thenar eminence. Right FDI 3, APB 3, ADM 4, finger extensors 4, triceps 4+, deltoid 4+. Left FDI 4+. Fasciculations in both arms and the chest wall. Brisk arm reflexes (triceps 3+) and a right Hoffmann sign. Tongue looks normal. Sensation normal.',
+    exam: 'Wasting of the right first dorsal interosseous and thenar eminence. Right-sided strength: shoulder abduction 4+, elbow flexion 4+, elbow extension 4+, wrist flexion 4, wrist extension 4, finger flexion 4, finger abduction 3. Left-sided strength: finger abduction 4+, all other movements 5. Fasciculations in both arms and the chest wall. Brisk arm reflexes (triceps 3+) and a right Hoffmann sign. Tongue looks normal. Sensation normal.',
     lesions: [{ at: 'R_C5', axon: 0.35 }, { at: 'R_C6', axon: 0.4 }, { at: 'R_C7', axon: 0.5 }, { at: 'R_C8', axon: 0.75 }, { at: 'R_T1', axon: 0.75 }, { at: 'THOR', axon: 0.4 }, { at: 'BULB', axon: 0.3 }, { at: 'LUMB', axon: 0.35 }],
     left: [{ at: 'R_C5', axon: 0.2 }, { at: 'R_C6', axon: 0.2 }, { at: 'R_C7', axon: 0.25 }, { at: 'R_C8', axon: 0.4 }, { at: 'R_T1', axon: 0.4 }, { at: 'THOR', axon: 0.4 }, { at: 'BULB', axon: 0.3 }, { at: 'LUMB', axon: 0.35 }],
     dx: 'Motor neuron disease (amyotrophic lateral sclerosis), upper limb onset.',
-    answer: { loc: 'mnd', path: ['axonal'] },
+    answer: { loc: 'mnd', path: ['axonal'], side: 'both' },
     teach: [
       'Sensory studies are normal while motor amplitudes are low: pure motor axon loss, at the anterior horn cell or motor root.',
       'Fibrillations and positive sharp waves, fasciculations and reinnervated motor units (large, long, unstable, with reduced recruitment) across many roots and nerves on both sides, in the thoracic paraspinals, the tongue and the leg.',
@@ -1483,7 +1585,7 @@ const CASES = [
   {
     id: 'guyon', title: 'Weak hand after a cycling tour', who: '42-year-old man', weeks: 9,
     hx: 'Two months ago he rode a week-long cycling tour leaning on the handlebars. Since then the right hand has been weak and the palm side of the little finger numb. The back of the hand feels normal.',
-    exam: 'FDI 3, adductor pollicis 3, ADM 4. FDP to the little finger 5, FCU 5. Froment sign positive. Reduced pinprick on the palmar little finger and the ulnar half of the ring finger; dorsal ulnar hand normal. No Tinel sign at the elbow.',
+    exam: 'Strength: shoulder abduction 5, elbow flexion 5, elbow extension 5, wrist flexion 5, wrist extension 5, finger flexion 5, finger abduction 3. Froment sign positive. Reduced pinprick on the palmar little finger and the ulnar half of the ring finger; dorsal ulnar hand normal. No Tinel sign at the elbow.',
     lesions: [{ at: 'ULNW', axon: 0.6 }],
     dx: 'Right ulnar neuropathy at the wrist (Guyon canal), axonal.',
     answer: { loc: 'uln-wrist', path: ['axonal'] },
@@ -1498,7 +1600,7 @@ const CASES = [
   {
     id: 'normal', title: 'Tingling in all the fingers', who: '33-year-old woman', weeks: 16,
     hx: 'Four months of intermittent tingling in all five fingers of the right hand and an ache in the forearm after long days of typing. No weakness and no night waking. No neck pain.',
-    exam: 'Strength normal throughout, including APB and FDI. Pinprick and vibration normal. Reflexes normal and symmetric. Tinel sign negative at the wrist and elbow; Phalen sign equivocal.',
+    exam: 'Strength normal throughout. Pinprick and vibration normal. Reflexes normal and symmetric. Tinel sign negative at the wrist and elbow; Phalen sign equivocal.',
     lesions: [],
     dx: 'Normal study.',
     answer: { loc: 'normal', path: ['none'] },
@@ -1508,6 +1610,734 @@ const CASES = [
       'A normal study does not exclude a problem too mild to change conduction, but it does exclude axon loss and focal demyelination at the sites tested. The report should say what was tested.'
     ],
     key: [['Median motor and sensory', ['ncs:medM', 'ncs:medS']], ['Ulnar motor and sensory', ['ncs:ulnM', 'ncs:ulnS']], ['A sensitive comparison study (palmar)', ['ncs:medP']], ['Needle at least one hand muscle', ['emg:APB', 'emg:First dorsal interosseous', 'emg:ADM']]]
+  }
+];
+
+// ===================== more patients (added 2026-11-24) =====================
+// set: 'classic' (one lesion, textbook story), 'variant' (a lesion already seen, at another severity or stage,
+// or on the other side), 'double' (two lesions, or one on both sides), 'messy' (vague history or limited examination).
+// answer.side and answer2.side: 'R', 'L' or 'both'. Left-arm lesions go in `left`. A lesion's own `weeks` overrides
+// the case's (an old lesion beside a new one). `motorOnly` lesions spare the sensory fibres (multifocal motor neuropathy).
+// miss: for two-lesion cases, what shows each lesion when the student misses it.
+// start: the arm the study opens on, when the answer has no side (a normal study).
+const UT_WRONG = { // a partial upper trunk lesion, judged against the other side
+    avul: 'A root avulsion is preganglionic: the SNAPs would be normal, and the rhomboids, serratus anterior and cervical paraspinals would be denervated. Here the SNAPs are lower than on the other side and those muscles are normal.',
+    c5: 'A C5 or C6 radiculopathy is preganglionic: the SNAPs would be normal and the paraspinals and rhomboids would be involved. Here the C6 SNAPs are lower than on the other side and those muscles are normal.',
+    c6: 'A C5 or C6 radiculopathy is preganglionic: the SNAPs would be normal and the paraspinals and rhomboids would be involved. Here the C6 SNAPs are lower than on the other side and those muscles are normal.',
+    lc: 'A lateral cord lesion would spare supraspinatus, infraspinatus and deltoid. Here all three are denervated.',
+    pc: 'A posterior cord lesion would spare biceps, supraspinatus and infraspinatus. Here all three are weak.'
+};
+const MORE_CASES = [
+  // ---------------- classic: one lesion, textbook story ----------------
+  {
+    id: 'c6', set: 'classic', title: 'Neck pain into the thumb', who: '44-year-old man', weeks: 5,
+    hx: 'Five weeks of left neck and shoulder pain radiating down the outer forearm into the thumb and index finger, worse turning his head to the left. Tingling in the thumb.',
+    exam: 'Left-sided strength: shoulder abduction 5−, elbow flexion 4, elbow extension 5−, forearm pronation 4+, wrist flexion 5, wrist extension 4+, finger flexion 5, finger abduction 5. Biceps and brachioradialis reflexes reduced on the left; triceps reflex normal. Reduced pinprick on the left thumb and index finger. Spurling sign positive on the left. Right-sided strength 5 throughout.',
+    lesions: [], left: [{ at: 'R_C6', axon: 0.6 }],
+    dx: 'Left C6 radiculopathy with active denervation.',
+    answer: { loc: 'c6', path: ['axonal'], side: 'L' },
+    teach: [
+      'The LABC, superficial radial and median digit-2 SNAPs, all carrying C6 fibres, are normal despite numbness of the thumb: the lesion is proximal to the dorsal root ganglion.',
+      'Fibrillations in biceps (musculocutaneous), brachioradialis (radial) and pronator teres (median): C6 muscles on three different nerves.',
+      'Fibrillations in the C5–6 paraspinals support a root lesion. Deltoid and triceps, which take only part of their supply from C6, show milder changes.',
+      'Normal hand muscles (FDI, APB) and normal ulnar studies bound the lesion below.'
+    ],
+    key: [['LABC or superficial radial SNAP', ['ncs:labc', 'ncs:radS']], ['Median sensory (digit 2)', ['ncs:medS']], ['Needle biceps or brachioradialis', ['emg:Biceps', 'emg:Brachioradialis']], ['A C6 muscle on another nerve', ['emg:Pronator teres', 'emg:FCR', 'emg:ECRL', 'emg:Supinator']], ['Cervical paraspinals', ['emg:Cervical paraspinals, C5–6']], ['A hand muscle', ['emg:First dorsal interosseous', 'emg:APB', 'emg:ADM']]],
+    pattern: 'Normal C6 SNAPs despite thumb numbness, with denervation of C6 muscles on the musculocutaneous, radial and median nerves and in the paraspinals: C6 radiculopathy.',
+    wrong: {
+      ut: 'An upper trunk lesion is postganglionic: the LABC, superficial radial and median digit-2 SNAPs would be low, and the paraspinals would be normal. Here the SNAPs are normal and the paraspinals are denervated.',
+      c5: 'C5 radiculopathy would mainly weaken deltoid, supraspinatus, infraspinatus and the rhomboids, with numbness over the lateral shoulder. Here pronator teres and the wrist extensors are involved and the thumb is numb.',
+      c7: 'C7 radiculopathy would weaken triceps and FCR and reduce the triceps reflex, with numbness of the middle finger. Here the biceps and brachioradialis reflexes are reduced and the thumb is numb.',
+      'med-wrist': 'Carpal tunnel syndrome would lower or slow the median SNAP and spare biceps, brachioradialis and pronator teres. Here the median SNAP is normal and those muscles are denervated.',
+      lc: 'A lateral cord lesion is postganglionic: the LABC and median digit-2 SNAPs would be low, and brachioradialis (posterior cord) and the paraspinals would be normal. Here the SNAPs are normal and brachioradialis and the paraspinals are denervated.'
+    }
+  },
+  {
+    id: 'c5', set: 'classic', title: 'Arm will not lift after neck surgery', who: '62-year-old man', weeks: 6,
+    hx: 'Six weeks ago he had a posterior cervical decompression for myelopathy. Two days later he found he could not lift the right arm. There was aching over the shoulder but little numbness. The hand symptoms he had before surgery have improved.',
+    exam: 'Right-sided strength: shoulder abduction 3, shoulder external rotation 4−, elbow flexion 4, elbow extension 5, wrist flexion 5, wrist extension 5, finger flexion 5, finger abduction 5. Biceps reflex reduced on the right; the other arm reflexes are brisk, as before surgery. Slightly reduced pinprick over the lateral shoulder.',
+    lesions: [{ at: 'R_C5', axon: 0.55 }],
+    dx: 'Right C5 radiculopathy (postoperative C5 palsy) with active denervation.',
+    answer: { loc: 'c5', path: ['axonal'], side: 'R' },
+    teach: [
+      'All the routine SNAPs are normal. None of them carries C5 fibres, so they do not separate a C5 root lesion from a plexus lesion on their own; the proximal muscles do.',
+      'Fibrillations in the rhomboids (dorsal scapular nerve) and the C5–6 paraspinals, whose nerves leave the root before the plexus: the lesion is at the root.',
+      'Deltoid, supraspinatus, infraspinatus and biceps are denervated; pronator teres, triceps and the hand muscles are normal.',
+      'C5 palsy is a recognised complication of cervical decompression. Most patients recover over months.'
+    ],
+    key: [['LABC or superficial radial SNAP (against an upper trunk lesion)', ['ncs:labc', 'ncs:radS']], ['Needle deltoid', ['emg:Deltoid']], ['Needle supraspinatus or infraspinatus', ['emg:Supraspinatus', 'emg:Infraspinatus']], ['Needle rhomboids', ['emg:Rhomboids']], ['Cervical paraspinals', ['emg:Cervical paraspinals, C5–6']], ['A C7 or C8 muscle', ['emg:Triceps', 'emg:FCR', 'emg:First dorsal interosseous', 'emg:EDC']]],
+    pattern: 'Denervation of deltoid, the spinati and biceps, plus the rhomboids and paraspinals, with normal SNAPs: C5 radiculopathy. The rhomboids and paraspinals put it at the root.',
+    wrong: {
+      ut: 'An upper trunk lesion would lower the LABC and superficial radial SNAPs and spare the rhomboids and paraspinals. Here the SNAPs are normal and the rhomboids and paraspinals are denervated.',
+      axn: 'An axillary neuropathy would affect deltoid only. Here supraspinatus, infraspinatus, biceps and the rhomboids are also denervated.',
+      ssn: 'A suprascapular neuropathy would affect supraspinatus and infraspinatus only. Here deltoid, biceps and the rhomboids are also denervated.',
+      c6: 'C6 radiculopathy would involve pronator teres, brachioradialis and the wrist extensors, with numbness in the thumb. Here those are normal, and the rhomboids (C5 only) are denervated.',
+      avul: 'Avulsion follows high-energy traction and gives dense, complete loss. Here the weakness is partial and followed a decompression.'
+    }
+  },
+  {
+    id: 'ain', set: 'classic', title: 'Cannot pinch', who: '29-year-old woman', weeks: 10,
+    hx: 'Ten weeks ago she found she could not do up earrings or pinch with the left thumb and index finger. A week before that she had an ache in the left forearm. No numbness. No neck pain.',
+    exam: "Left-sided strength: shoulder abduction 5, elbow flexion 5, elbow extension 5, wrist flexion 5, wrist extension 5, finger abduction 5, thumb abduction 5. Thumb IP flexion 2 and index DIP flexion 2; flexion of the other fingers 5. Pronation with the elbow flexed 4. She cannot make an 'OK' sign: the pinch is flat. No scapular winging. Sensation normal. Reflexes normal.",
+    lesions: [], left: [{ at: 'AIN', axon: 0.8 }],
+    dx: 'Left anterior interosseous neuropathy, axonal.',
+    answer: { loc: 'ain', path: ['axonal'], side: 'L' },
+    teach: [
+      'Median motor (APB) and sensory studies are normal: the anterior interosseous nerve supplies no skin and does not reach APB.',
+      'Fibrillations in FPL, FDP 2–3 and pronator quadratus, with normal pronator teres and FCR (median branches above the AIN) and normal APB.',
+      'Needle supraspinatus, infraspinatus and serratus anterior too. Many isolated AIN palsies are a limited form of neuralgic amyotrophy, and denervation elsewhere changes the diagnosis.',
+      'The model treats the AIN as one nerve. In real neuralgic amyotrophy the AIN fascicles of the median nerve in the upper arm can be hit, giving the same picture.'
+    ],
+    key: [['Median motor and sensory', ['ncs:medM', 'ncs:medS']], ['Needle FPL, FDP 2–3 or pronator quadratus', ['emg:FPL', 'emg:FDP 2–3', 'emg:Pronator quadratus']], ['Needle pronator teres or FCR', ['emg:Pronator teres', 'emg:FCR']], ['Needle APB', ['emg:APB']], ['A shoulder girdle muscle (supraspinatus, infraspinatus or serratus anterior)', ['emg:Supraspinatus', 'emg:Infraspinatus', 'emg:Serratus anterior']]],
+    pattern: 'Weak thumb IP and index DIP flexion without sensory loss, normal median conduction, and denervation confined to FPL, FDP 2–3 and pronator quadratus: anterior interosseous neuropathy.',
+    wrong: {
+      'med-wrist': 'Carpal tunnel syndrome would slow the median distal latencies, lower the median SNAP and denervate APB. Here the median studies and APB are normal.',
+      na: 'Neuralgic amyotrophy is the main differential and can look exactly like this. Here supraspinatus, infraspinatus and serratus anterior are normal, so only one nerve is involved: name the nerve. An isolated AIN palsy may still be a limited form of neuralgic amyotrophy.',
+      c8: 'C8 radiculopathy would also involve APB, the ulnar hand muscles and EIP, with ulnar-border numbness. Here APB and the ulnar muscles are normal and sensation is normal.',
+      c7: 'C7 radiculopathy would weaken triceps, FCR and pronator teres. Here those are normal.'
+    }
+  },
+  {
+    id: 'axn', set: 'classic', title: 'Weak shoulder after a dislocation', who: '34-year-old man', weeks: 6,
+    hx: 'Six weeks ago he dislocated his right shoulder forwards playing hockey; it was reduced in the emergency department. Since then he cannot lift the arm out to the side. A patch on the outer upper arm is numb.',
+    exam: 'Deltoid wasting on the right. Right-sided strength: shoulder abduction 2 (the movement starts, then stalls), shoulder external rotation 5−, elbow flexion 5, elbow extension 5, wrist flexion 5, wrist extension 5, finger flexion 5, finger abduction 5. Reflexes normal. Reduced pinprick over the lateral upper arm.',
+    lesions: [{ at: 'AXN', axon: 0.8 }],
+    dx: 'Right axillary neuropathy, axonal.',
+    answer: { loc: 'axn', path: ['axonal'], side: 'R' },
+    teach: [
+      "The axillary CMAP, recorded from deltoid with stimulation at Erb's point, is much smaller than on the left: axon loss. There is no fixed lower limit, so compare sides.",
+      'Fibrillations in deltoid only. Supraspinatus, infraspinatus, biceps, triceps and latissimus dorsi are normal.',
+      'The LABC and superficial radial SNAPs are normal. The axillary nerve has no routine sensory study, so the SNAPs only argue against a wider plexus lesion.',
+      'The axillary nerve is the nerve most often injured in anterior shoulder dislocation. Teres minor, also supplied by it, is not in this model.'
+    ],
+    key: [['Axillary motor', ['ncs:axnM']], ['The other arm, for comparison', ['side:other']], ['Needle deltoid', ['emg:Deltoid']], ['Needle supraspinatus or infraspinatus', ['emg:Supraspinatus', 'emg:Infraspinatus']], ['Needle triceps or latissimus dorsi', ['emg:Triceps', 'emg:Latissimus dorsi', 'emg:Brachioradialis']], ['LABC or superficial radial SNAP', ['ncs:labc', 'ncs:radS']]],
+    pattern: 'A low axillary CMAP against the other side and denervation of deltoid alone, with normal spinati, triceps and latissimus dorsi: axillary neuropathy.',
+    wrong: {
+      pc: 'A posterior cord lesion would also denervate triceps, latissimus dorsi and the wrist and finger extensors and lower the superficial radial SNAP. Here only deltoid is involved.',
+      c5: 'C5 radiculopathy would also involve supraspinatus, infraspinatus, biceps, the rhomboids and the paraspinals. Here only deltoid is involved.',
+      ut: 'An upper trunk lesion would also denervate supraspinatus, infraspinatus and biceps and lower the LABC and superficial radial SNAPs. Here those are normal.',
+      ssn: 'A suprascapular neuropathy weakens supraspinatus and infraspinatus and spares deltoid. Here it is the reverse.'
+    }
+  },
+  {
+    id: 'ssn', set: 'classic', title: 'Deep shoulder ache and weak rotation', who: '27-year-old man', weeks: 16,
+    hx: 'Four months of a deep ache at the back of the right shoulder. He works as a roofer, lifting overhead all day. He has trouble reaching high shelves and his shoulder tires quickly. No numbness. No neck pain.',
+    exam: 'Wasting above and below the spine of the right scapula. Right-sided strength: shoulder abduction 4 (weakest at the start of the movement), shoulder external rotation 3, elbow flexion 5, elbow extension 5, wrist flexion 5, wrist extension 5, finger flexion 5, finger abduction 5. No scapular winging. Sensation normal. Reflexes normal.',
+    lesions: [{ at: 'SSN', axon: 0.7 }],
+    dx: 'Right suprascapular neuropathy at or above the suprascapular notch, axonal.',
+    answer: { loc: 'ssn', path: ['axonal'], side: 'R' },
+    teach: [
+      'Routine conduction studies and SNAPs are normal. The suprascapular nerve has no routine sensory study.',
+      'Fibrillations in supraspinatus and infraspinatus; deltoid, biceps, the rhomboids and the paraspinals are normal.',
+      'Both spinati are involved, so the lesion is at or above the suprascapular notch. A lesion at the spinoglenoid notch (as in volleyball players) spares supraspinatus; this model cannot show that.',
+      'Normal deltoid and biceps argue against upper trunk and C5 lesions. A normal serratus anterior makes neuralgic amyotrophy less likely, though it can affect a single nerve.'
+    ],
+    key: [['Needle supraspinatus', ['emg:Supraspinatus']], ['Needle infraspinatus', ['emg:Infraspinatus']], ['Needle deltoid', ['emg:Deltoid']], ['Needle rhomboids or cervical paraspinals', ['emg:Rhomboids', 'emg:Cervical paraspinals, C5–6']], ['Needle serratus anterior', ['emg:Serratus anterior']], ['LABC or superficial radial SNAP', ['ncs:labc', 'ncs:radS']]],
+    pattern: 'Denervation of supraspinatus and infraspinatus only, with normal deltoid, biceps, rhomboids, paraspinals and SNAPs: suprascapular neuropathy.',
+    wrong: {
+      c5: 'C5 radiculopathy would also involve deltoid, biceps, the rhomboids and the paraspinals. Here those are normal.',
+      ut: 'An upper trunk lesion would also involve deltoid and biceps and lower the LABC and superficial radial SNAPs. Here those are normal.',
+      axn: 'An axillary neuropathy affects deltoid and spares the spinati. Here it is the reverse.',
+      na: 'Neuralgic amyotrophy often involves the suprascapular nerve, but usually after severe pain and often with other nerves. Here the onset was gradual without severe pain, and only one nerve is involved: name the nerve.'
+    }
+  },
+  {
+    id: 'mcn', set: 'classic', title: 'Weak elbow bend after weightlifting', who: '31-year-old man', weeks: 8,
+    hx: 'Eight weeks ago, after a hard session of heavy curls and bench press, he noticed the left arm was weak bending the elbow and the outer forearm had gone numb. No neck pain.',
+    exam: 'Left biceps wasting. Left-sided strength: shoulder abduction 5, elbow flexion 3 with the forearm supinated and 4 in mid-pronation, elbow extension 5, forearm pronation 5, wrist flexion 5, wrist extension 5, finger flexion 5, finger abduction 5. Biceps reflex absent on the left; brachioradialis reflex normal. Reduced pinprick over the lateral forearm.',
+    lesions: [], left: [{ at: 'MCN', axon: 0.75 }],
+    dx: 'Left musculocutaneous neuropathy, axonal.',
+    answer: { loc: 'mcn', path: ['axonal'], side: 'L' },
+    teach: [
+      'The LABC SNAP, the sensory end of the musculocutaneous nerve, is lower than on the right: the lesion is postganglionic.',
+      'The musculocutaneous CMAP from biceps is smaller than on the right.',
+      'Fibrillations in biceps and brachialis with normal brachioradialis (radial C5–6), deltoid and pronator teres: the lesion is in the nerve, not the C5–6 roots or the upper trunk.',
+      'Elbow flexion in mid-pronation is relatively preserved by brachioradialis.'
+    ],
+    key: [['LABC SNAP', ['ncs:labc']], ['Musculocutaneous motor', ['ncs:mcnM']], ['The other arm, for comparison', ['side:other']], ['Needle biceps or brachialis', ['emg:Biceps', 'emg:Brachialis']], ['Needle brachioradialis', ['emg:Brachioradialis']], ['Needle deltoid or pronator teres', ['emg:Deltoid', 'emg:Pronator teres']]],
+    pattern: 'A low LABC SNAP and musculocutaneous CMAP, with denervation of biceps and brachialis but normal brachioradialis, deltoid and pronator teres: musculocutaneous neuropathy.',
+    wrong: {
+      c6: 'C6 radiculopathy is preganglionic, so the LABC SNAP would be normal, and brachioradialis and pronator teres would be denervated. Here the LABC is low and those muscles are normal.',
+      ut: 'An upper trunk lesion would also denervate deltoid, the spinati and brachioradialis and lower the superficial radial SNAP. Here those are normal.',
+      lc: 'A lateral cord lesion would also denervate pronator teres and FCR and lower the median digit-2 SNAP. Here those are normal.',
+      c5: 'C5 radiculopathy would spare the LABC SNAP and involve deltoid and the spinati. Here the LABC is low and deltoid is normal.'
+    }
+  },
+  {
+    id: 'lt', set: 'classic', title: 'Hand weak after heart surgery', who: '67-year-old man', weeks: 7,
+    hx: 'Seven weeks ago he had coronary bypass surgery through a median sternotomy. When he woke, the left hand was weak and the ring and little fingers and the inner forearm were numb. It has improved a little.',
+    exam: 'Left-sided strength: shoulder abduction 5, elbow flexion 5, elbow extension 5−, wrist flexion 4+, wrist extension 4+, finger extension 4, finger flexion 4, finger abduction 3, thumb abduction 3. Finger flexor reflex reduced on the left. Reduced pinprick on the little and ring fingers, the ulnar border of the hand and the medial forearm. No Horner syndrome.',
+    lesions: [], left: [{ at: 'LT', axon: 0.6 }],
+    dx: 'Left lower trunk brachial plexopathy after median sternotomy, axonal.',
+    answer: { loc: 'lt', path: ['axonal'], side: 'L' },
+    teach: [
+      'Low ulnar, dorsal ulnar cutaneous and MABC SNAPs: the lesion is postganglionic and reaches the MABC, which leaves the plexus at the medial cord, so it is above the ulnar nerve.',
+      'The median digit-2 SNAP is normal: its fibres come from C6–7 through the upper and middle trunks.',
+      'The median (APB) and ulnar CMAPs are both low. Denervation in ulnar hand muscles, in median C8–T1 muscles (APB, FPL) and in radial C8 muscles (EIP, EDC): all three cords carry these fibres, so the lesion is in the lower trunk.',
+      'The paraspinals are normal, which fits a lesion beyond the root. Sternal retraction can stretch the lower plexus over the first rib.'
+    ],
+    key: [['Ulnar sensory (digit 5)', ['ncs:ulnS']], ['MABC SNAP', ['ncs:mabc']], ['Median sensory (digit 2)', ['ncs:medS']], ['Median and ulnar motor', ['ncs:medM', 'ncs:ulnM', 'ncs:ulnFDI']], ['A radial C8 muscle (EIP, EDC, EPL or ECU)', ['emg:EIP', 'emg:EDC', 'emg:EPL', 'emg:ECU']], ['Cervical paraspinals', ['emg:Cervical paraspinals, C7–T1']]],
+    pattern: 'Low ulnar, dorsal ulnar and MABC SNAPs with a normal median SNAP, low median and ulnar CMAPs, and denervation of C8–T1 muscles on the median, ulnar and radial nerves with normal paraspinals: lower trunk.',
+    wrong: {
+      c8: 'C8 radiculopathy is preganglionic: the ulnar, dorsal ulnar cutaneous and MABC SNAPs would be normal, and the paraspinals would be denervated. Here the SNAPs are low and the paraspinals are normal.',
+      mc: 'A medial cord lesion spares the posterior cord, so the radial C8 muscles (EIP, EDC) would be normal. Here they are denervated.',
+      'uln-elbow': 'An ulnar neuropathy would spare the MABC SNAP and the median and radial muscles, and would usually slow conduction across the elbow. Here the MABC SNAP is low, APB and EIP are denervated and the elbow segment is normal.',
+      'med-wrist': 'Carpal tunnel syndrome would lower or slow the median SNAP. Here it is normal.'
+    }
+  },
+  {
+    id: 'mc', set: 'classic', title: 'Numb inner arm after a procedure', who: '71-year-old woman', weeks: 5,
+    hx: 'Five weeks ago she had a cardiac catheterisation through the right axillary artery. A large bruise formed in the armpit. That evening the right hand became weak and the inner forearm and the ring and little fingers went numb.',
+    exam: 'Right-sided strength: shoulder abduction 5, elbow flexion 5, elbow extension 5, wrist flexion 4+, wrist extension 5, finger extension 5, finger flexion 4−, finger abduction 3, thumb abduction 3. Finger flexor reflex reduced. Reduced pinprick on the ring and little fingers, the ulnar border of the hand and the medial forearm.',
+    lesions: [{ at: 'MC', axon: 0.7 }],
+    dx: 'Right medial cord brachial plexopathy (compression by an axillary haematoma), axonal.',
+    answer: { loc: 'mc', path: ['axonal'], side: 'R' },
+    teach: [
+      'Low ulnar, dorsal ulnar cutaneous and MABC SNAPs with a normal median digit-2 SNAP: postganglionic, at the medial cord or lower trunk.',
+      'Low median (APB) and ulnar CMAPs, with denervation of the ulnar muscles and the median C8–T1 muscles (APB, FPL).',
+      'The radial C8 muscles (EIP, EDC) and the radial motor study are normal: the posterior cord is spared, so the lesion is in the medial cord, not the lower trunk.',
+      'A haematoma after axillary arterial puncture can compress the cords within the medial brachial fascial compartment; when recognised early it is treated by urgent decompression.'
+    ],
+    key: [['Ulnar sensory (digit 5)', ['ncs:ulnS']], ['MABC SNAP', ['ncs:mabc']], ['Median sensory (digit 2)', ['ncs:medS']], ['Median motor (APB)', ['ncs:medM']], ['A radial C8 muscle or the radial motor study', ['emg:EIP', 'emg:EDC', 'emg:EPL', 'ncs:radM']], ['Needle an ulnar hand muscle', ['emg:First dorsal interosseous', 'emg:ADM']]],
+    pattern: 'Low ulnar, dorsal ulnar and MABC SNAPs, a normal median SNAP, denervation of ulnar and median C8–T1 muscles, and normal radial C8 muscles: medial cord.',
+    wrong: {
+      lt: 'A lower trunk lesion also involves the posterior division, so EIP, EDC and the radial CMAP would be affected. Here they are normal.',
+      'uln-elbow': 'An ulnar neuropathy would spare the MABC SNAP and the median muscles (APB, FPL). Here the MABC SNAP is low and APB is denervated.',
+      c8: 'C8 radiculopathy is preganglionic: the SNAPs would be normal, and the radial C8 muscles and paraspinals would be denervated. Here the SNAPs are low and EIP is normal.'
+    }
+  },
+  {
+    id: 'lc', set: 'classic', title: 'Weak arm after a stab wound', who: '26-year-old man', weeks: 8,
+    hx: 'Eight weeks ago he was stabbed below the right collarbone. The wound was repaired. Since then he has trouble bending the elbow and turning the palm down, and the outer forearm, thumb and index finger are numb.',
+    exam: 'Right-sided strength: shoulder abduction 5, elbow flexion 3, elbow extension 5, forearm pronation 3, wrist flexion 4 (weakest with radial deviation), wrist extension 5, finger flexion 5, finger abduction 5, thumb abduction 5. Biceps reflex absent; brachioradialis and triceps reflexes normal. Reduced pinprick on the lateral forearm, thumb and index finger.',
+    lesions: [{ at: 'LC', axon: 0.7 }],
+    dx: 'Right lateral cord brachial plexopathy, axonal.',
+    answer: { loc: 'lc', path: ['axonal'], side: 'R' },
+    teach: [
+      'Low LABC and median digit-2 SNAPs: postganglionic. The superficial radial SNAP, also C6 but carried by the posterior cord, is normal.',
+      'Denervation in biceps (musculocutaneous) and in pronator teres and FCR (median C6–7 fibres, which travel in the lateral cord).',
+      'Deltoid, supraspinatus, brachioradialis and triceps are normal: the upper trunk and posterior cord are spared.',
+      'APB, supplied by median C8–T1 fibres from the medial cord, and the median motor study are normal.'
+    ],
+    key: [['LABC SNAP', ['ncs:labc']], ['Median sensory (digit 2)', ['ncs:medS']], ['Superficial radial SNAP', ['ncs:radS']], ['Needle biceps', ['emg:Biceps', 'emg:Brachialis']], ['Needle pronator teres or FCR', ['emg:Pronator teres', 'emg:FCR']], ['Needle deltoid, brachioradialis or supraspinatus', ['emg:Deltoid', 'emg:Brachioradialis', 'emg:Supraspinatus']]],
+    pattern: 'Low LABC and median digit-2 SNAPs with a normal superficial radial SNAP, and denervation of biceps, pronator teres and FCR with normal deltoid, spinati and brachioradialis: lateral cord.',
+    wrong: {
+      ut: 'An upper trunk lesion would also lower the superficial radial SNAP and denervate deltoid, the spinati and brachioradialis. Here those are normal.',
+      c6: 'C6 radiculopathy is preganglionic: the LABC and median SNAPs would be normal, and brachioradialis and the paraspinals would be denervated. Here the SNAPs are low and brachioradialis is normal.',
+      mcn: 'A musculocutaneous neuropathy would spare pronator teres, FCR and the median SNAP. Here they are abnormal.',
+      'med-wrist': 'Carpal tunnel syndrome would spare pronator teres, FCR, biceps and the LABC SNAP. Here they are abnormal.'
+    }
+  },
+  {
+    id: 'mmn', set: 'classic', title: 'Slowly weakening hand, no numbness', who: '41-year-old man', weeks: 78,
+    hx: 'Eighteen months of slowly worsening weakness of the right hand: he fumbles coins and cannot spread his fingers. Occasional cramps and twitching in the hand. No numbness, no pain, no change in speech or swallowing.',
+    exam: 'Wasting of the right first dorsal interosseous. Right-sided strength: shoulder abduction 5, elbow flexion 5, elbow extension 5, wrist flexion 5, wrist extension 5, finger flexion 5 (including ring and little DIP), finger abduction 3, thumb abduction 5. Froment sign positive. A few fasciculations in the hand. Reflexes normal; no Hoffmann sign. Sensation normal, including vibration.',
+    lesions: [{ at: 'ULNF', axon: 0.25, block: 0.7, motorOnly: true }],
+    dx: 'Multifocal motor neuropathy: partial motor conduction block in the right ulnar nerve in the forearm, away from the entrapment sites, with normal sensory conduction through the same segment.',
+    answer: { loc: 'mmn', path: ['demy', 'both'], side: 'R' },
+    teach: [
+      'The ulnar CMAP is normal at the wrist but falls by about two thirds with stimulation below the elbow, with no further drop across the elbow: conduction block in the forearm, not at the elbow or the wrist.',
+      'The ulnar digit-5 and dorsal ulnar cutaneous SNAPs are normal. The sensory fibres run through the same forearm segment, so the block spares sensory axons: a motor neuropathy.',
+      'Needle FDI shows reduced recruitment with few or no fibrillations: most of the weakness is block, not axon loss.',
+      'FCU and FDP 4–5, whose branches leave above the block, are normal. Real MMN is often multifocal: test other nerves and the other side, and check anti-GM1 antibodies. It responds to IVIG.'
+    ],
+    key: [['Ulnar motor at the wrist, below and above the elbow', ['ncs:ulnM', 'ncs:ulnFDI']], ['Ulnar sensory (digit 5)', ['ncs:ulnS']], ['Dorsal ulnar cutaneous SNAP', ['ncs:duc']], ['Needle FDI or ADM', ['emg:First dorsal interosseous', 'emg:ADM']], ['Needle FCU or FDP 4–5', ['emg:FCU', 'emg:FDP 4–5']], ['Another motor nerve (median)', ['ncs:medM']]],
+    pattern: 'Motor conduction block in a segment away from entrapment sites, normal SNAPs across the same segment, and reduced recruitment out of proportion to fibrillations: multifocal motor neuropathy.',
+    wrong: {
+      'uln-elbow': 'Ulnar neuropathy at the elbow would slow or block conduction across the elbow and lower the ulnar SNAP. Here the elbow segment is normal, the block is in the forearm and the SNAPs are normal.',
+      'uln-wrist': 'A lesion at the wrist would prolong the distal latency or lower the CMAP from the wrist. Here the wrist response is normal and the drop is between the wrist and the elbow.',
+      mnd: 'Motor neuron disease causes no conduction block and gives fibrillations and fasciculations in many muscles, often with upper motor neuron signs. Here there is a focal block, few fibrillations and no upper motor neuron signs.',
+      c8: 'C8 radiculopathy causes no conduction block along the nerve and would involve APB, EIP and the paraspinals. Here there is a focal block and those muscles are normal.'
+    }
+  },
+
+  // ---------------- same lesion, different picture: severity, stage or side ----------------
+  {
+    id: 'cts-mild', set: 'variant', title: 'Tingling hand at night', who: '38-year-old woman', weeks: 20,
+    hx: 'Five months of tingling in the left hand at night, mostly in the thumb, index and middle fingers. It wakes her two or three nights a week and settles when she shakes the hand. She works as a dental hygienist. No weakness.',
+    exam: 'Strength 5 throughout both arms. Pinprick and vibration normal. Reflexes normal. Phalen sign positive at 40 seconds on the left; Tinel sign negative.',
+    lesions: [], left: [{ at: 'MEDW', dem: 0.45, focal: 35, spread: 0.25 }],
+    dx: 'Left median neuropathy at the wrist (carpal tunnel syndrome), mild: focal slowing only, shown by the palmar comparison.',
+    answer: { loc: 'med-wrist', path: ['demy', 'both'], side: 'L' },
+    teach: [
+      'The median distal motor latency and digit-2 sensory peak latency are at the upper end of normal.',
+      'The palmar comparison shows it: the median palmar peak latency is 0.4 ms or more longer than the ulnar over the same 8 cm. Comparing two nerves in the same hand cancels out temperature and age.',
+      'APB is normal on needle EMG: no axon loss.',
+      'When the routine median studies are normal and the story is typical, do a comparison study before calling the study normal.'
+    ],
+    key: [['Median motor (APB)', ['ncs:medM']], ['Median sensory', ['ncs:medS']], ['Median palmar', ['ncs:medP']], ['Ulnar palmar, for the comparison', ['ncs:ulnP']], ['Needle APB', ['emg:APB']]],
+    pattern: 'Borderline routine median latencies with a median–ulnar palmar difference of 0.4 ms or more and a normal APB: mild carpal tunnel syndrome.',
+    wrong: {
+      normal: 'The routine studies are within limits, but the median palmar peak latency is at least 0.4 ms longer than the ulnar: that difference is abnormal.',
+      c6: 'C6 radiculopathy would leave the median sensory and palmar studies normal, because the lesion is proximal to the dorsal root ganglion.',
+      pn: 'A polyneuropathy would affect the ulnar studies too. Here the ulnar palmar latency is normal and the slowing is confined to the median nerve at the wrist.'
+    }
+  },
+  {
+    id: 'cts-severe', set: 'variant', title: 'Numb, wasted hand', who: '74-year-old man', weeks: 60,
+    hx: 'More than a year of constant numbness of the right thumb, index and middle fingers. The night waking he had for years has stopped, but he cannot do up buttons and has noticed the base of the thumb wasting.',
+    exam: 'Marked right thenar wasting. Right-sided strength: shoulder, elbow and wrist 5, finger flexion 5, finger abduction 5, thumb abduction 3, thumb opposition 3. Reduced pinprick and two-point discrimination on the tips of digits 1–3; the skin over the thenar eminence is normal. Reflexes normal. Tinel sign positive at the wrist.',
+    lesions: [{ at: 'MEDW', axon: 0.92, dem: 0.62, focal: 35, spread: 0.3 }],
+    dx: 'Right median neuropathy at the wrist (carpal tunnel syndrome), severe: marked axon loss with focal slowing.',
+    answer: { loc: 'med-wrist', path: ['both', 'demy'], side: 'R' },
+    teach: [
+      'The median CMAP from APB is very low with a prolonged distal latency, and the digit-2 SNAP is barely recordable: severe, with axon loss.',
+      'The median forearm velocity is normal or only slightly slowed, which fits loss of the fastest fibres, not a lesion above the wrist.',
+      'APB shows fibrillations and large reinnervated units. Pronator teres, FCR and the ulnar studies are normal.',
+      'Night symptoms often fade as carpal tunnel syndrome becomes severe. Severe changes predict slower and less complete recovery after release.'
+    ],
+    key: [['Median motor (APB)', ['ncs:medM']], ['Median sensory', ['ncs:medS', 'ncs:medP']], ['An ulnar study for comparison', ['ncs:ulnM', 'ncs:ulnS', 'ncs:ulnP']], ['Needle APB', ['emg:APB']], ['A median muscle above the wrist (pronator teres or FCR)', ['emg:Pronator teres', 'emg:FCR']], ['A C8–T1 muscle outside the median nerve', ['emg:First dorsal interosseous', 'emg:ADM', 'emg:EIP']]],
+    pattern: 'Very low median CMAP and SNAP with a prolonged distal latency, normal ulnar studies, and denervation of APB only: severe carpal tunnel syndrome.',
+    wrong: {
+      c8: 'C8 radiculopathy can waste the thenar muscles, but the median digit-2 SNAP carries C6–7 fibres and would be normal, and the ulnar hand muscles would be involved. Here the median SNAP is nearly absent and FDI is normal.',
+      lt: 'A lower trunk lesion would lower the ulnar and MABC SNAPs and denervate the ulnar hand muscles. Here they are normal, and the median SNAP, which the lower trunk does not carry, is nearly absent.',
+      mnd: 'Motor neuron disease spares the SNAPs. Here the median SNAP is nearly absent and the changes are confined to the median nerve below the wrist.',
+      pn: 'A polyneuropathy would affect the ulnar nerve too. Here the ulnar studies are normal.'
+    }
+  },
+  {
+    id: 'une-mild', set: 'variant', title: 'Tingling little finger on the phone', who: '45-year-old man', weeks: 12,
+    hx: 'Three months of tingling in the left ring and little fingers that comes on when he holds his phone to his ear or sleeps with the arm bent, and settles when he straightens the elbow. No weakness.',
+    exam: 'Strength 5 throughout, including finger abduction. Froment sign negative. Sensation normal at rest. Reflexes normal. Tinel sign at the left cubital tunnel; holding the elbow flexed reproduces the tingling within a minute.',
+    lesions: [], left: [{ at: 'ULN1', dem: 0.45, focal: 40, spread: 0.4, block: 0.12 }],
+    dx: 'Left ulnar neuropathy at the elbow, mild: focal slowing across the elbow without axon loss.',
+    answer: { loc: 'uln-elbow', path: ['demy', 'both'], side: 'L' },
+    teach: [
+      'Ulnar velocity across the elbow is below 50 m/s and more than 10 m/s slower than the forearm segment; the forearm velocity, distal latency and amplitudes are normal.',
+      'The CMAP falls by less than 20% across the elbow: slowing without significant block.',
+      'The ulnar SNAP and needle FDI are normal: no axon loss.',
+      'Recording from FDI as well as ADM raises the yield. The elbow should be flexed during the study so the measured distance matches the nerve.'
+    ],
+    key: [['Ulnar motor with stimulation below and above the elbow', ['ncs:ulnM', 'ncs:ulnFDI']], ['Ulnar sensory (digit 5)', ['ncs:ulnS']], ['Needle FDI', ['emg:First dorsal interosseous']], ['A median study', ['ncs:medM', 'ncs:medS']]],
+    pattern: 'Ulnar velocity across the elbow below 50 m/s and more than 10 m/s slower than the forearm, with normal amplitudes and needle EMG: mild ulnar neuropathy at the elbow.',
+    wrong: {
+      normal: 'The across-elbow velocity is below 50 m/s and more than 10 m/s slower than the forearm segment: that is abnormal focal slowing.',
+      c8: 'C8 radiculopathy causes no focal slowing along the nerve. Here the slowing is confined to the elbow segment.',
+      'uln-wrist': 'A lesion at the wrist would leave the elbow segment normal. Here the slowing is across the elbow.'
+    }
+  },
+  {
+    id: 'une-ax', set: 'variant', title: 'Clawed hand years after an elbow fracture', who: '69-year-old man', weeks: 40,
+    hx: 'He broke his right elbow as a child, and it has never straightened fully. Over nine months the ring and little fingers have gone numb, including on the back of the hand, and the hand has become weak and thin.',
+    exam: 'Right elbow valgus with a fixed flexion deformity. Wasting of the first dorsal interosseous and hypothenar muscles; clawing of the ring and little fingers. Right-sided strength: shoulder abduction 5, elbow flexion 5, elbow extension 5, wrist flexion 4 (weakest with ulnar deviation), finger flexion 4 (ring and little DIP 3), finger abduction 2, thumb abduction 5. Froment sign positive. Reduced pinprick on the little finger, the ulnar half of the ring finger and the dorsal ulnar hand; medial forearm normal.',
+    lesions: [{ at: 'ULN1', axon: 0.85 }],
+    dx: 'Right ulnar neuropathy at the elbow (tardy ulnar palsy), severe and axonal: no focal slowing or block, localised by the muscles and the dorsal ulnar cutaneous SNAP.',
+    answer: { loc: 'uln-elbow', path: ['axonal'], side: 'R' },
+    teach: [
+      'Ulnar CMAPs are low from every site, the ulnar and dorsal ulnar cutaneous SNAPs are very low, and the velocity across the elbow is normal: pure axon loss, which does not localise by itself.',
+      'The dorsal ulnar cutaneous SNAP is low and FCU and FDP 4–5 are denervated: the lesion is above their branches, at or above the elbow.',
+      'A normal MABC SNAP and normal APB, FPL and EIP exclude the medial cord, lower trunk and C8 root.',
+      'When axon loss is severe, the focal slowing that would localise the lesion may not be measurable. The old elbow fracture and imaging point to the elbow; short-segment (inching) studies sometimes find a residual focal change.'
+    ],
+    key: [['Ulnar motor across the elbow', ['ncs:ulnM', 'ncs:ulnFDI']], ['Ulnar sensory (digit 5)', ['ncs:ulnS']], ['Dorsal ulnar cutaneous SNAP', ['ncs:duc']], ['MABC SNAP', ['ncs:mabc']], ['Needle FCU or FDP 4–5', ['emg:FCU', 'emg:FDP 4–5']], ['A C8 muscle outside the ulnar nerve', ['emg:APB', 'emg:EIP', 'emg:FPL']]],
+    pattern: 'Low ulnar motor and sensory responses without focal slowing, a low dorsal ulnar cutaneous SNAP, and denervated FCU and FDP 4–5 with normal median and radial C8 muscles: severe axonal ulnar neuropathy at or above the elbow.',
+    wrong: {
+      'uln-wrist': 'A lesion at the wrist would spare the dorsal ulnar cutaneous SNAP, FCU and FDP 4–5. Here all three are abnormal.',
+      lt: 'A lower trunk or medial cord lesion would lower the MABC SNAP and denervate the median C8–T1 muscles (APB, FPL). Here the MABC SNAP, APB and FPL are normal.',
+      mc: 'A lower trunk or medial cord lesion would lower the MABC SNAP and denervate the median C8–T1 muscles (APB, FPL). Here the MABC SNAP, APB and FPL are normal.',
+      c8: 'C8 radiculopathy is preganglionic: the ulnar and dorsal ulnar cutaneous SNAPs would be normal, and APB, EIP and the paraspinals would be denervated. Here the SNAPs are very low and those muscles are normal.',
+      mnd: 'Motor neuron disease spares the SNAPs and spreads beyond one nerve. Here the ulnar SNAPs are very low and the changes are confined to the ulnar nerve.'
+    }
+  },
+  {
+    id: 'c7-chronic', set: 'variant', title: 'Old neck problem, still weak', who: '59-year-old man', weeks: 104,
+    hx: 'Two years ago he had severe right neck pain running down the back of the arm into the middle finger. The pain settled within three months without surgery, but the arm has stayed a little weak pushing up from a chair. Nothing new.',
+    exam: 'Mild right triceps wasting. Right-sided strength: shoulder abduction 5, elbow flexion 5, elbow extension 4+, wrist flexion 5−, wrist extension 5−, finger flexion 5, finger abduction 5. Triceps reflex reduced on the right. Sensation normal. Spurling sign negative.',
+    lesions: [{ at: 'R_C7', axon: 0.5 }],
+    dx: 'Right C7 radiculopathy, chronic and stable: reinnervated motor units without active denervation.',
+    answer: { loc: 'c7', path: ['axonal'], side: 'R' },
+    teach: [
+      'Conduction studies and SNAPs are normal, as in any radiculopathy.',
+      'Triceps, FCR and pronator teres show large, long-duration motor units without fibrillations: chronic reinnervation without ongoing axon loss.',
+      'The paraspinals are often normal at this stage because they reinnervate early, so normal paraspinals do not exclude an old radiculopathy.',
+      'The distribution (C7 muscles on the radial and median nerves, with normal C5–6 and C8–T1 muscles) still localises the old lesion. No fibrillations answers the referral question: no active denervation.'
+    ],
+    key: [['Median and ulnar studies', ['ncs:medM', 'ncs:ulnM', 'ncs:medS', 'ncs:ulnS']], ['Needle triceps', ['emg:Triceps']], ['Another C7 muscle on a different nerve', ['emg:FCR', 'emg:Pronator teres', 'emg:EDC', 'emg:Latissimus dorsi']], ['Cervical paraspinals', ['emg:Cervical paraspinals, C7–T1']], ['A C5–6 muscle and a C8–T1 muscle', ['emg:Deltoid', 'emg:Biceps', 'emg:First dorsal interosseous', 'emg:APB']]],
+    pattern: 'Normal conduction studies, and large stable motor units without fibrillations in C7 muscles of different nerves: chronic C7 radiculopathy without active denervation.',
+    wrong: {
+      normal: 'Normal conduction studies do not make a normal study: the needle EMG shows large, long-duration motor units in C7 muscles, the trace of old axon loss.',
+      mnd: 'Motor neuron disease shows active denervation (fibrillations, fasciculations) in many roots and regions and progresses. Here the changes are chronic, confined to C7 and stable for two years.',
+      'rad-sg': 'A radial lesion cannot explain changes in FCR and pronator teres, which are median-innervated.',
+      c6: 'C6 radiculopathy would involve biceps, brachioradialis and deltoid. Here those are normal and triceps is involved.'
+    }
+  },
+  {
+    id: 'c8-early', set: 'variant', title: 'Neck pain and a clumsy left hand', who: '51-year-old woman', weeks: 4,
+    hx: 'Four weeks of left neck and inner shoulder-blade pain after lifting a heavy box, then tingling along the ulnar border of the left hand and forearm and a weak grip.',
+    exam: 'Left-sided strength: shoulder abduction 5, elbow flexion 5, elbow extension 5−, wrist flexion 5−, wrist extension 5, finger extension 4+, finger flexion 4+, finger abduction 4, thumb abduction 4+. Finger flexor reflex reduced on the left. Reduced pinprick on the little finger, the ulnar border of the hand and the distal medial forearm. No Tinel sign at the elbow.',
+    lesions: [], left: [{ at: 'R_C8', axon: 0.5 }],
+    dx: 'Left C8 radiculopathy, early: fibrillations before reinnervation.',
+    answer: { loc: 'c8', path: ['axonal'], side: 'L' },
+    teach: [
+      'At four weeks, fibrillations and positive sharp waves are present but the motor units are still normal in size: collateral sprouting has not yet begun. Reduced recruitment of normal units is the other early sign.',
+      'The ulnar, dorsal ulnar cutaneous and MABC SNAPs are normal despite numbness in their territory: preganglionic.',
+      'Denervation in ulnar (FDI), median (APB, FPL) and radial (EIP) C8 muscles and the low cervical paraspinals.',
+      'In the first two weeks fibrillations may not have appeared yet, and a study can look normal apart from reduced recruitment.'
+    ],
+    key: [['Ulnar motor across the elbow', ['ncs:ulnM', 'ncs:ulnFDI']], ['Ulnar sensory (digit 5)', ['ncs:ulnS']], ['Dorsal ulnar cutaneous or MABC', ['ncs:duc', 'ncs:mabc']], ['Needle an ulnar hand muscle', ['emg:First dorsal interosseous', 'emg:ADM']], ['A C8 muscle on the median or radial nerve', ['emg:APB', 'emg:FPL', 'emg:EIP', 'emg:EPL', 'emg:EDC', 'emg:ECU']], ['Cervical paraspinals', ['emg:Cervical paraspinals, C7–T1']]],
+    pattern: 'Normal SNAPs despite ulnar-border numbness, with fibrillations but normal-sized motor units in C8 muscles of several nerves and the paraspinals: early C8 radiculopathy.',
+    wrong: {
+      'uln-elbow': 'Ulnar neuropathy at the elbow would slow conduction or block across the elbow, lower the ulnar SNAP, and spare muscles outside the ulnar nerve. Here conduction is normal, the SNAP is normal, and APB, EIP and the paraspinals are denervated.',
+      lt: 'A lower trunk or medial cord lesion is postganglionic, so the ulnar, dorsal ulnar cutaneous and MABC SNAPs would be low. Here they are normal despite the numbness.',
+      mc: 'A lower trunk or medial cord lesion is postganglionic, so the ulnar, dorsal ulnar cutaneous and MABC SNAPs would be low. Here they are normal despite the numbness.',
+      c7: 'C7 radiculopathy would weaken triceps, FCR and pronator teres, with numbness of the middle finger. Here the weakness is in the hand and the numbness is on the ulnar border.'
+    }
+  },
+  {
+    id: 'rad-fx', set: 'variant', title: 'Wrist drop after a broken arm', who: '19-year-old man', weeks: 10,
+    hx: 'Ten weeks ago he broke the shaft of his left humerus snowboarding; it was treated in a brace. Since the injury he cannot lift the left wrist or fingers, and the back of the hand near the thumb is numb. No improvement so far.',
+    exam: 'Left-sided strength: shoulder abduction 5, elbow flexion 4+ in mid-pronation, elbow extension 5, wrist flexion 5, wrist extension 1, finger extension 0. With the wrist supported, finger abduction 5. Brachioradialis reflex absent; triceps reflex normal. Reduced pinprick over the dorsal first web space.',
+    lesions: [], left: [{ at: 'RAD2', axon: 0.75 }],
+    dx: 'Left radial neuropathy at the spiral groove after a humeral shaft fracture, axonal.',
+    answer: { loc: 'rad-sg', path: ['axonal'], side: 'L' },
+    teach: [
+      'The radial CMAP is low from every site with no drop above the spiral groove: axon loss, not block. Compare the right side.',
+      'The superficial radial SNAP is low: the sensory axons are interrupted too, distal to the dorsal root ganglion.',
+      'Brachioradialis, ECRL and the finger extensors are denervated and triceps is normal: the lesion lies between the triceps branches and the brachioradialis branch, at the spiral groove.',
+      'Compare the patient who woke with a wrist drop after a night out: same site, but there the motor study showed conduction block and the outlook was better. Axon loss recovers by regrowth, so the study is repeated to look for reinnervation, which appears in brachioradialis first.'
+    ],
+    key: [['Radial motor with stimulation above and below the spiral groove', ['ncs:radM']], ['Superficial radial SNAP', ['ncs:radS']], ['Needle a radial forearm muscle', ['emg:EDC', 'emg:EIP', 'emg:ECRL', 'emg:ECU', 'emg:EPL']], ['Needle brachioradialis', ['emg:Brachioradialis']], ['Needle triceps', ['emg:Triceps']], ['The other arm, for comparison', ['side:other']]],
+    pattern: 'A low radial CMAP from every site without block, a low superficial radial SNAP, denervated brachioradialis and wrist extensors and a normal triceps: axonal radial neuropathy at the spiral groove.',
+    wrong: {
+      pin: 'A posterior interosseous lesion spares brachioradialis, ECRL and the superficial radial SNAP. Here all three are abnormal.',
+      pc: 'A posterior cord lesion would also involve deltoid, latissimus dorsi and triceps. Here they are normal.',
+      c7: 'C7 radiculopathy would spare the superficial radial SNAP and involve triceps and FCR. Here the SNAP is low and triceps is normal.'
+    }
+  },
+  {
+    id: 'ut-ruck', set: 'variant', title: 'Arm weak after a long hike', who: '23-year-old woman', weeks: 4,
+    hx: 'Four weeks ago she carried a heavy pack with thin straps for two days on a hiking trip. Afterwards the left arm was weak lifting and bending, and the outer arm and thumb felt numb. No neck pain.',
+    exam: 'Left-sided strength: shoulder abduction 3, shoulder external rotation 4, elbow flexion 3, elbow extension 5, wrist flexion 5, wrist extension 4+, finger flexion 5, finger abduction 5. No scapular winging. Biceps and brachioradialis reflexes reduced on the left. Reduced pinprick over the lateral arm, lateral forearm and thumb.',
+    lesions: [], left: [{ at: 'UT', axon: 0.55 }],
+    dx: 'Left upper trunk brachial plexopathy (rucksack palsy), axonal.',
+    answer: { loc: 'ut', path: ['axonal'], side: 'L' },
+    teach: [
+      'The LABC, superficial radial and median digit-2 SNAPs are about half the size of the right: postganglionic. A partial lesion can leave SNAPs inside the normal range, so compare sides.',
+      'Fibrillations in deltoid, the spinati, biceps and brachioradialis with normal-sized motor units: four weeks is too early for reinnervation.',
+      'Normal rhomboids, serratus anterior and paraspinals place the lesion below the roots.',
+      'Rucksack palsy is compression of the upper trunk by the strap. Most patients recover over weeks to months.'
+    ],
+    key: [['LABC SNAP', ['ncs:labc']], ['The right arm, for comparison', ['side:other']], ['Needle deltoid or biceps', ['emg:Deltoid', 'emg:Biceps']], ['Needle supraspinatus or infraspinatus', ['emg:Supraspinatus', 'emg:Infraspinatus']], ['Needle rhomboids or serratus anterior', ['emg:Rhomboids', 'emg:Serratus anterior']], ['Cervical paraspinals', ['emg:Cervical paraspinals, C5–6']]],
+    pattern: 'C6 SNAPs lower than on the other side, denervation of C5–6 muscles including the spinati, and normal rhomboids, serratus anterior and paraspinals: upper trunk.',
+    wrong: UT_WRONG
+  },
+  {
+    id: 'als-flail', set: 'variant', title: 'Both arms hanging weak', who: '64-year-old man', weeks: 60, ongoing: true,
+    hx: 'Fourteen months of slowly progressive weakness of both shoulders, worse on the right, so that he can no longer lift his arms to shave. Twitching in the upper arms. No numbness or pain, no trouble swallowing or breathing. His legs feel normal.',
+    exam: 'Wasting of the shoulder girdles and upper arms on both sides, more on the right. Right-sided strength: shoulder abduction 2, elbow flexion 3, elbow extension 4, wrist extension 4+, finger flexion 4+, finger abduction 4+. Left: shoulder abduction 3, elbow flexion 4, other movements 5. Fasciculations in both deltoids and biceps. Arm reflexes reduced; knee reflexes brisk with flexor plantar responses. Tongue normal. Sensation normal.',
+    lesions: [{ at: 'R_C5', axon: 0.75 }, { at: 'R_C6', axon: 0.75 }, { at: 'R_C7', axon: 0.5 }, { at: 'R_C8', axon: 0.3 }, { at: 'R_T1', axon: 0.3 }, { at: 'THOR', axon: 0.35 }, { at: 'BULB', axon: 0.15 }, { at: 'LUMB', axon: 0.25 }],
+    left: [{ at: 'R_C5', axon: 0.55 }, { at: 'R_C6', axon: 0.55 }, { at: 'R_C7', axon: 0.3 }, { at: 'R_C8', axon: 0.2 }, { at: 'R_T1', axon: 0.2 }, { at: 'THOR', axon: 0.35 }, { at: 'BULB', axon: 0.15 }, { at: 'LUMB', axon: 0.25 }],
+    dx: 'Motor neuron disease, flail arm (brachial amyotrophic diplegia) presentation.',
+    answer: { loc: 'mnd', path: ['axonal'], side: 'both' },
+    teach: [
+      'Sensory studies are normal while motor responses from proximal muscles are low on both sides: pure motor axon loss.',
+      'Active and chronic denervation with fasciculations across C5–T1 muscles of both arms, worst proximally, and also in the thoracic paraspinals and the leg: more than one body region.',
+      'The flail arm presentation keeps the weakness in the arms, proximal more than distal, for a long time; it is commoner in men and progresses more slowly than typical ALS.',
+      'Bilateral proximal arm weakness without sensory loss also raises MMN (look for block), bilateral C5–6 radiculopathy (the thoracic paraspinals and leg separate it) and neuralgic amyotrophy (painful, patchy, not progressive).'
+    ],
+    key: [['Motor and sensory studies', ['ncs:medM', 'ncs:ulnM', 'ncs:medS', 'ncs:ulnS', 'ncs:radS']], ['Axillary or musculocutaneous motor', ['ncs:axnM', 'ncs:mcnM']], ['Needle deltoid or biceps', ['emg:Deltoid', 'emg:Biceps']], ['Needle a hand muscle', ['emg:First dorsal interosseous', 'emg:APB']], ['Thoracic paraspinals', ['emg:Thoracic paraspinals']], ['Another region: tongue or leg', ['emg:Genioglossus (tongue)', 'emg:Tibialis anterior']], ['The left arm', ['side:L']]],
+    pattern: 'Normal SNAPs, low proximal motor responses on both sides, and active plus chronic denervation with fasciculations in more than one region: motor neuron disease, flail arm presentation.',
+    wrong: {
+      c5: 'Radiculopathy causes pain and sensory symptoms and stays within one or two roots. Here both arms, the thoracic paraspinals and the leg are involved, painlessly and progressively.',
+      c6: 'Radiculopathy causes pain and sensory symptoms and stays within one or two roots. Here both arms, the thoracic paraspinals and the leg are involved, painlessly and progressively.',
+      mmn: 'Multifocal motor neuropathy gives motor conduction block and is usually distal and asymmetric. Here there is no block, the weakness is proximal and the knee reflexes are brisk.',
+      na: 'Neuralgic amyotrophy starts with severe pain and does not progress over a year. Here the onset was painless and the course progressive.',
+      ut: 'An upper trunk lesion lowers the C6 SNAPs and affects one side. Here the SNAPs are normal and both sides are involved.'
+    }
+  },
+  {
+    id: 'na-l', set: 'variant', title: 'Winging after severe shoulder pain', who: '45-year-old woman', weeks: 8,
+    hx: 'Eight weeks ago, ten days after an uncomplicated operation, she woke with severe left shoulder and neck pain that lasted two weeks and needed opioids. As the pain eased, the shoulder became weak and the shoulder blade began to stick out.',
+    exam: 'Left-sided strength: shoulder abduction 3, shoulder external rotation 4, elbow flexion 5, elbow extension 5, wrist and hand 5. Marked medial scapular winging when she pushes against a wall. Deltoid wasting. A small numb patch over the lateral shoulder. Reflexes normal.',
+    lesions: [], left: [{ at: 'LTN', axon: 0.8 }, { at: 'AXN', axon: 0.6 }, { at: 'SSN', axon: 0.4 }],
+    dx: 'Neuralgic amyotrophy (Parsonage–Turner syndrome): left long thoracic, axillary and suprascapular neuropathies.',
+    answer: { loc: 'na', path: ['axonal'], side: 'L' },
+    teach: [
+      'The routine conduction studies are normal; the axillary CMAP is lower than on the right.',
+      'Fibrillations in serratus anterior, deltoid, supraspinatus and infraspinatus, with normal biceps, brachioradialis, rhomboids and paraspinals: three nerves, not one root or trunk.',
+      'Normal LABC and superficial radial SNAPs argue against an upper trunk lesion.',
+      'Surgery, infection, vaccination and childbirth are recognised triggers. The long thoracic nerve is among the nerves most often involved.'
+    ],
+    key: [['Axillary motor', ['ncs:axnM']], ['LABC or superficial radial SNAP', ['ncs:labc', 'ncs:radS']], ['Needle serratus anterior', ['emg:Serratus anterior']], ['Needle deltoid', ['emg:Deltoid']], ['Needle supraspinatus or infraspinatus', ['emg:Supraspinatus', 'emg:Infraspinatus']], ['Needle biceps or rhomboids', ['emg:Biceps', 'emg:Rhomboids']], ['Cervical paraspinals', ['emg:Cervical paraspinals, C5–6']]],
+    pattern: 'Patchy denervation of serratus anterior, deltoid and the spinati that fits no single root or trunk, with normal SNAPs, after severe pain: neuralgic amyotrophy.',
+    wrong: {
+      ut: 'An upper trunk lesion would also denervate biceps and brachioradialis, lower the LABC and superficial radial SNAPs, and spare serratus anterior. Here biceps and the SNAPs are normal and serratus anterior is denervated.',
+      c5: 'C5 radiculopathy would also involve the rhomboids, biceps and paraspinals. Here they are normal.',
+      axn: 'An axillary neuropathy explains deltoid, not the winging or the spinati.',
+      ssn: 'A suprascapular neuropathy explains the spinati, not deltoid or the winging.'
+    }
+  },
+
+  // ---------------- two lesions, or one lesion on both sides ----------------
+  {
+    id: 'cts-c7', set: 'double', title: 'Night tingling, then neck pain', who: '56-year-old woman', weeks: 10,
+    hx: 'Two years of tingling in the right thumb, index and middle fingers that wakes her at night. Ten weeks ago new neck pain started, running down the back of the right arm, and the arm now feels weak pushing up from a chair.',
+    exam: 'Mild right thenar wasting. Right-sided strength: shoulder abduction 5, elbow flexion 5, elbow extension 4, wrist flexion 4+, wrist extension 4+, finger flexion 5, finger abduction 5, thumb abduction 4+. Triceps reflex reduced. Reduced pinprick on the tips of digits 1–3; the thenar eminence is normal. Phalen and Spurling signs positive.',
+    lesions: [{ at: 'MEDW', axon: 0.5, dem: 0.65, focal: 35, spread: 0.25, block: 0.05, weeks: 104 }, { at: 'R_C7', axon: 0.55 }],
+    dx: 'Two lesions on the right: carpal tunnel syndrome (focal slowing with axon loss) and a recent C7 radiculopathy with active denervation.',
+    answer: { loc: 'med-wrist', path: ['both', 'demy'], side: 'R' },
+    answer2: { loc: 'c7', path: ['axonal'], side: 'R' },
+    teach: [
+      'Prolonged median distal latencies with normal ulnar studies: carpal tunnel syndrome. It explains the thenar wasting and night tingling, but not weak triceps or a reduced triceps reflex.',
+      'Fibrillations in triceps, FCR, pronator teres and the low cervical paraspinals: C7 radiculopathy. The median SNAP is abnormal because of the wrist lesion; a root lesion would have left it normal, so only the needle EMG shows the root.',
+      'APB shows chronic reinnervation (large units) while the C7 muscles show active denervation: the two lesions are of different ages.',
+      'Whether a root lesion makes the same nerve more vulnerable at the wrist ("double crush") is debated. The practical point: when one lesion does not explain the examination, look for a second.'
+    ],
+    key: [['Median motor and sensory', ['ncs:medM', 'ncs:medS', 'ncs:medP']], ['An ulnar study for comparison', ['ncs:ulnM', 'ncs:ulnS', 'ncs:ulnP']], ['Needle APB', ['emg:APB']], ['Needle triceps', ['emg:Triceps']], ['A median C7 muscle above the wrist (FCR or pronator teres)', ['emg:FCR', 'emg:Pronator teres']], ['Cervical paraspinals', ['emg:Cervical paraspinals, C7–T1']]],
+    miss: {
+      'med-wrist': 'The median distal motor and sensory latencies are prolonged with normal ulnar studies and a normal median forearm velocity: focal slowing at the wrist, which a root lesion cannot cause.',
+      c7: 'Triceps, FCR, pronator teres and the low cervical paraspinals show fibrillations. Those muscles are above the wrist, so carpal tunnel syndrome cannot explain them; they share the C7 root.'
+    },
+    pattern: 'Focal median slowing at the wrist, plus fibrillations in C7 muscles of the radial and median nerves above the wrist and in the paraspinals: carpal tunnel syndrome and C7 radiculopathy together.',
+    wrong: {
+      c6: 'C6 radiculopathy would involve biceps and brachioradialis and reduce their reflexes. Here those are normal and triceps is involved.',
+      'rad-sg': 'A radial lesion cannot explain denervation in FCR and pronator teres (median) or slowing at the wrist.',
+      pn: 'A polyneuropathy would lower the ulnar SNAP too and would not denervate the paraspinals. Here the ulnar studies are normal.',
+      lt: 'A lower trunk lesion would lower the ulnar and MABC SNAPs. Here they are normal.'
+    }
+  },
+  {
+    id: 'cts-une', set: 'double', title: 'Whole hand numb', who: '63-year-old man', weeks: 40,
+    hx: 'Nine months of numbness and tingling in the whole left hand, worse at night and when driving. He leans on his elbows at his desk. Buttons and coins have become hard. He does not have diabetes, and his feet feel normal.',
+    exam: 'Wasting of the left first dorsal interosseous and mild thenar wasting. Left-sided strength: shoulder abduction 5, elbow flexion 5, elbow extension 5, wrist flexion 5, wrist extension 5, finger flexion 5− (ring and little DIP 4+), finger abduction 4−, thumb abduction 4. Froment sign positive. Reduced pinprick on all five fingertips and the dorsal ulnar hand; the thenar eminence, dorsal first web space and medial forearm are normal. Ankle reflexes and vibration at the toes normal. Tinel sign at the wrist and at the elbow.',
+    lesions: [], left: [{ at: 'MEDW', axon: 0.3, dem: 0.62, focal: 35, spread: 0.25, block: 0.08 }, { at: 'ULN1', axon: 0.6, dem: 0.6, focal: 40, spread: 0.5, block: 0.3 }],
+    dx: 'Two lesions on the left: carpal tunnel syndrome and ulnar neuropathy at the elbow, each with focal demyelination and axon loss.',
+    answer: { loc: 'med-wrist', path: ['both', 'demy'], side: 'L' },
+    answer2: { loc: 'uln-elbow', path: ['both', 'demy'], side: 'L' },
+    teach: [
+      'The median slowing is confined to the wrist (prolonged distal latencies, normal forearm velocity). The ulnar slowing and CMAP drop are confined to the elbow (normal forearm velocity and distal latency).',
+      'The superficial radial and LABC SNAPs are normal: there is no generalised neuropathy, so the two focal lesions are not one diffuse process.',
+      'Each lesion has its own muscles: APB for the median, FDI, ADM and FCU for the ulnar. FPL, EIP and the paraspinals are normal, so no C8 root or lower trunk lesion links them.',
+      'Before calling two entrapments, test a nerve that crosses no entrapment site. If it is abnormal too, think of a polyneuropathy, or of hereditary neuropathy with liability to pressure palsies when several entrapment sites are slow.'
+    ],
+    key: [['Median motor and sensory', ['ncs:medM', 'ncs:medS']], ['Ulnar motor with stimulation below and above the elbow', ['ncs:ulnM', 'ncs:ulnFDI']], ['A nerve without an entrapment site (superficial radial or LABC)', ['ncs:radS', 'ncs:labc']], ['Needle APB', ['emg:APB']], ['Needle FDI or ADM', ['emg:First dorsal interosseous', 'emg:ADM']], ['A C8 muscle outside both nerves (EIP, EPL or ECU)', ['emg:EIP', 'emg:EPL', 'emg:ECU']]],
+    miss: {
+      'med-wrist': 'The median distal motor and sensory latencies are prolonged with a normal median forearm velocity: focal slowing at the wrist. An ulnar lesion does not touch the median nerve.',
+      'uln-elbow': 'The ulnar velocity across the elbow is slow with a CMAP drop, the dorsal ulnar cutaneous SNAP is low, and FDI and FCU show neurogenic changes: an ulnar lesion at the elbow. Carpal tunnel syndrome does not reach the ulnar nerve.'
+    },
+    pattern: 'Median slowing at the wrist and ulnar slowing across the elbow, with normal radial and LABC SNAPs and normal forearm segments: two entrapments, not a polyneuropathy.',
+    wrong: {
+      pn: 'A polyneuropathy would also lower or slow nerves without entrapment sites (superficial radial, LABC) and slow the forearm segments. Here the slowing is confined to the wrist and the elbow and the other SNAPs are normal.',
+      c8: 'C8 radiculopathy would leave the SNAPs normal and cause no focal slowing. Here the median and ulnar SNAPs are abnormal and the slowing is focal at two entrapment sites.',
+      lt: 'A lower trunk lesion would lower the MABC SNAP and spare the median digit-2 SNAP, and would not slow conduction focally. Here the MABC SNAP is normal and the median SNAP is abnormal.',
+      mc: 'A medial cord lesion would lower the MABC SNAP and spare the median digit-2 SNAP, and would not slow conduction focally. Here the MABC SNAP is normal and the median SNAP is abnormal.'
+    }
+  },
+  {
+    id: 'cts-bilat', set: 'double', title: 'Both hands tingle at night', who: '49-year-old woman', weeks: 30,
+    hx: 'Seven months of tingling in both hands at night, worse on the right, in the thumb, index and middle fingers. She works on an assembly line. Her hypothyroidism is treated.',
+    exam: 'Strength 5 throughout, except thumb abduction 4+ on the right. No wasting. Reduced pinprick on the tips of digits 1–3 on the right; normal on the left. Reflexes normal. Phalen sign positive on both sides.',
+    lesions: [{ at: 'MEDW', axon: 0.2, dem: 0.66, focal: 35, spread: 0.25, block: 0.05 }],
+    left: [{ at: 'MEDW', dem: 0.5, focal: 35, spread: 0.25 }],
+    dx: 'Bilateral carpal tunnel syndrome: moderate on the right (focal slowing with some axon loss), mild on the left (focal slowing only).',
+    answer: { loc: 'med-wrist', path: ['demy', 'both'], side: 'both' },
+    teach: [
+      'Prolonged median distal latencies on the right, with normal ulnar studies on both sides.',
+      'On the left the routine latencies are borderline, and the palmar comparison settles it.',
+      'Carpal tunnel syndrome is often bilateral even when symptoms are one-sided, so many labs study both hands.',
+      'One lesion on both sides is one localisation: answer it with "Both sides", not as two lesions.'
+    ],
+    key: [['Median motor and sensory', ['ncs:medM', 'ncs:medS']], ['The left hand', ['side:L']], ['Palmar comparison', ['ncs:medP', 'ncs:ulnP']], ['An ulnar study', ['ncs:ulnM', 'ncs:ulnS']], ['Needle APB', ['emg:APB']]],
+    pattern: 'Median slowing at the wrist on both sides with normal ulnar studies: bilateral carpal tunnel syndrome.',
+    wrong: {
+      pn: 'A polyneuropathy would affect the ulnar nerves too. Here they are normal on both sides.',
+      c6: 'Radiculopathy spares the SNAPs and causes no focal slowing. Here the median latencies are prolonged at the wrist on both sides.'
+    }
+  },
+  {
+    id: 'c8-une', set: 'double', title: 'Neck pain, sore elbow, weak grip', who: '57-year-old carpenter', weeks: 14,
+    hx: 'For a year the right little finger has gone numb on and off, and his right elbow is sore from leaning on it. Three months ago, after a heavy lifting job, new neck pain started, running into the inner forearm and the ring and little fingers, and his grip became weak.',
+    exam: 'Wasting of the right first dorsal interosseous. Right-sided strength: shoulder abduction 5, elbow flexion 5, elbow extension 5, wrist flexion 4+, wrist extension 5−, finger extension 4+, finger flexion 4, finger abduction 3, thumb abduction 4. Finger flexor reflex reduced. Reduced pinprick on the little and ring fingers, the ulnar hand (palm and back) and the distal medial forearm. Tinel sign at the elbow. Spurling sign positive.',
+    lesions: [{ at: 'ULN1', axon: 0.5, dem: 0.55, focal: 40, spread: 0.5, block: 0.3, weeks: 60 }, { at: 'R_C8', axon: 0.5 }],
+    dx: 'Two lesions on the right: a C8 radiculopathy with active denervation, and a longer-standing ulnar neuropathy at the elbow.',
+    answer: { loc: 'c8', path: ['axonal'], side: 'R' },
+    answer2: { loc: 'uln-elbow', path: ['both', 'demy'], side: 'R' },
+    teach: [
+      'Ulnar slowing and a CMAP drop across the elbow, with a low ulnar SNAP: ulnar neuropathy at the elbow.',
+      'Fibrillations in APB, FPL and EIP (median and radial C8 muscles) and in the low cervical paraspinals: a C8 root lesion as well. The ulnar lesion cannot reach those muscles.',
+      'The MABC SNAP is normal although the medial forearm is numb: that numbness comes from the root (preganglionic), and the lower trunk and medial cord are spared.',
+      'A C8 root lesion alone leaves the ulnar SNAP normal. In a combined case the SNAPs and focal slowing localise the nerve lesion, and the needle EMG outside that nerve localises the root.'
+    ],
+    key: [['Ulnar motor with stimulation below and above the elbow', ['ncs:ulnM', 'ncs:ulnFDI']], ['Ulnar sensory (digit 5)', ['ncs:ulnS']], ['MABC SNAP', ['ncs:mabc']], ['A C8 muscle on the median or radial nerve', ['emg:APB', 'emg:FPL', 'emg:EIP', 'emg:EPL', 'emg:EDC']], ['Cervical paraspinals', ['emg:Cervical paraspinals, C7–T1']], ['Needle FDI or ADM', ['emg:First dorsal interosseous', 'emg:ADM']]],
+    miss: {
+      c8: 'APB, FPL and EIP, outside the ulnar nerve, and the low cervical paraspinals show fibrillations, and the MABC SNAP is normal despite medial forearm numbness: there is a C8 root lesion as well.',
+      'uln-elbow': 'The ulnar velocity across the elbow is slowed with a CMAP drop, and the ulnar SNAP is low. A root lesion causes neither: there is an ulnar lesion at the elbow as well.'
+    },
+    pattern: 'Focal ulnar slowing at the elbow with a low ulnar SNAP, plus fibrillations in median and radial C8 muscles and the paraspinals with a normal MABC SNAP: ulnar neuropathy at the elbow and C8 radiculopathy.',
+    wrong: {
+      lt: 'A lower trunk or medial cord lesion would lower the MABC SNAP, spare the paraspinals and cause no focal slowing at the elbow. Here the MABC SNAP is normal, the paraspinals are denervated and the elbow segment is slow.',
+      mc: 'A lower trunk or medial cord lesion would lower the MABC SNAP, spare the paraspinals and cause no focal slowing at the elbow. Here the MABC SNAP is normal, the paraspinals are denervated and the elbow segment is slow.',
+      'uln-wrist': 'A wrist lesion would spare the dorsal ulnar cutaneous SNAP and the elbow segment. Here the elbow segment is slow.',
+      mnd: 'Motor neuron disease spares the SNAPs and causes no focal slowing. Here the ulnar SNAP is low and the elbow segment is slow.'
+    }
+  },
+  {
+    id: 'axn-ssn', set: 'double', title: 'Shoulder weak after a fall', who: '72-year-old woman', weeks: 7,
+    hx: 'Seven weeks ago she tripped and dislocated her left shoulder; it was reduced under sedation. The shoulder has not recovered: she cannot lift the arm or reach behind her head. The outer upper arm is numb. X-rays showed no fracture and an ultrasound showed an intact rotator cuff.',
+    exam: 'Wasting of the deltoid and above and below the spine of the left scapula. Left-sided strength: shoulder abduction 2, shoulder external rotation 3, elbow flexion 5, elbow extension 5, wrist and hand 5. No winging. Reduced pinprick over the lateral upper arm. Reflexes normal.',
+    lesions: [], left: [{ at: 'AXN', axon: 0.75 }, { at: 'SSN', axon: 0.6 }],
+    dx: 'Two nerves injured by the dislocation: left axillary and suprascapular neuropathies.',
+    answer: { loc: 'axn', path: ['axonal'], side: 'L' },
+    answer2: { loc: 'ssn', path: ['axonal'], side: 'L' },
+    teach: [
+      'The axillary CMAP is low compared with the right, and deltoid is denervated: axillary neuropathy.',
+      'Supraspinatus and infraspinatus are denervated too: a suprascapular neuropathy as well. Deltoid alone cannot explain weak external rotation.',
+      'Biceps, brachioradialis, triceps and latissimus dorsi are normal, and the LABC and superficial radial SNAPs are normal: the upper trunk and posterior cord are spared.',
+      'In older patients a dislocation can injure the axillary and suprascapular nerves together, and a rotator cuff tear can coexist. EMG separates nerve injury from a torn tendon.'
+    ],
+    key: [['Axillary motor', ['ncs:axnM']], ['The right arm, for comparison', ['side:other']], ['Needle deltoid', ['emg:Deltoid']], ['Needle supraspinatus or infraspinatus', ['emg:Supraspinatus', 'emg:Infraspinatus']], ['Needle biceps or brachioradialis', ['emg:Biceps', 'emg:Brachioradialis']], ['Needle triceps or latissimus dorsi', ['emg:Triceps', 'emg:Latissimus dorsi']], ['LABC SNAP', ['ncs:labc']]],
+    miss: {
+      axn: 'Deltoid is denervated and the axillary CMAP is lower than on the right. The suprascapular nerve does not supply deltoid.',
+      ssn: 'Supraspinatus and infraspinatus are denervated. The axillary nerve does not supply them.'
+    },
+    pattern: 'Denervation of deltoid and of both spinati, with normal biceps, triceps, latissimus dorsi and SNAPs: axillary and suprascapular neuropathies, not a trunk or cord lesion.',
+    wrong: {
+      ut: 'An upper trunk lesion would also denervate biceps and brachioradialis and lower the LABC and superficial radial SNAPs. Here those are normal.',
+      pc: 'A posterior cord lesion would denervate triceps, latissimus dorsi and the wrist extensors and spare the spinati. Here it is the reverse.',
+      c5: 'C5 radiculopathy would also involve biceps, the rhomboids and the paraspinals. Here they are normal.',
+      na: 'Neuralgic amyotrophy can affect these two nerves, but it follows severe pain, not trauma. Here a dislocation explains both: name the two nerves.'
+    }
+  },
+  {
+    id: 'als-cts', set: 'double', title: 'Referred for carpal tunnel, both hands weak', who: '66-year-old man', weeks: 60, ongoing: true,
+    hx: 'Over a year both hands have become weak and thin, the right more. He mentions cramps in the arms and calves. He has had numb fingertips at night in the right hand for years.',
+    exam: 'Wasting of the thenar eminences and first dorsal interossei on both sides. Right-sided strength: shoulder abduction 4+, elbow flexion 5, elbow extension 4+, wrist extension 4+, finger flexion 4, finger abduction 3, thumb abduction 3. Left: finger abduction 4, thumb abduction 4, other movements 5. Fasciculations in the forearms at rest. Arm reflexes brisk. Reduced pinprick on the tips of digits 1–3 on the right only. Tinel sign positive at the right wrist.',
+    lesions: [{ at: 'R_C5', axon: 0.3 }, { at: 'R_C6', axon: 0.3 }, { at: 'R_C7', axon: 0.45 }, { at: 'R_C8', axon: 0.65 }, { at: 'R_T1', axon: 0.65 }, { at: 'THOR', axon: 0.35 }, { at: 'BULB', axon: 0.2 }, { at: 'LUMB', axon: 0.3 }, { at: 'MEDW', axon: 0.1, dem: 0.6, focal: 35, spread: 0.25 }],
+    left: [{ at: 'R_C5', axon: 0.15 }, { at: 'R_C6', axon: 0.15 }, { at: 'R_C7', axon: 0.25 }, { at: 'R_C8', axon: 0.45 }, { at: 'R_T1', axon: 0.45 }, { at: 'THOR', axon: 0.35 }, { at: 'BULB', axon: 0.2 }, { at: 'LUMB', axon: 0.3 }],
+    dx: 'Two diagnoses: motor neuron disease, and an incidental right carpal tunnel syndrome.',
+    answer: { loc: 'mnd', path: ['axonal'], side: 'both' },
+    answer2: { loc: 'med-wrist', path: ['demy', 'both'], side: 'R' },
+    teach: [
+      'The right median distal latencies are prolonged with focal slowing at the wrist: carpal tunnel syndrome, which explains the numb fingertips.',
+      'Carpal tunnel syndrome cannot explain wasting of FDI (ulnar), weakness on the left without median slowing, fasciculations, or denervation in the thoracic paraspinals, tongue or leg.',
+      'Low motor amplitudes with normal ulnar and superficial radial SNAPs, and active and chronic denervation in several regions on both sides: motor neuron disease.',
+      'A common trap: an abnormal median study explains part of the picture and the study stops there. Ask whether the lesion you have found explains all of the weakness.'
+    ],
+    key: [['Median motor and sensory', ['ncs:medM', 'ncs:medS']], ['An ulnar study', ['ncs:ulnM', 'ncs:ulnS']], ['Needle FDI', ['emg:First dorsal interosseous']], ['Needle a proximal arm muscle', ['emg:Deltoid', 'emg:Biceps', 'emg:Triceps']], ['Thoracic paraspinals', ['emg:Thoracic paraspinals']], ['Another region: tongue or leg', ['emg:Genioglossus (tongue)', 'emg:Tibialis anterior']], ['The left arm', ['side:L']]],
+    miss: {
+      mnd: 'FDI, the proximal arm muscles, the thoracic paraspinals and the tongue or leg show fibrillations and fasciculations on both sides, with normal ulnar and radial SNAPs. Carpal tunnel syndrome explains none of that.',
+      'med-wrist': 'The right median distal latencies and median sensory latency are prolonged with focal slowing at the wrist. Motor neuron disease does not slow sensory conduction.'
+    },
+    pattern: 'Focal median slowing at the wrist, plus widespread active and chronic denervation with fasciculations and normal ulnar and radial SNAPs: carpal tunnel syndrome and motor neuron disease.',
+    wrong: {
+      pn: 'A polyneuropathy would lower the SNAPs. Here the ulnar and superficial radial SNAPs are normal.',
+      mmn: 'Multifocal motor neuropathy gives conduction block outside entrapment sites. Here there is none, and the reflexes are brisk.',
+      c8: 'A radiculopathy stays within one or two roots on one side. Here both arms, the thoracic paraspinals and other regions are involved.'
+    }
+  },
+
+  // ---------------- real-world referrals: vague history, limited examination ----------------
+  {
+    id: 'vague-numb', set: 'messy', title: '"My hand feels numb sometimes"', who: '58-year-old man', weeks: 56,
+    hx: 'He says his left hand "feels numb sometimes", mostly when doing up buttons or picking up coins. Asked to describe it, he says the thumb feels "dead" and will not do what he wants. No tingling, no night waking, no pain. It has slowly worsened over a year.',
+    exam: 'Mild left thenar wasting. Left-sided strength: thumb abduction 3, thumb opposition 3, finger abduction 5, finger flexion 5, wrist, elbow and shoulder 5. Pinprick, light touch and two-point discrimination normal on all fingers. Reflexes normal. Phalen and Tinel signs negative. A few fasciculations over the thenar eminence.',
+    lesions: [], left: [{ at: 'MEDF', axon: 0.2, block: 0.65, motorOnly: true }],
+    dx: 'Multifocal motor neuropathy: partial motor conduction block in the left median nerve in the forearm, with normal sensory conduction. Not carpal tunnel syndrome.',
+    answer: { loc: 'mmn', path: ['demy', 'both'], side: 'L' },
+    teach: [
+      'To a patient, "numb" often means weak, clumsy or "dead". Normal sensation on examination with a weak, wasted muscle points to a motor problem.',
+      'The median distal motor latency is normal, and the median digit-2 and palmar studies are normal: no carpal tunnel syndrome.',
+      'The median CMAP falls by about two thirds between wrist and elbow stimulation: conduction block in the forearm, away from the carpal tunnel.',
+      'Needle APB shows reduced recruitment with few fibrillations. Look for block in other nerves and on the other side, and check anti-GM1 antibodies.'
+    ],
+    key: [['Median motor with wrist and elbow stimulation', ['ncs:medM']], ['Median sensory or palmar', ['ncs:medS', 'ncs:medP']], ['An ulnar study', ['ncs:ulnM', 'ncs:ulnS']], ['Needle APB', ['emg:APB']], ['A median muscle above the forearm (pronator teres or FCR)', ['emg:Pronator teres', 'emg:FCR']]],
+    pattern: 'A "numb" hand with normal sensation and SNAPs, a normal distal latency, and a motor conduction block in the forearm: multifocal motor neuropathy, not carpal tunnel syndrome.',
+    wrong: {
+      'med-wrist': 'Carpal tunnel syndrome prolongs the median distal latency and slows or lowers the median SNAP first. Here the distal latency and all median sensory studies are normal, and the amplitude falls between wrist and elbow.',
+      mnd: 'Motor neuron disease causes no conduction block. Here the median CMAP falls by two thirds over the forearm with normal sensory conduction.',
+      ain: 'An anterior interosseous neuropathy weakens FPL and index FDP, not APB, and leaves the median CMAP from APB normal.',
+      c8: 'A C8 radiculopathy would involve the ulnar hand muscles and cause no conduction block. Here FDI is normal and there is a forearm block.'
+    }
+  },
+  {
+    id: 'frozen', set: 'messy', title: 'Painful stiff shoulder and a weak arm', who: '61-year-old woman', weeks: 24,
+    hx: 'Six months of left shoulder pain and stiffness; her family doctor diagnosed a frozen shoulder. She has type 2 diabetes. She says "the whole arm is weak", and the hand tingles at night.',
+    exam: 'Left shoulder: active and passive abduction limited to 70° and external rotation to 10° by pain and stiffness; shoulder strength cannot be tested. Elbow flexion and extension 5, with effort limited by shoulder pain. Wrist flexion 5, wrist extension 5, finger flexion 5, finger abduction 5, thumb abduction 4+. No wasting. Reflexes symmetric. Reduced pinprick on the tips of digits 1–3 on the left. Phalen sign positive on the left. Vibration normal at the toes.',
+    lesions: [], left: [{ at: 'MEDW', axon: 0.15, dem: 0.6, focal: 35, spread: 0.25, block: 0.05 }],
+    dx: 'Left carpal tunnel syndrome. The shoulder weakness comes from the frozen shoulder (pain and stiffness), not from a nerve lesion.',
+    answer: { loc: 'med-wrist', path: ['demy', 'both'], side: 'L' },
+    teach: [
+      'Median slowing at the wrist with normal ulnar, superficial radial and LABC studies: carpal tunnel syndrome. The normal SNAPs in other nerves also argue against a diabetic polyneuropathy.',
+      'Deltoid, supraspinatus, infraspinatus and biceps have no fibrillations and normal motor units: no neurogenic cause for the shoulder weakness.',
+      'When pain limits effort, the examination cannot grade strength. On needle EMG a patient who cannot contract fully shows a few normal units firing at normal, slow rates (poor activation), not few units firing fast (reduced recruitment). The model always gives full effort, so it cannot show this.',
+      'Diabetes is associated with both frozen shoulder and carpal tunnel syndrome.'
+    ],
+    key: [['Median motor and sensory', ['ncs:medM', 'ncs:medS']], ['An ulnar study', ['ncs:ulnM', 'ncs:ulnS']], ['A nerve away from entrapment sites (superficial radial or LABC)', ['ncs:radS', 'ncs:labc']], ['Needle deltoid', ['emg:Deltoid']], ['Needle supraspinatus or infraspinatus', ['emg:Supraspinatus', 'emg:Infraspinatus']], ['Needle APB', ['emg:APB']]],
+    pattern: 'Median slowing at the wrist with normal shoulder muscles on needle EMG: carpal tunnel syndrome, and shoulder weakness that is not neurogenic.',
+    wrong: {
+      ut: 'An upper trunk lesion would lower the LABC and superficial radial SNAPs and denervate deltoid and the spinati. Here those are normal.',
+      c5: 'C5 radiculopathy would denervate deltoid, the spinati and the paraspinals. Here they are normal.',
+      ssn: 'A suprascapular neuropathy would denervate supraspinatus and infraspinatus. Here they are normal.',
+      pn: 'A diabetic polyneuropathy would lower the ulnar and superficial radial SNAPs too, and usually starts in the feet. Here those SNAPs are normal.',
+      na: 'Neuralgic amyotrophy causes pain followed by denervation of shoulder girdle muscles. Here the shoulder muscles are normal on needle EMG.'
+    }
+  },
+  {
+    id: 'giveway', set: 'messy', title: 'Whole arm weak after a fall at work', who: '42-year-old man', weeks: 12, start: 'R',
+    hx: 'Twelve weeks ago he slipped at work and caught himself with the right arm. Since then the whole arm has been weak and numb "from the shoulder down", with pain everywhere in the arm, worse with any movement. He has not been able to return to work.',
+    exam: 'No wasting. Right-sided strength: every movement gives way after a brief normal contraction, grading 3 to 4 at best, with good strength at moments. Reflexes 2+ and symmetric. Reduced pinprick over the whole right arm, ending sharply at the shoulder and including the axilla; vibration at the fingers is normal. Tone normal.',
+    lesions: [],
+    dx: 'Normal study. No evidence of a lesion of the roots, plexus or peripheral nerves of the right arm.',
+    answer: { loc: 'normal', path: ['none'] },
+    teach: [
+      'All motor and sensory studies are normal. Numbness this dense across several nerve territories would lower their SNAPs if the lesion were in the plexus or nerves; a root lesion that large would denervate the arm muscles and paraspinals.',
+      'Needle EMG of muscles from C5 to T1 on several nerves shows no fibrillations and normal motor units.',
+      'Give-way weakness and sensory loss with a sharp border at the shoulder fit no anatomical lesion. Give-way weakness has many causes, including pain and fear of pain; the report describes the findings and what was tested, not a motive.',
+      'In real muscle, poor effort shows as a few normal units firing slowly (poor activation). The model always gives full effort.'
+    ],
+    key: [['Median and ulnar motor and sensory', ['ncs:medM', 'ncs:ulnM', 'ncs:medS', 'ncs:ulnS']], ['A C6 SNAP (LABC or superficial radial)', ['ncs:labc', 'ncs:radS']], ['MABC SNAP', ['ncs:mabc']], ['Needle a C5–6 muscle', ['emg:Deltoid', 'emg:Biceps']], ['Needle a C7 muscle', ['emg:Triceps', 'emg:FCR', 'emg:EDC']], ['Needle a C8–T1 muscle', ['emg:First dorsal interosseous', 'emg:APB']]],
+    pattern: 'Normal SNAPs in the numb territory and normal needle EMG across C5–T1: no lesion of the roots, plexus or nerves, whatever the examination suggested.',
+    wrong: {
+      ut: 'An upper trunk lesion would lower the LABC and superficial radial SNAPs and denervate deltoid and biceps. All are normal.',
+      lt: 'A lower trunk lesion would lower the ulnar and MABC SNAPs and denervate the hand muscles. All are normal.',
+      avul: 'Root avulsion leaves the SNAPs normal but heavily denervates the arm muscles and paraspinals. The needle EMG is normal.',
+      c7: 'Radiculopathy would show fibrillations or reinnervated units in the muscles of the affected root. These are normal.',
+      c6: 'Radiculopathy would show fibrillations or reinnervated units in the muscles of the affected root. These are normal.'
+    }
+  },
+  {
+    id: 'tos-normal', set: 'messy', title: 'Arm goes heavy overhead', who: '24-year-old woman', weeks: 52, start: 'L',
+    hx: 'A year of heaviness, aching and tingling in the whole left arm when she works with her arms raised (she is a hairdresser) or carries bags. The hand sometimes goes pale and cold. The symptoms settle within minutes of lowering the arm. A chest X-ray showed a small left cervical rib.',
+    exam: 'Strength 5 throughout both arms, with no wasting of the thenar or hypothenar muscles. Sensation and reflexes normal. Holding the arms overhead reproduces the heaviness and tingling within a minute.',
+    lesions: [],
+    dx: 'Normal study. No neurogenic thoracic outlet syndrome.',
+    answer: { loc: 'normal', path: ['none'] },
+    teach: [
+      'True neurogenic thoracic outlet syndrome is a chronic lower trunk lesion, usually T1 more than C8: low MABC and ulnar SNAPs, a low median CMAP with a normal median SNAP, and chronic changes in the hand muscles with thenar wasting. All of those are normal here.',
+      'Positional symptoms with a normal study fit the much commoner non-specific ("disputed") thoracic outlet syndrome, or a vascular cause. A normal study does not exclude a vascular problem.',
+      'A cervical rib is common and usually causes no symptoms; on its own it does not make the diagnosis.',
+      'Compare the MABC SNAP with the other side: it is one of the most sensitive tests for a lower trunk lesion.'
+    ],
+    key: [['MABC SNAP', ['ncs:mabc']], ['Ulnar sensory (digit 5)', ['ncs:ulnS']], ['Median motor (APB)', ['ncs:medM']], ['Median sensory (digit 2)', ['ncs:medS']], ['Needle APB or FDI', ['emg:APB', 'emg:First dorsal interosseous', 'emg:ADM']], ['The right arm, for comparison', ['side:R']]],
+    pattern: 'Normal MABC and ulnar SNAPs, a normal median CMAP and normal hand muscles on needle EMG: no neurogenic thoracic outlet syndrome.',
+    wrong: {
+      lt: 'Neurogenic thoracic outlet syndrome (a lower trunk lesion) would lower the MABC and ulnar SNAPs and the median CMAP and show chronic changes in the hand muscles. All are normal.',
+      c8: 'C8 radiculopathy would show fibrillations or reinnervated units in C8 muscles. These are normal.',
+      'uln-elbow': 'Ulnar neuropathy at the elbow would slow conduction across the elbow. It is normal.',
+      'med-wrist': 'Carpal tunnel syndrome would prolong the median distal latencies. They are normal.'
+    }
+  },
+  {
+    id: 'fx-wrist', set: 'messy', title: 'Numb fingers after a wrist fracture', who: '66-year-old woman', weeks: 6,
+    hx: 'Six weeks ago she fell on her outstretched right hand and broke the distal radius; it was set and put in a cast, which came off last week. Since the fall the thumb, index and middle fingers have been numb all the time. She also hurt her neck in the fall.',
+    exam: 'The right wrist is swollen and stiff; grip, wrist and thumb strength cannot be tested because of pain. Elbow flexion and extension 5, shoulder abduction 5. Reduced pinprick on digits 1–3 including the tips; the thenar eminence is normal. Reflexes normal. Neck movements mildly painful; Spurling sign negative.',
+    lesions: [{ at: 'MEDW', axon: 0.55, dem: 0.6, focal: 35, spread: 0.3, block: 0.1 }],
+    dx: 'Right median neuropathy at the wrist after a distal radius fracture: axon loss with focal slowing. No cervical radiculopathy.',
+    answer: { loc: 'med-wrist', path: ['both', 'demy'], side: 'R' },
+    teach: [
+      'The median SNAP is low and the distal latencies are prolonged with a normal forearm velocity: the lesion is at the wrist. A root lesion would leave the SNAP normal.',
+      'APB shows fibrillations: there is axon loss at the wrist, not only transient compression.',
+      'Pronator teres, FCR, triceps and the cervical paraspinals are normal: no C6–7 radiculopathy.',
+      'When pain, a cast or swelling prevents strength testing, the study has to localise on its own: the SNAPs separate pre- from postganglionic lesions, and the needle EMG maps which muscles are involved.'
+    ],
+    key: [['Median motor and sensory', ['ncs:medM', 'ncs:medS']], ['An ulnar study (the ulnar nerve can be hurt at the wrist too)', ['ncs:ulnM', 'ncs:ulnS']], ['Needle APB', ['emg:APB']], ['A C6–7 muscle above the wrist', ['emg:Pronator teres', 'emg:FCR', 'emg:Triceps', 'emg:Biceps']], ['Cervical paraspinals', ['emg:Cervical paraspinals, C5–6', 'emg:Cervical paraspinals, C7–T1']]],
+    pattern: 'A low median SNAP with slowing at the wrist and denervation of APB only, with normal C6–7 muscles and paraspinals: median neuropathy at the wrist, not the neck.',
+    wrong: {
+      c6: 'C6 or C7 radiculopathy is preganglionic: the median SNAP would be normal, and muscles above the wrist and the paraspinals would be denervated. Here the SNAP is low and those muscles are normal.',
+      c7: 'C6 or C7 radiculopathy is preganglionic: the median SNAP would be normal, and muscles above the wrist and the paraspinals would be denervated. Here the SNAP is low and those muscles are normal.',
+      ain: 'The anterior interosseous nerve carries no skin sensation. Here digits 1–3 are numb and the median SNAP is low.',
+      pn: 'A polyneuropathy would affect the ulnar nerve too. It is normal.'
+    }
   }
 ];
 
@@ -1644,6 +2474,80 @@ const CASE_EXTRA = {
   }
 };
 CASES.forEach(c => Object.assign(c, CASE_EXTRA[c.id]));
+CASES.push(...MORE_CASES);
+// Defaults: the first thirteen patients are the classic set, studied on the right arm.
+CASES.forEach(c => { c.set = c.set || 'classic'; c.answer.side = c.answer.side || (c.answer.loc === 'normal' ? undefined : 'R'); });
+
+// Who referred each patient and what they asked, as on a referral form. Questions are what a referrer would
+// plausibly write: some are open, some guess, and some guess wrong (the advanced cases).
+const REFERRALS = {
+  cts: ['Family physician', 'Numb hand, dropping things. ?Nerve entrapment. Please do nerve conduction studies.'],
+  une: ['Family physician', 'Numb ring and little fingers with a clumsy hand. Please assess.'],
+  c7: ['Family physician', 'Neck and arm pain with finger tingling. ?Pinched nerve. Please assess.'],
+  c8: ['Spine clinic', 'Hand weakness and numbness after neck pain. Root or ulnar nerve?'],
+  ut: ['Orthopaedics (trauma)', 'Arm weakness after a bicycle crash. Please localise and assess severity.'],
+  avul: ['Plastic surgery (brachial plexus clinic)', 'Flail shoulder after a motorcycle crash. Please localise before surgical planning.'],
+  rad: ['Emergency department', 'Wrist drop. Please assess.'],
+  pin: ['Family physician', 'Cannot straighten the fingers. Tendon or nerve? Please assess.'],
+  pc: ['Orthopaedics (fracture clinic)', 'Weak arm after a shoulder dislocation. Please assess the nerves.'],
+  na: ['Sports medicine', 'Shoulder weakness after a spell of severe pain. Please assess.'],
+  als: ['Neurology clinic', 'Progressive hand weakness with twitching. Please assess.'],
+  guyon: ['Family physician', 'Weak hand after a cycling trip. Please assess.'],
+  normal: ['Occupational health', 'Tingling fingers with computer work. ?Carpal tunnel syndrome.'],
+  c6: ['Family physician', 'Neck pain radiating into the left arm. Please assess.'],
+  c5: ['Neurosurgery', 'New right arm weakness after cervical decompression. Please assess.'],
+  ain: ['Family physician', 'Weak pinch in the left hand. Please assess.'],
+  axn: ['Orthopaedics (fracture clinic)', 'Persistent shoulder weakness after a dislocation. Please assess.'],
+  ssn: ['Sports medicine', 'Shoulder pain, weakness and wasting. Please assess.'],
+  mcn: ['Sports medicine', 'Weak elbow flexion after weight training; biceps tendon intact on ultrasound. Please assess.'],
+  lt: ['Cardiac surgery', 'Left hand weakness and numbness since bypass surgery. Please assess.'],
+  mc: ['Cardiology', 'Right hand weakness after a catheter procedure. Please assess.'],
+  lc: ['General surgery (trauma)', 'Arm weakness after a stab wound below the clavicle. Please localise.'],
+  mmn: ['Family physician', 'Progressive right hand weakness. Please assess.'],
+  'cts-mild': ['Family physician', 'Night-time hand tingling. Please assess.'],
+  'cts-severe': ['Plastic surgery', 'Thenar wasting. Please grade severity before surgery.'],
+  'une-mild': ['Family physician', 'Intermittent tingling of the ring and little fingers. Please assess.'],
+  'une-ax': ['Orthopaedics', 'Hand wasting and numbness; old elbow fracture. Please localise.'],
+  'c7-chronic': ['Family physician', 'Old neck problem with residual arm weakness. Is there ongoing nerve damage?'],
+  'c8-early': ['Spine clinic', 'Neck pain and left hand weakness. Please assess.'],
+  'rad-fx': ['Orthopaedics (fracture clinic)', 'Wrist drop after a humeral fracture, no recovery at 10 weeks. Please assess.'],
+  'ut-ruck': ['Sports medicine', 'Left arm weakness after a hiking trip. Please assess.'],
+  'als-flail': ['Neurology clinic', 'Weakness of both shoulders. Please assess.'],
+  'na-l': ['General surgery', 'Left shoulder weakness and winging after surgery. Please assess.'],
+  'cts-c7': ['Family physician', 'Hand tingling, and now neck and arm pain. Please assess.'],
+  'cts-une': ['Family physician', 'Numb left hand. ?Polyneuropathy. Please assess.'],
+  'cts-bilat': ['Occupational health', 'Hand tingling at night, worse on the right. Please assess.'],
+  'c8-une': ['Family physician', 'Hand weakness. Neck or elbow? Please assess.'],
+  'axn-ssn': ['Orthopaedics (fracture clinic)', 'Shoulder weakness after a dislocation. Please assess the nerves.'],
+  'als-cts': ['Family physician', 'Bilateral carpal tunnel syndrome, worse on the right. Please confirm before surgical referral.'],
+  'vague-numb': ['Family physician', '?Left carpal tunnel syndrome.'],
+  frozen: ['Family physician', 'Whole left arm weak; known frozen shoulder. ?Radiculopathy or plexopathy.'],
+  giveway: ['Workplace insurer', 'Right arm weakness after a fall at work. Please assess.'],
+  'tos-normal': ['Vascular surgery', '?Thoracic outlet syndrome; small left cervical rib. Please assess for a neurogenic cause.'],
+  'fx-wrist': ['Orthopaedics (fracture clinic)', 'Numb fingers after a distal radius fracture; she also hurt her neck. Wrist or neck?']
+};
+CASES.forEach(c => { const r = REFERRALS[c.id]; if (r) { c.from = r[0]; c.q = r[1]; } });
+
+// The examination as written is one paragraph; show it as labelled lines (inspection, strength, reflexes,
+// sensation, other tests). Each sentence goes under the first heading whose words it contains, in this order.
+const EXAM_PARTS = [
+  ['Reflexes', /reflex|Hoffmann|plantar/i],
+  ['Special tests', /Tinel|Phalen|Spurling|Froment|Horner|reproduc/i],
+  ['Sensation', /pinprick|sensation|numb|vibration|two-point|touch/i],
+  ['Inspection', /deformity|valgus/i],
+  ['Strength', /strength|abduction|flexion|extension|rotation|pronation|pinch|grip|movement|give[s]? way/i],
+  ['Inspection', /./]
+];
+function examHtml(text) {
+  const groups = new Map(EXAM_PARTS.map(([k]) => [k, []]));
+  for (const s of text.match(/[^.]+(\.(?=\s|$)|$)/g).map(x => x.trim()).filter(Boolean)) {
+    // "Sensation and reflexes normal" belongs in both lines
+    if (/sensation/i.test(s) && /reflex/i.test(s) && s.length < 60) { groups.get('Sensation').push(s); groups.get('Reflexes').push(s); continue; }
+    groups.get(EXAM_PARTS.find(([, re]) => re.test(s))[0]).push(s);
+  }
+  const order = ['Inspection', 'Strength', 'Reflexes', 'Sensation', 'Special tests'];
+  return '<dl class="exam">' + order.filter(k => groups.get(k).length).map(k => `<dt>${k}</dt><dd>${groups.get(k).join(' ')}</dd>`).join('') + '</dl>';
+}
 // Why the chosen pathophysiology does not fit this case
 function pathWhy(c, path) {
   const a = c.answer.path;
@@ -1661,15 +2565,21 @@ function progress(c) { return c.ongoing ? Math.min(1, c.weeks / 52) : 1; }
 function lesMap(c, side) { const L = {}; for (const x of lesionsFor(c, side)) L[x.at] = x; return L; }
 
 // Per-muscle EMG parameters: fraction of motor units lost, fraction of the rest blocked
+// A lesion may carry its own age in weeks (an old lesion beside a new one); the muscle takes the age of the
+// lesion that removes most of its axons, else the case's.
 function muscleParams(c, side, m) {
   const L = lesMap(c, side);
-  let f = 0, blk = 0;
+  let f = 0, blk = 0, weeks = c.weeks, top = 0;
   for (const [r, w, n] of m.contrib) {
     let a = 1, b = 1;
-    for (const s of routeOf(r, n)) { const x = L[s]; if (!x) continue; a *= 1 - (x.axon || 0); b *= 1 - (x.block || 0); }
+    for (const s of routeOf(r, n)) {
+      const x = L[s]; if (!x) continue; a *= 1 - (x.axon || 0); b *= 1 - (x.block || 0);
+      const hit = w * ((x.axon || 0) + (x.block || 0));
+      if (x.weeks !== undefined && hit > top) { top = hit; weeks = x.weeks; } else if (hit > top) { top = hit; weeks = c.weeks; }
+    }
     f += w * a; blk += w * a * (1 - b);
   }
-  return { loss: Math.max(0, 1 - f), block: f > 0 ? blk / f : 0 };
+  return { loss: Math.max(0, 1 - f), block: f > 0 ? blk / f : 0, weeks };
 }
 
 // Needle EMG of muscle m with the needle at (nx, ny) mm in the model cross-section.
@@ -1678,12 +2588,13 @@ function muscleParams(c, side, m) {
 const emgRefCache = new Map();
 function emgStudy(c, side, m, nx, ny) {
   const mp = muscleParams(c, side, m);
-  const p = Object.assign(EMG.defaults(), { loss: mp.loss, block: mp.block, weeks: c.weeks, ongoing: !!c.ongoing && mp.loss > 0, nx, ny });
+  const M = EMG.modelFor(m.name, unitIR(m.name));
+  const p = Object.assign(EMG.defaults(), { loss: mp.loss, block: mp.block, weeks: mp.weeks, ongoing: !!c.ongoing && mp.loss > 0, nx, ny, M });
   const S = EMG.state(p), SM = EMG.summary(S);
-  const key = nx.toFixed(2) + ',' + ny.toFixed(2);
+  const key = m.name + '|' + nx.toFixed(2) + ',' + ny.toFixed(2);
   let REF = emgRefCache.get(key);
   if (!REF) {
-    const RS = EMG.state(Object.assign(EMG.defaults(), { nx, ny }));
+    const RS = EMG.state(Object.assign(EMG.defaults(), { nx, ny, M }));
     REF = EMG.summary(RS); REF.S = RS;
     REF.maxVis = EMG.recruit(RS, 1).firing.filter(x => REF.vis.some(v => v.u === x.u)).length;
     emgRefCache.set(key, REF);
@@ -1739,7 +2650,8 @@ function ncsParams(c, side, key) {
     });
   } else {
     let a = 1;
-    for (const s of routeOf(st.root, st.nerve)) if (!s.startsWith('R_')) a *= 1 - ax(s); // preganglionic roots spare the SNAP
+    // preganglionic roots spare the SNAP; so do motor-only lesions (multifocal motor neuropathy)
+    for (const s of routeOf(st.root, st.nerve)) if (!s.startsWith('R_') && !(L[s] && L[s].motorOnly)) a *= 1 - ax(s);
     p.sensLoss = 1 - a;
     for (const id of st.bp || []) {
       const x = L[id]; if (!x) continue;
@@ -1961,7 +2873,8 @@ const LESNAME = {
   MTa: 'Middle trunk, anterior division', MTp: 'Middle trunk, posterior division', LTa: 'Lower trunk, anterior division', LTp: 'Lower trunk, posterior division',
   LC: 'Lateral cord', MC: 'Medial cord', DSC: 'Dorsal scapular nerve', LPN: 'Lateral pectoral nerve', MPN: 'Medial pectoral nerve',
   MCN: 'Musculocutaneous nerve', SUB: 'Subscapular nerves', TDN: 'Thoracodorsal nerve', AXN: 'Axillary nerve', RAD1: 'Radial nerve, axilla',
-  SRN: 'Superficial radial nerve', MED1: 'Median nerve, elbow', MABC: 'Medial antebrachial cutaneous nerve', MBC: 'Medial brachial cutaneous nerve'
+  SRN: 'Superficial radial nerve', MED1: 'Median nerve, elbow', MABC: 'Medial antebrachial cutaneous nerve', MBC: 'Medial brachial cutaneous nerve',
+  MEDF: 'Median nerve, forearm (motor fibres)', ULNF: 'Ulnar nerve, forearm (motor fibres)'
 };
 const LOCS = [
   ['', [['', 'Choose…']]],
@@ -1974,12 +2887,32 @@ const LOCS = [
 const LOCNAME = Object.fromEntries(LOCS.flatMap(g => g[1]));
 const PATHS = [['', 'Choose…'], ['axonal', 'Axon loss'], ['demy', 'Demyelination: focal slowing or conduction block'], ['both', 'Demyelination and axon loss'], ['none', 'None (normal study)']];
 const PATHNAME = Object.fromEntries(PATHS);
-for (const [g, opts] of LOCS) {
-  const parent = g ? Object.assign(document.createElement('optgroup'), { label: g }) : $('imp-loc');
-  for (const [v, t] of opts) parent.appendChild(Object.assign(document.createElement('option'), { value: v, textContent: t }));
-  if (g) $('imp-loc').appendChild(parent);
+const SIDES = [['', 'Choose…'], ['R', 'Right'], ['L', 'Left'], ['both', 'Both sides']];
+const SIDENAME = { R: 'right', L: 'left', both: 'both sides' };
+function fillSelect(sel, opts) { for (const [v, t] of opts) sel.appendChild(Object.assign(document.createElement('option'), { value: v, textContent: t })); }
+function fillLocs(sel, first) {
+  for (const [g, opts] of LOCS) {
+    if (!g) { fillSelect(sel, [['', first]]); continue; }
+    const parent = Object.assign(document.createElement('optgroup'), { label: g });
+    fillSelect(parent, opts.filter(([v]) => !(first !== 'Choose…' && v === 'normal')));
+    sel.appendChild(parent);
+  }
 }
-for (const [v, t] of PATHS) $('imp-path').appendChild(Object.assign(document.createElement('option'), { value: v, textContent: t }));
+fillLocs($('imp-loc'), 'Choose…'); fillLocs($('imp-loc2'), 'None: one lesion explains it');
+fillSelect($('imp-path'), PATHS); fillSelect($('imp-path2'), PATHS.filter(([v]) => v !== 'none'));
+fillSelect($('imp-side'), SIDES); fillSelect($('imp-side2'), SIDES);
+
+// Case sets: each patient belongs to one. They group the cases by what they train, not by difficulty.
+// Each case's `set` names what it is (classic, variant, double, messy); SET_LEVEL groups those into three levels.
+const SETS = [
+  ['all', 'All patients'],
+  ['easy', 'Easy: single lesion, textbook story'],
+  ['moderate', 'Moderate: single lesion, more complex cases'],
+  ['advanced', 'Advanced: multiple lesions and confusing exams']
+];
+const SET_LEVEL = { classic: 'easy', variant: 'moderate', double: 'advanced', messy: 'advanced' };
+const SETNAME = Object.fromEntries(SETS);
+fillSelect($('caseset'), SETS);
 
 // ===================== state =====================
 const st = { ci: -1, c: null, side: 'R', mode: 'ncs', study: null, muscle: null, ncs: null, emg: null, submitted: false, selfGrade: true }; // selfGrade: automated needle readings hidden; you grade in the report
@@ -1989,21 +2922,28 @@ let order = 0;
 // ===================== patients =====================
 const caselist = $('caselist'); // a menu of patients; a ✓ marks those already answered
 function caseLabel(i) { return `${i + 1} · ${CASES[i].title}${solved.has(CASES[i].id) ? '  ✓' : ''}`; }
+// indices of the patients in the chosen set; patients keep their overall number in every set
+function inSet() { const s = $('caseset').value || 'all'; return CASES.map((_, i) => i).filter(i => s === 'all' || SET_LEVEL[CASES[i].set] === s); }
 function renderCaseList() {
   caselist.innerHTML = '';
-  if (st.ci < 0) caselist.appendChild(Object.assign(document.createElement('option'), { value: '', textContent: 'Lesion from the brachial plexus simulator' }));
-  CASES.forEach((c, i) => caselist.appendChild(Object.assign(document.createElement('option'), { value: String(i), textContent: caseLabel(i) })));
-  caselist.value = st.ci < 0 ? '' : String(st.ci);
-  $('casecount').textContent = st.ci < 0 ? '' : `${st.ci + 1} of ${CASES.length} · ${solved.size} answered`;
+  const ids = inSet();
+  if (st.ci < 0 || !ids.includes(st.ci)) caselist.appendChild(Object.assign(document.createElement('option'), { value: '', textContent: st.ci < 0 ? 'Lesion from the brachial plexus simulator' : 'Choose a patient from this set…' }));
+  ids.forEach(i => caselist.appendChild(Object.assign(document.createElement('option'), { value: String(i), textContent: caseLabel(i) })));
+  caselist.value = st.ci >= 0 && ids.includes(st.ci) ? String(st.ci) : '';
+  const k = ids.indexOf(st.ci), done = ids.filter(i => solved.has(CASES[i].id)).length;
+  $('casecount').textContent = st.ci < 0 ? '' : `${k >= 0 ? k + 1 + ' of ' : ''}${ids.length} · ${done} answered`;
 }
 caselist.onchange = () => { if (caselist.value !== '') loadCase(+caselist.value); };
-$('pt-prev').onclick = () => loadCase((Math.max(st.ci, 0) + CASES.length - 1) % CASES.length);
-$('pt-next').onclick = () => loadCase((st.ci + 1) % CASES.length);
+function stepCase(d) { const ids = inSet(), k = ids.indexOf(st.ci); loadCase(ids[k < 0 ? (d > 0 ? 0 : ids.length - 1) : (k + d + ids.length) % ids.length]); }
+$('pt-prev').onclick = () => stepCase(-1);
+$('pt-next').onclick = () => stepCase(1);
 $('rand').onclick = () => {
-  const pool = CASES.map((_, i) => i).filter(i => i !== st.ci && !solved.has(CASES[i].id));
-  const from = pool.length ? pool : CASES.map((_, i) => i).filter(i => i !== st.ci);
-  loadCase(from[Math.floor(Math.random() * from.length)]);
+  const ids = inSet();
+  const pool = ids.filter(i => i !== st.ci && !solved.has(CASES[i].id));
+  const from = pool.length ? pool : ids.filter(i => i !== st.ci);
+  loadCase(from.length ? from[Math.floor(Math.random() * from.length)] : ids[0]);
 };
+$('caseset').onchange = () => { const ids = inSet(); if (ids.includes(st.ci)) renderCaseList(); else loadCase(ids[0]); };
 function loadCase(i, custom) {
   st.ci = i; st.c = custom || CASES[i];
   st.ncs = { R: {}, L: {} }; st.emg = { R: {}, L: {} };
@@ -2013,10 +2953,13 @@ function loadCase(i, custom) {
   const onset = wk < 8 ? `${wk} week${wk === 1 ? '' : 's'}` : wk < 52 ? `about ${Math.round(wk / 4.35)} months` : wk < 78 ? 'about a year' : `about ${Math.round(wk / 52)} years`;
   $('referral').innerHTML = c.custom
     ? `<p class="who">Lesion from the brachial plexus simulator</p><p class="hx">${c.mystery ? 'Hidden: this is the mystery lesion. Localise it from the studies.' : c.lesions.length ? c.lesions.map(x => LESNAME[x.at] || x.at).join(', ') + `: ${Math.round(c.sev * 100)}% of axons lost.` : 'No lesion: a normal study.'}</p><p class="note">Studied ${onset} after onset. The left arm is normal, for comparison.</p>`
-    : `<p class="who">Patient ${i + 1} · ${c.who}</p><p class="hx">${c.hx}</p><h3>Examination</h3><p class="exam">${c.exam}</p><p class="note">Symptoms began ${onset} before this study.</p>`;
-  $('imp-loc').value = ''; $('imp-path').value = '';
+    : `<p class="who">Patient ${i + 1} · ${c.who}${$('caseset').value === 'all' ? '' : `<span class="settag">${SETNAME[SET_LEVEL[c.set]].split(':')[0]}</span>`}</p>` +
+      `<dl class="refhead"><dt>From</dt><dd>${c.from || 'Family physician'}</dd><dt>Question</dt><dd>${c.q || 'Please assess.'}</dd></dl>` +
+      `<h3>History</h3><p class="hx">${c.hx} Symptoms began ${onset} ago.</p><h3>Examination by the referring doctor</h3>${examHtml(c.exam)}`;
+  for (const k of ['imp-loc', 'imp-path', 'imp-side', 'imp-loc2', 'imp-path2', 'imp-side2']) $(k).value = '';
+  $('imp2').open = false;
   $('result-panel').classList.add('hidden');
-  setSide('R', true);
+  setSide((c.start || (c.answer && c.answer.side)) === 'L' ? 'L' : 'R', true); // start on the side the patient complains of
   emgStop();
   renderAll();
 }
@@ -2058,7 +3001,7 @@ function renderAll() {
   drawNcs(); emgPanel(); renderReport(); renderTally();
 }
 function renderTally() {
-  const part = s => { const n = Object.values(st.ncs[s]).filter(x => x.done.length).length, m = Object.keys(st.emg[s]).length; return `${n} nerve stud${n === 1 ? 'y' : 'ies'}, ${m} muscle${m === 1 ? '' : 's'}`; };
+  const part = s => { const n = Object.values(st.ncs[s]).filter(x => x.done.length).length, m = Object.values(st.emg[s]).filter(x => x.read).length; return `${n} nerve stud${n === 1 ? 'y' : 'ies'}, ${m} muscle${m === 1 ? '' : 's'}`; };
   const l = Object.values(st.ncs.L).some(x => x.done.length) || Object.keys(st.emg.L).length;
   $('tally').textContent = 'Done so far: right arm ' + part('R') + (l ? ' · left arm ' + part('L') : '') + '.';
 }
@@ -2199,7 +3142,7 @@ const CHIP_MUSCLES = ['Subscapularis', 'Supinator', 'EIP', 'EPL', 'FDP 2–3', '
 function renderChips() {
   const ch = $('chips'); ch.innerHTML = '<span class="lab">Deep and axial muscles</span>';
   for (const n of CHIP_MUSCLES) {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip' + (st.emg && st.emg[st.side][n] ? ' done' : '');
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip' + (st.emg && st.emg[st.side][n] && st.emg[st.side][n].read ? ' done' : '');
     b.textContent = n; b.setAttribute('aria-pressed', String(st.muscle === n)); b.title = muscleLabel(MBY[n]);
     b.onclick = () => selectMuscle(n);
     ch.appendChild(b);
@@ -2217,7 +3160,7 @@ function renderChips() {
 })();
 function syncMuscleClasses() {
   for (const n in shapes) for (const p of shapes[n]) {
-    p.classList.toggle('done', !!(st.emg && st.emg[st.side][n]));
+    p.classList.toggle('done', !!(st.emg && st.emg[st.side][n] && st.emg[st.side][n].read));
     p.classList.toggle('sel', st.muscle === n);
   }
 }
@@ -2438,7 +3381,7 @@ function drawF(S, res) {
 // ===================== needle EMG =====================
 // sensitivity in mV/div: 50 uV/div at rest, as usually used for spontaneous activity [P&S]; 200 uV/div for
 // voluntary activity and MUAP analysis
-const em = { eff: 0, sound: false, paused: REDUCED, cur: null, ui: 0, gainRest: 0.05, gainAct: 0.2, hold: false, chunk: 0, lastT: 0 };
+const em = { eff: 0, sound: false, paused: REDUCED, cur: null, ui: 0, gainRest: 0.05, gainAct: 0.2, blank: false, lastT: 0 };
 let restSig = null, actSig = null, curSig = null, ins = null;
 function emgEntry() { return st.muscle ? st.emg[st.side][st.muscle] : null; }
 function selectMuscle(name) {
@@ -2451,10 +3394,13 @@ function selectMuscle(name) {
     e = st.emg[st.side][name] = { nx: 0.45 + r() * (EMG.W - 0.9), ny: 0.4 + r() * (EMG.H - 0.8), act: false, order: ++order, user: {} };
     // first insertion lands beside a fibre of the first unit to be recruited, so minimal effort shows one close unit
     const S0 = emgStudy(st.c, st.side, MBY[name], e.nx, e.ny).S;
-    const first = EMG.recruit(S0, 1).firing.map(f => f.u).sort((a, b) => EMG.M.units[a].rank - EMG.M.units[b].rank);
+    const first = EMG.recruit(S0, 1).firing.map(f => f.u).sort((a, b) => S0.M.units[a].rank - S0.M.units[b].rank);
     for (const u of first) if (placeNear(S0, e, u)) break;
   }
   em.eff = 0; syncEff();
+  // The first time a muscle is needled the monitor is blank: no spontaneous activity or insertional burst is shown
+  // until the needle is moved (Space or the pad) or the patient is asked to contract.
+  em.blank = !e.read;
   $('musc-select').value = name;
   emgCompute(true);
   syncMuscleClasses(); renderChips(); drawOverlay(); renderReport(); renderTally();
@@ -2483,7 +3429,7 @@ function computeTrig(target) {
 // adjusted for the sharpest unit. Returns false if the unit cannot be made to cross the trigger line.
 function placeNear(S, e, u) {
   const m = 0.3, fib = [];
-  EMG.M.fibres.forEach((f, i) => { const s = S.F[i]; if (s.owner === u && !s.dead && !s.necrotic && f.x > m && f.x < EMG.W - m && f.y > m && f.y < EMG.H - m) fib.push(f); });
+  S.M.fibres.forEach((f, i) => { const s = S.F[i]; if (s.owner === u && !s.dead && !s.necrotic && f.x > m && f.x < EMG.W - m && f.y > m && f.y < EMG.H - m) fib.push(f); });
   for (let i = fib.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [fib[i], fib[j]] = [fib[j], fib[i]]; }
   const ox = S.p.nx, oy = S.p.ny;
   let best = null;
@@ -2501,14 +3447,14 @@ function placeNear(S, e, u) {
 function emgCompute(insert, target) {
   const e = emgEntry(); if (!e) return;
   const r = emgStudy(st.c, st.side, MBY[st.muscle], e.nx, e.ny);
-  em.cur = r; e.read = r.read;
-  em.chunk = 0; em.lastT = clock.now(); // a new needle position starts a new recording
-  restSig = EMG.restSignal(r.S, 2, null);
+  em.cur = r; if (!em.blank) e.read = r.read; // nothing is graded until the needle has been moved or the patient asked to contract
+  em.lastT = clock.now(); // a new needle position starts a new recording
+  restSig = em.blank ? EMG.blankSignal() : EMG.restSignal(r.S, 2, null);
   actSig = em.eff > 0 ? EMG.activeSignal(r.S, em.eff, 2) : null;
   computeTrig(target);
   drawPad();
   ins = null;
-  if (insert && em.eff === 0) {
+  if (insert && em.eff === 0 && !em.blank) {
     const t = (clock.now() + 15) % 2000, sig = EMG.restSignal(r.S, 2, null, t);
     ins = { sig, left: sig.insLen + 60, last: clock.now() };
     useSignal(sig);
@@ -2540,6 +3486,7 @@ $('eff').addEventListener('input', () => {
   const wasRest = em.eff === 0;
   em.eff = +$('eff').value / 100; syncEff();
   if (!em.cur) return;
+  if (em.blank && em.eff > 0) { unblank(); emgCompute(false); applyEffort(); renderReport(); return; }
   if (wasRest !== (em.eff === 0) || !effPending) { effPending = true; requestAnimationFrame(applyEffort); }
 });
 // sensitivity (per vertical division). Fixed, not auto-scaled, so a large or small unit looks large or small.
@@ -2549,8 +3496,10 @@ const gainText = g => g < 1 ? Math.round(g * 1000) + ' µV/div' : g + ' mV/div';
 $('gain-sel').innerHTML = GAINS.map(g => `<option value="${g}">${gainText(g)}</option>`).join('');
 function syncGainSel() { $('gain-sel').value = String(em.eff > 0 ? em.gainAct : em.gainRest); }
 $('gain-sel').onchange = () => { const g = +$('gain-sel').value; if (em.eff > 0) em.gainAct = g; else em.gainRest = g; if (curSig) useSignal(curSig); drawMuap(); };
+function unblank() { if (!em.blank) return; em.blank = false; setTimeout(() => { syncMuscleClasses(); renderChips(); renderTally(); }); }
 function insertNeedle() {
   const e = emgEntry(); if (!e) return;
+  unblank();
   const a = Math.random() * Math.PI * 2, d = 0.12 + Math.random() * 0.12;
   e.nx = Math.max(0.25, Math.min(EMG.W - 0.25, e.nx + Math.cos(a) * d));
   e.ny = Math.max(0.25, Math.min(EMG.H - 0.25, e.ny + Math.sin(a) * d));
@@ -2561,7 +3510,7 @@ function insertNeedle() {
 // different units, as when the needle is adjusted to find units at minimal effort.
 function findUnit() {
   const e = emgEntry(); if (!e || !em.cur || em.eff <= 0) return;
-  const S = em.cur.S, firing = EMG.recruit(S, em.eff).firing.map(f => f.u).sort((a, b) => EMG.M.units[a].rank - EMG.M.units[b].rank);
+  const S = em.cur.S, firing = EMG.recruit(S, em.eff).firing.map(f => f.u).sort((a, b) => S.M.units[a].rank - S.M.units[b].rank);
   const start = firing.indexOf(em.lastFound) + 1;
   for (let k = 0; k < firing.length; k++) {
     const u = firing[(start + k) % firing.length];
@@ -2595,6 +3544,7 @@ function drawPad() {
 let padBusy = false, padDrag = false;
 function padMove(nx, ny, done) {
   const e = emgEntry(); if (!e) return;
+  if (done) unblank();
   e.nx = Math.max(0.25, Math.min(EMG.W - 0.25, nx)); e.ny = Math.max(0.25, Math.min(EMG.H - 0.25, ny));
   if (em.eff > 0 || done) { // live while the patient contracts; at rest, recompute when the needle stops (insertional burst)
     if (padBusy && !done) return;
@@ -2639,7 +3589,8 @@ function useSignal(sig) {
     const topu = r.firing.slice().sort((a, b) => b.rate - a.rate)[0];
     const lvl = `${Math.round(em.eff * 100)}% effort`;
     $('sc-lbl').textContent = r.firing.length ? `${lvl} · ${nvis} unit${nvis === 1 ? '' : 's'} firing near the needle` : `${lvl} · no voluntary units`;
-  } else $('sc-lbl').textContent = ins && sig === ins.sig ? 'At rest · needle just moved' : em.hold ? `At rest · needle left in · ${2 * (em.chunk + 1)} s` : 'At rest';
+  } else if (em.blank) $('sc-lbl').textContent = 'Needle in the muscle · move the needle (Space) or ask for effort to start recording';
+  else $('sc-lbl').textContent = ins && sig === ins.sig ? 'At rest · needle just moved' : 'At rest';
   const c = document.createElement('canvas'); c.width = stripC.width; c.height = stripC.height;
   const ctx = c.getContext('2d');
   drawGrid(ctx, c.width, c.height, 10, 4);
@@ -2728,21 +3679,12 @@ $('pause').onclick = () => {
   $('pause').setAttribute('aria-pressed', String(clock.paused)); $('pause').textContent = clock.paused ? 'Play' : 'Pause';
 };
 if (REDUCED) { $('pause').setAttribute('aria-pressed', 'true'); $('pause').textContent = 'Play'; }
-$('hold').onclick = () => {
-  em.hold = !em.hold; $('hold').setAttribute('aria-pressed', String(em.hold));
-  if (!em.hold && em.chunk && em.cur) { em.chunk = 0; restSig = EMG.restSignal(em.cur.S, 2, null); if (em.eff === 0 && !ins) useSignal(restSig); }
-  else if (curSig && em.eff === 0) useSignal(curSig); // refresh the label
-};
 function frame() {
   if (st.mode === 'emg' && st.muscle && curSig) {
     const t = clock.now();
     if (ins && curSig === ins.sig) { // after the insertion burst, fall back to the plain loop
       ins.left -= (t - ins.last + 2000) % 2000; ins.last = t;
       if (ins.left <= 0) { ins = null; useSignal(restSig); }
-    }
-    // needle left in at rest: at each wrap of the 2 s buffer, carry on with the next stretch of the same recording
-    if (em.hold && em.eff === 0 && !ins && curSig === restSig && em.cur && t < em.lastT - 1000) {
-      em.chunk++; restSig = EMG.restSignal(em.cur.S, 2, null, undefined, em.chunk); useSignal(restSig);
     }
     em.lastT = t;
     drawScope(t);
@@ -2800,6 +3742,7 @@ const P = (t, bad) => `<span class="pill ${bad ? 'bad' : 'good'}">${t}</span>`;
 function drawReadings() {
   const e = emgEntry(), box = $('readbox');
   if (!e) return;
+  if (em.blank) { box.innerHTML = '<h3>Readings</h3><p class="note">Nothing is recorded yet. Move the needle (Space) to look at the muscle at rest, or ask the patient to contract.</p>'; return; }
   const tog = `<button class="btn sm" type="button" id="auto-tog" aria-pressed="${!st.selfGrade}">${st.selfGrade ? 'Show automated readings' : 'Hide automated readings'}</button>`;
   if (st.selfGrade) {
     // the same grades as the EMG table of the report; either place can be used and both stay in step
@@ -2808,8 +3751,9 @@ function drawReadings() {
       const off = ACT_KEYS.includes(k) && !e.act;
       return `<label class="grow"><span>${NAMES[k]}</span><select data-k="${k}"${off ? ' disabled title="Ask for effort first"' : ''}><option value="">—</option>${GRADES[k].map(([v, l]) => `<option value="${v}"${e.user[k] === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>`;
     }).join('');
-    box.innerHTML = `<div class="row between"><h3>Your grading</h3>${tog}</div><div class="gradeform">${rows}</div><p class="note">${e.act ? 'Saved to the EMG table of the report.' : 'Motor unit grades open once you ask for effort.'}</p>`;
+    box.innerHTML = `<div class="row between"><h3>Your grading</h3><span class="row"><button class="btn sm" type="button" id="all-normal" title="Fill in the normal grade for every finding of this muscle">All normal</button>${tog}</span></div><div class="gradeform">${rows}</div><p class="note">${e.act ? 'Saved to the EMG table of the report.' : 'Motor unit grades open once you ask for effort.'}</p>`;
     $('auto-tog').onclick = toggleAuto;
+    $('all-normal').onclick = () => allNormal(st.side, st.muscle);
     for (const s of box.querySelectorAll('select[data-k]')) s.onchange = () => { e.user[s.dataset.k] = s.value; renderReport(); };
     return;
   }
@@ -2836,6 +3780,13 @@ const GRADES = {
   interference: [['full', 'Full'], ['reduced', 'Reduced'], ['discrete', 'Discrete'], ['none', 'None']]
 };
 const GKEYS = ['ia', 'fib', 'fasc', 'amp', 'dur', 'poly', 'recruit', 'interference'], ACT_KEYS = ['amp', 'dur', 'poly', 'recruit', 'interference'];
+// "All normal": fills in the normal grade for every finding of one muscle (the motor unit findings only once it has been activated)
+const NORMAL_GRADE = { ia: 'normal', fib: '0', fasc: 'none', amp: 'normal', dur: 'normal', poly: 'normal', recruit: 'normal', interference: 'full' };
+function allNormal(side, name) {
+  const e = st.emg[side][name]; if (!e) return;
+  for (const k of GKEYS) if (e.act || !ACT_KEYS.includes(k)) e.user[k] = NORMAL_GRADE[k];
+  renderReport(); if (side === st.side && name === st.muscle) drawReadings();
+}
 const GLABEL = (k, v) => { const x = GRADES[k].find(g => g[0] === v); return x ? x[1] : v; };
 function modelGrade(r) { return { ia: r.ia, fib: r.fib, fasc: r.fasc ? 'present' : 'none', amp: r.amp, dur: r.dur, poly: r.poly, recruit: r.recruit, interference: r.interference }; }
 function renderReport() {
@@ -2888,7 +3839,7 @@ function renderReport() {
       const lead = `<td>${sname(s)}</td><td>${n}</td><td>${nerveLabel(MBY[n])}</td><td>${rootLabel(MBY[n])}</td>`;
       if (st.selfGrade) {
         const sel = (k) => `<td class="c"><select data-m="${n}" data-s="${s}" data-k="${k}" aria-label="${n}, ${k}"><option value="">—</option>${GRADES[k].map(([v, l]) => `<option value="${v}"${e.user[k] === v ? ' selected' : ''}>${l}</option>`).join('')}</select></td>`;
-        emgRows += `<tr>${lead}${['ia', 'fib', 'fasc'].map(sel).join('')}${a ? ACT_KEYS.map(sel).join('') : '<td class="c">—</td>'.repeat(5)}<td>${a ? '' : 'Not activated'}</td></tr>`;
+        emgRows += `<tr>${lead}${['ia', 'fib', 'fasc'].map(sel).join('')}${a ? ACT_KEYS.map(sel).join('') : '<td class="c">—</td>'.repeat(5)}<td>${a ? '' : 'Not activated '}<button class="btn sm" type="button" data-allnormal="${n}" data-s="${s}">All normal</button></td></tr>`;
       } else {
         // Natus shorthand: Nml / Incr / Decr, grades for spontaneous activity
         const c = (v, bad) => `<td class="c${bad ? ' bad' : ''}">${v}</td>`;
@@ -2911,6 +3862,7 @@ function renderReport() {
   const head = `<h1>Nerve Conduction and EMG Report</h1><div class="ptline">${pc.custom ? `<span><b>${pc.title}</b></span>` : `<span><b>Patient ${CASES.indexOf(pc) + 1}</b> · ${pc.who}</span><span>Referral: ${pc.title}</span>`}<span>Symptoms ${pc.weeks} weeks</span></div>`;
   $('report').innerHTML = head + (h || '<p class="note">No results yet. Stimulate a nerve or needle a muscle, then come back here.</p>') + (h ? '<p class="note" style="margin-top:12px">Red: outside the reference range, or a fall in amplitude of 20% or more from the previous site.</p>' : '');
   $('rep-sum').textContent = nN || nM ? `${nN} nerve stud${nN === 1 ? 'y' : 'ies'} and ${nM} muscle${nM === 1 ? '' : 's'} so far.` : 'Results go into the report as you test.';
+  for (const b of $('report').querySelectorAll('button[data-allnormal]')) b.onclick = () => allNormal(b.dataset.s, b.dataset.allnormal);
   for (const s of $('report').querySelectorAll('select[data-m]')) s.onchange = () => { st.emg[s.dataset.s][s.dataset.m].user[s.dataset.k] = s.value; if (s.dataset.s === st.side && s.dataset.m === st.muscle) drawReadings(); };
 }
 
@@ -2920,23 +3872,68 @@ function lesionText(x) {
   if (x.axon) parts.push(`${Math.round(x.axon * 100)}% of axons lost`);
   if (x.block) parts.push(`${Math.round(x.block * 100)}% of the remaining axons blocked`);
   if (x.dem) parts.push(`focal slowing over ${fmt((x.focal || 0) / 10, 1)} cm`);
+  if (x.weeks !== undefined) parts.push(`${x.weeks >= 78 ? 'about ' + Math.round(x.weeks / 52) + ' years' : x.weeks + ' weeks'} old`);
   return `${LESNAME[x.at] || x.at}: ${parts.join(', ')}`;
 }
 $('submit').onclick = () => {
   if (!st.c) return;
-  const loc = $('imp-loc').value, path = $('imp-path').value, c = st.c;
-  if (!loc) { $('imp-loc').focus(); $('imp-loc').style.outline = '2px solid var(--lesion)'; setTimeout(() => $('imp-loc').style.outline = '', 1200); return; }
-  const locOk = loc === c.answer.loc, pathOk = c.answer.path.includes(path);
-  const did = id => { const [kind, name] = id.split(':'); if (kind === 'ncs') { const x = st.ncs.R[name]; return !!(x && (x.done.length || x.f)); } if (kind === 'emg') return !!st.emg.R[name]; if (kind === 'side') return Object.values(st.ncs.L).some(x => x.done.length) || Object.keys(st.emg.L).length > 0; return false; };
-  let h = `<div class="verdict"><span class="v ${locOk ? 'ok' : 'no'}">Localisation: ${locOk ? '✓ ' + LOCNAME[loc] : `you chose ${LOCNAME[loc]}; the answer is ${LOCNAME[c.answer.loc]}`}</span>` +
-    `<span class="v ${pathOk ? 'ok' : 'no'}">Pathophysiology: ${pathOk ? '✓ ' + PATHNAME[path] + (path !== c.answer.path[0] ? ` (accepted; best fit: ${PATHNAME[c.answer.path[0]]})` : '') : `${path ? 'you chose ' + PATHNAME[path] + '; ' : ''}the answer is ${PATHNAME[c.answer.path[0]]}`}</span></div>`;
-  // why the chosen answers do not fit, before the explanation of the right one
-  if (!locOk) h += `<p class="why"><b>Why not ${LOCNAME[loc]}?</b> ${(c.wrong && c.wrong[loc]) || 'That localisation would predict a different set of findings. Check which of the tests below it would have changed.'}</p>`;
-  if (!pathOk) { const pw = pathWhy(c, path); if (pw) h += `<p class="why"><b>Why not ${PATHNAME[path] ? PATHNAME[path].split(':')[0].toLowerCase() : 'that'}?</b> ${pw}</p>`; }
+  const c = st.c, flash = id => { $(id).focus(); $(id).style.outline = '2px solid var(--lesion)'; setTimeout(() => $(id).style.outline = '', 1200); };
+  const pick1 = { loc: $('imp-loc').value, side: $('imp-side').value, path: $('imp-path').value };
+  const pick2 = { loc: $('imp-loc2').value, side: $('imp-side2').value, path: $('imp-path2').value };
+  if (!pick1.loc) return flash('imp-loc');
+  if (pick1.loc !== 'normal' && !pick1.side) return flash('imp-side');
+  // A lesion named once per side is the same as one lesion on both sides.
+  let picks = [pick1].concat(pick2.loc ? [pick2] : []);
+  if (picks.length === 2 && picks[0].loc === picks[1].loc && picks[0].side !== picks[1].side && picks[0].side && picks[1].side) picks = [Object.assign({}, picks[0], { side: 'both' })];
+  const truths = [c.answer].concat(c.answer2 ? [c.answer2] : []);
+  const used = new Set();
+  const match = truths.map(t => { const k = picks.findIndex((p, j) => !used.has(j) && p.loc === t.loc); if (k >= 0) used.add(k); return { t, p: k >= 0 ? picks[k] : null }; });
+  const extras = picks.filter((_, j) => !used.has(j));
+  const did = id => {
+    const [kind, name] = id.split(':'), main = c.answer.side === 'L' ? 'L' : 'R', other = main === 'R' ? 'L' : 'R';
+    const sides = c.answer.side === 'both' || (c.answer2 && c.answer2.side !== c.answer.side) ? ['R', 'L'] : [main];
+    if (kind === 'ncs') return sides.some(s => { const x = st.ncs[s][name]; return !!(x && (x.done.length || x.f)); });
+    if (kind === 'emg') return sides.some(s => !!(st.emg[s][name] && st.emg[s][name].read));
+    if (kind === 'side') { const s = name === 'other' ? other : name; return Object.values(st.ncs[s]).some(x => x.done.length) || Object.values(st.emg[s]).some(x => x.read); }
+    return false;
+  };
+  const chip = (ok, txt) => `<span class="v ${ok ? 'ok' : 'no'}">${txt}</span>`;
+  const sideTxt = s => SIDENAME[s] || 'not chosen';
+  const pathChip = (t, p) => { const ok = t.path.includes(p.path); return chip(ok, `Pathophysiology: ${ok ? '✓ ' + PATHNAME[p.path] + (p.path !== t.path[0] ? ` (accepted; best fit: ${PATHNAME[t.path[0]]})` : '') : `${p.path ? 'you chose ' + PATHNAME[p.path] + '; ' : ''}the answer is ${PATHNAME[t.path[0]]}`}`); };
+  const sideChip = (t, p) => t.side ? chip(p.side === t.side, `Side: ${p.side === t.side ? '✓ ' + sideTxt(t.side) : `you chose ${sideTxt(p.side)}; the answer is ${sideTxt(t.side)}`}`) : '';
+  const whyPath = (t, p) => { if (t.path.includes(p.path)) return ''; const pw = pathWhy({ answer: t }, p.path); return pw ? `<p class="why"><b>Why not ${PATHNAME[p.path] ? PATHNAME[p.path].split(':')[0].toLowerCase() : 'that'}?</b> ${pw}</p>` : ''; };
+  const whySide = (t, p) => !t.side || p.side === t.side ? '' : `<p class="why"><b>Why ${sideTxt(t.side)}?</b> ${t.side === 'both' ? 'The same abnormality is present on the right and the left arm: compare the two sides in the report.' : `The abnormal studies are on the ${sideTxt(t.side)} arm; the ${t.side === 'R' ? 'left' : 'right'} arm is normal${c.answer2 && c.answer2.side !== t.side ? ' for this lesion' : ''}.`}</p>`;
+  const whyLoc = loc => (c.wrong && c.wrong[loc]) || 'That localisation would predict a different set of findings. Check which of the tests below it would have changed.';
+  let h = '';
+  if (truths.length === 1 && picks.length === 1) {
+    // one lesion, one answer: localisation, side and pathophysiology
+    const t = truths[0], p = picks[0], locOk = p.loc === t.loc;
+    h += `<div class="verdict">${chip(locOk, `Localisation: ${locOk ? '✓ ' + LOCNAME[p.loc] : `you chose ${LOCNAME[p.loc]}; the answer is ${LOCNAME[t.loc]}`}`)}${sideChip(t, p)}${pathChip(t, p)}</div>`;
+    if (!locOk) h += `<p class="why"><b>Why not ${LOCNAME[p.loc]}?</b> ${whyLoc(p.loc)}</p>`;
+    h += whySide(t, p) + whyPath(t, p);
+  } else {
+    // two lesions in the case, or two in the answer: mark each real lesion, then any extra one
+    match.forEach(({ t, p }, k) => {
+      const name = `${LOCNAME[t.loc]}${t.side ? ', ' + sideTxt(t.side) : ''}`;
+      h += `<div class="verdict">${chip(!!p, `${truths.length > 1 ? `Lesion ${k + 1}` : 'Lesion'}: ${p ? '✓ ' : 'missed: '}${name}`)}${p ? sideChip(t, p) + pathChip(t, p) : ''}</div>`;
+      if (p) h += whySide(t, p) + whyPath(t, p);
+      else if (c.miss && c.miss[t.loc]) h += `<p class="why"><b>What shows the ${LOCNAME[t.loc].replace(/^[A-Z][a-z]/, m => m.toLowerCase())}?</b> ${c.miss[t.loc]}</p>`;
+    });
+    for (const p of extras) {
+      h += `<div class="verdict">${chip(false, `Not present: ${LOCNAME[p.loc]}`)}</div>`;
+      h += `<p class="why"><b>Why not ${LOCNAME[p.loc]}?</b> ${truths.length === 1 && p === pick2 ? 'One lesion explains every finding here. ' : ''}${whyLoc(p.loc)}</p>`;
+    }
+  }
   h += `<p class="dx">${c.dx}</p><ul>${c.teach.map(t => `<li>${t}</li>`).join('')}</ul>`;
   if (c.pattern) h += `<div class="recall"><span class="rl">Pattern to remember</span>${c.pattern}</div>`;
   h += `<h3>Tests that settle it</h3><ul class="keylist">${c.key.map(([lab, ids]) => `<li class="${ids.some(did) ? 'y' : 'x'}">${lab}</li>`).join('')}</ul>`;
-  h += `<h3>Lesion in the model</h3><p class="note" style="margin-top:0">${c.lesions.length ? c.lesions.map(lesionText).join('<br>') + (c.ongoing ? '<br>Motor neuron loss is ongoing: these are the losses reached at one year.' : '') : 'No lesion.'}${c.left ? '<br>Left side: ' + c.left.filter(x => x.at.startsWith('R_')).map(lesionText).join('; ') : ''}</p>`;
+  { // the lesions on each arm; axial segments (thoracic, bulbar, leg) are listed once, with the right arm
+    const AXIAL = ['THOR', 'BULB', 'LUMB'], L = (c.left || []).filter(x => !(AXIAL.includes(x.at) && c.lesions.some(y => y.at === x.at)));
+    const parts = [];
+    if (c.lesions.length) parts.push((L.length ? '<b>Right arm</b><br>' : '') + c.lesions.map(lesionText).join('<br>'));
+    if (L.length) parts.push((c.lesions.length ? '<b>Left arm</b><br>' : 'Left arm: ') + L.map(lesionText).join('<br>'));
+    h += `<h3>Lesion in the model</h3><p class="note" style="margin-top:0">${parts.length ? parts.join('<br>') + (c.ongoing ? '<br>Motor neuron loss is ongoing: these are the losses reached at one year.' : '') : 'No lesion.'}</p>`;
+  }
   { // compare any grades entered by hand with the model's readings
     // One block per muscle; each finding is a row with your grade and the model's reading in separate, labelled columns.
     const FN = { ia: 'Insertional activity', fib: 'Fibrillations / PSWs', fasc: 'Fasciculations', amp: 'MUAP amplitude', dur: 'MUAP duration', poly: 'Polyphasia', recruit: 'Recruitment', interference: 'Interference pattern' };
@@ -2976,6 +3973,8 @@ $('submit').onclick = () => {
   const rows = Object.entries(NCS.STUDIES).map(([k, S]) => S.kind === 'motor'
     ? `<tr><td>${S.name} (${S.rec})</td><td>${S.ref.amp ? '≥' + S.ref.amp + ' mV' : 'compare sides'}</td><td>≤${S.ref.dl} ms</td><td>${S.ref.cv ? '≥' + S.ref.cv + ' m/s' : '—'}</td><td>${S.ref.f ? '≤' + S.ref.f + ' ms' : '—'}</td></tr>`
     : `<tr><td>${S.name} (${S.stim.toLowerCase()} → ${S.rec.toLowerCase()}, ${S.len / 10} cm)</td><td>≥${S.ref.amp} µV</td><td>≤${S.ref.pl} ms (peak)</td><td>—</td><td>—</td></tr>`).join('');
+  const meas = Object.entries(UNIT_SIZE).filter(([, v]) => v[1] === 'measured').map(([n, v]) => `${n} ${v[0]}`).join(', ');
+  $('g-units').innerHTML = `only four muscles have published counts of muscle fibres per motor unit (innervation ratio): ${meas}. These come from whole-muscle counts of motor axons and fibres (Feinstein and colleagues 1955; Buchthal 1961), as tabulated by Karpati (2010). Gath and Stålberg (1981) estimated much lower values for biceps (209) and deltoid (239) by a different method, so the figures do not agree across methods. Every other muscle here uses an estimate between 150 and 800 chosen by analogy with the measured muscle of similar size and role (large proximal muscles about 550–750, forearm muscles 250–450, hand muscles 320–340, tongue 150): these are not measurements. Larger units mean fewer units in the needle's reach. The size of a single MUAP is kept in the usual range in every muscle, because reported amplitudes and durations do not change much with innervation ratio.`;
   $('g-refs').innerHTML = `<div class="repwrap"><table><thead><tr><th>Study</th><th>Amplitude</th><th>Latency</th><th>Velocity</th><th>F wave</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 })();
 const guideEl = $('guide');
