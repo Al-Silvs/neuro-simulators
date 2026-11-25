@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EEG: Posterior Dominant Rhythm and Scalp Voltage Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Same visual system as the other simulators. */
+  --bg:#eef0ee; --panel:#fbfcfb; --ink:#18202b; --muted:#5a6472; --line:#d5d9de; --grid:#e3e7eb; --grid2:#c9cfd6;
+  --accent:#1f56c9; --accent-soft:#dbe5fa; --on-accent:#fff; --trace:#18202b; --ann:#b26a00; --cursor:#c3352a;
+  --font-display:"IBM Plex Sans Condensed","Arial Narrow",sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#11151b; --panel:#181e26; --ink:#e6e9ee; --muted:#9aa4b2; --line:#2b3440; --grid:#202832; --grid2:#323d4b;
+    --accent:#6f9bff; --accent-soft:#1d2a47; --on-accent:#0b1220; --trace:#e6e9ee; --ann:#f0a640; --cursor:#ff6a5c;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+header{padding:12px 16px 8px;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center}
+h1{font-family:var(--font-display);font-weight:600;font-size:24px;margin:0}
+.home{font-size:13.5px;color:var(--accent);text-decoration:none;white-space:nowrap}
+.home:hover{text-decoration:underline}
+header p{margin:0;color:var(--muted);font-size:14px;flex:1;min-width:280px}
+main{padding:0 16px 24px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr) 330px;align-items:start}
+@media (max-width:980px){main{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.panel h2{font-family:var(--font-display);font-weight:600;font-size:18px;margin:0 0 10px}
+.panel h3{font-size:14px;margin:14px 0 6px}
+.row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.btn{font:inherit;font-size:13.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 11px;border-radius:7px;cursor:pointer;min-height:34px}
+@media (pointer:coarse){.btn{min-height:44px}}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible,select:focus-visible,input:focus-visible,canvas:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:500;min-width:84px}
+select{font:inherit;font-size:13.5px;padding:5px 7px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+label{font-size:13.5px}
+.ctl{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--muted)}
+.ctl output{font-family:var(--font-mono);color:var(--ink)}
+.ctl input[type=range]{width:150px}
+.chk{display:flex;gap:6px;align-items:center;font-size:13.5px}
+.eyes{font-weight:500}
+.eyes[data-closed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+.flag{color:var(--cursor);font-size:12.5px}
+#eegwrap{position:relative;margin-top:10px}
+#eeg{width:100%;display:block;cursor:crosshair;touch-action:none}
+#mapwrap{position:relative;width:100%;max-width:300px;margin:0 auto}
+#map{width:100%;aspect-ratio:1/1;display:block}
+.cbar{height:12px;border-radius:3px;margin:8px auto 2px;max-width:300px;background:linear-gradient(90deg,#2166ac,#67a9cf,#d1e5f0,#f7f7f7,#fddbc7,#ef8a62,#b2182b)}
+.cbarlab{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:12px;color:var(--muted);max-width:300px;margin:0 auto}
+.readout{font-family:var(--font-mono);font-size:13px;margin:8px 0 0;text-align:center}
+.side{display:grid;gap:12px;position:sticky;top:8px}
+@media (max-width:980px){.side{position:static}}
+ul.tips{margin:6px 0 0;padding-left:18px;font-size:13.5px}
+ul.tips li{margin:4px 0}
+kbd{font-family:var(--font-mono);font-size:12px;border:1px solid var(--line);border-radius:4px;padding:0 4px}
+</style>
+</head>
+<body>
+<header>
+  <a class="home" href="../">&larr; All simulators</a>
+  <h1>EEG: posterior dominant rhythm</h1>
+  <p>A simulated awake adult EEG with a scalp voltage map. Pause and step through an alpha cycle to see the field over the head.</p>
+</header>
+<main>
+  <section class="panel" aria-labelledby="h-eeg">
+    <h2 id="h-eeg">Recording</h2>
+    <div class="row">
+      <button class="btn primary" id="play" aria-keyshortcuts="Space">Pause</button>
+      <button class="btn eyes" id="eyes" aria-keyshortcuts="E" data-closed="true">Eyes closed: open them</button>
+      <label class="chk"><input type="checkbox" id="auto" checked> Alternate eyes automatically</label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label class="ctl">Montage
+        <select id="mont">
+          <option value="dbl">Bipolar, longitudinal (double banana)</option>
+          <option value="avg">Referential, average reference</option>
+        </select></label>
+      <label class="ctl">Sensitivity
+        <select id="sens"><option>3</option><option>5</option><option selected>7</option><option>10</option><option>15</option><option>20</option></select></label>
+      <label class="ctl">Playback speed
+        <select id="speed"><option value="1" selected>1&times; (real time)</option><option value="0.5">0.5&times;</option><option value="0.25">0.25&times;</option><option value="0.1">0.1&times;</option></select></label>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label class="ctl">PDR frequency <output id="o-f">10.0 Hz</output>
+        <input type="range" id="freq" min="5" max="13" step="0.5" value="10"></label>
+      <label class="ctl">PDR amplitude at O1 <output id="o-a">40 &micro;V</output>
+        <input type="range" id="amp" min="10" max="100" step="5" value="40"></label>
+      <label class="ctl">Left amplitude, % of right <output id="o-l">90%</output>
+        <input type="range" id="lpct" min="20" max="150" step="5" value="90"></label>
+      <label class="chk"><input type="checkbox" id="bancaud"> Left alpha fails to attenuate</label>
+    </div>
+    <p class="flag" id="flags" aria-live="polite"></p>
+    <div id="eegwrap">
+      <canvas id="eeg" tabindex="0" aria-label="EEG traces. Click or drag to place the time cursor; arrow keys step it while paused."></canvas>
+    </div>
+    <p class="note">Display: negative up (EEG convention). Sensitivity in &micro;V/mm (1 mm drawn as about 3.8 px). 10 s page, low-frequency filter 1 Hz. Click or drag on the traces to pause and place the cursor; <kbd>&larr;</kbd> <kbd>&rarr;</kbd> step 4 ms (<kbd>Shift</kbd> 40 ms), <kbd>Space</kbd> plays or pauses, <kbd>E</kbd> opens or closes the eyes.</p>
+  </section>
+
+  <div class="side">
+    <section class="panel" aria-labelledby="h-map">
+      <h2 id="h-map">Scalp voltage at the cursor</h2>
+      <div id="mapwrap"><canvas id="map" aria-label="Scalp voltage map, top view, nose at the top"></canvas></div>
+      <div class="cbar" aria-hidden="true"></div>
+      <div class="cbarlab"><span id="cb-lo">&minus;50</span><span>0 &micro;V</span><span id="cb-hi">+50</span></div>
+      <p class="readout" id="readout">&nbsp;</p>
+      <div class="row" style="margin-top:8px;justify-content:center">
+        <label class="ctl">Colour range
+          <select id="range"><option value="20">&plusmn;20 &micro;V</option><option value="50" selected>&plusmn;50 &micro;V</option><option value="100">&plusmn;100 &micro;V</option><option value="200">&plusmn;200 &micro;V</option></select></label>
+        <label class="chk"><input type="checkbox" id="gen"> Show model generators</label>
+      </div>
+      <p class="note">Top view, nose up, left on the left. Red is positive, blue negative (true polarity, unlike the traces). Average reference, spherical-spline interpolation from the 19 electrodes. This is the voltage on the scalp, not on the cortex.</p>
+    </section>
+    <section class="panel" aria-labelledby="h-tips">
+      <h2 id="h-tips">Things to look at</h2>
+      <ul class="tips">
+        <li><b>One alpha cycle.</b> Pause during a run of alpha and step with <kbd>&rarr;</kbd>. The occipital maximum changes sign every half cycle (about 50 ms at 10 Hz). The frontal region has the opposite sign, partly because the average reference forces the mean of all electrodes to zero.</li>
+        <li><b>Double banana.</b> The maximum is at O1/O2, the end of each chain, so there is no phase reversal: the largest deflections are in P3&ndash;O1, T5&ndash;O1 and their right-sided pairs.</li>
+        <li><b>Reactivity.</b> Alpha attenuates when the eyes open and returns about 0.3 s after they close, briefly faster (the &ldquo;squeak&rdquo;).</li>
+        <li><b>Eye movements.</b> The cornea is positive. On closing and blinking, the eyes roll up (Bell&rsquo;s phenomenon), so Fp1/Fp2 go positive: a downward deflection, red frontally on the map. In the average reference the blink is part of the average, so it also appears with opposite sign at posterior electrodes.</li>
+        <li><b>Normal limits (awake adult).</b> PDR 8 Hz or faster; amplitude commonly 15&ndash;50 &micro;V; an amplitude asymmetry over 50% or a frequency difference over 1 Hz is abnormal (the right side is often slightly higher in normal people). Unilateral failure to attenuate (Bancaud phenomenon) points to a lesion on the side that fails to attenuate.</li>
+      </ul>
+      <p class="note">Simulated signal, not patient data. Sources are current dipoles in a simplified spherical head with no skull layer, plus random background sources, so amplitudes and field shapes are approximate.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+'use strict';
+const FS = 256, PAGE = 10, NBUF = FS * PAGE, DT = 1 / FS;
+const D2R = Math.PI / 180;
+
+/* ---------- Electrodes (10-20), unit sphere. Polar = degrees from vertex; az = degrees from nose, positive to the left. ---------- */
+const EL = [['Fp1',92,18],['Fp2',92,-18],['F7',92,54],['F3',62,39],['Fz',46,0],['F4',62,-39],['F8',92,-54],
+  ['T3',92,90],['C3',46,90],['Cz',0,0],['C4',46,-90],['T4',92,-90],['T5',92,126],['P3',62,141],['Pz',46,180],
+  ['P4',62,-141],['T6',92,-126],['O1',92,162],['O2',92,-162]];
+const NE = EL.length, IDX = {};
+EL.forEach((e, i) => IDX[e[0]] = i);
+const sph = (p, a) => [-Math.sin(p*D2R)*Math.sin(a*D2R), Math.sin(p*D2R)*Math.cos(a*D2R), Math.cos(p*D2R)];
+const EPOS = EL.map(e => sph(e[1], e[2]));   // x right, y front, z up
+const unit = v => { const l = Math.hypot(...v); return v.map(x => x / l); };
+const dot = (a, b) => a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
+
+/* ---------- Sources: current dipoles in an infinite homogeneous medium (simplified head) ---------- */
+const SRC = [];
+const addSrc = (pos, ori, kind) => (SRC.push({pos, ori: unit(ori), kind}), SRC.length - 1);
+const S_AL = addSrc([-0.18,-0.4,0], [-0.4,-0.85,0.2], 'alpha');
+const S_AR = addSrc([ 0.18,-0.4,0], [ 0.4,-0.85,0.2], 'alpha');
+const S_EL = addSrc([-0.25,0.45,-0.35], [0,0.5,1], 'eye');
+const S_ER = addSrc([ 0.25,0.45,-0.35], [0,0.5,1], 'eye');
+const S_BL = addSrc([-0.35,0.3,0.5], [-0.35,0.3,0.5], 'beta');
+const S_BR = addSrc([ 0.35,0.3,0.5], [ 0.35,0.3,0.5], 'beta');
+const BG0 = SRC.length, NBG = 24;
+for (let k = 0; k < NBG; k++) {
+  let d; do { d = unit([Math.random()*2-1, Math.random()*2-1, Math.random()*1.3-0.3]); } while (d[2] < -0.25);
+  const r = 0.45 + Math.random() * 0.25;
+  addSrc(d.map(x => x*r), d.map(x => x + (Math.random()-0.5)*0.8), 'bg');
+}
+const NS = SRC.length;
+// Average-referenced lead field LA[c][s]
+const LA = EPOS.map(e => SRC.map(s => { const d = [e[0]-s.pos[0], e[1]-s.pos[1], e[2]-s.pos[2]]; return dot(s.ori, d) / Math.pow(Math.hypot(...d), 3); }));
+for (let s = 0; s < NS; s++) { let m = 0; for (let c = 0; c < NE; c++) m += LA[c][s]; m /= NE; for (let c = 0; c < NE; c++) LA[c][s] -= m; }
+// Calibrate source weights so the stated amplitudes come out at the named electrodes
+const W = new Float64Array(NS);
+W[S_AL] = 1 / LA[IDX.O1][S_AL]; W[S_AR] = 1 / LA[IDX.O2][S_AR];
+W[S_EL] = W[S_ER] = 1 / (LA[IDX.Fp1][S_EL] + LA[IDX.Fp1][S_ER]);
+W[S_BL] = 1 / LA[IDX.F3][S_BL]; W[S_BR] = 1 / LA[IDX.F4][S_BR];
+{ let tot = 0; for (let c = 0; c < NE; c++) { let q = 0; for (let s = BG0; s < NS; s++) q += LA[c][s]**2; tot += Math.sqrt(q); }
+  const w = NE / tot; for (let s = BG0; s < NS; s++) W[s] = w; }
+const LW = LA.map(row => row.map((v, s) => v * W[s]));
+
+/* ---------- Noise helpers ---------- */
+let spare = null;
+function gauss() { if (spare !== null) { const s = spare; spare = null; return s; }
+  let u, v, r; do { u = Math.random()*2-1; v = Math.random()*2-1; r = u*u + v*v; } while (!r || r >= 1);
+  const f = Math.sqrt(-2*Math.log(r)/r); spare = v*f; return u*f; }
+function lp(fc) { const a = 1 - Math.exp(-2*Math.PI*fc*DT), n = Math.sqrt(a/(2-a)); let y = 0;
+  return () => (y += a*(gauss() - y), y / n); }                     // unit-variance low-passed noise
+function pink() { const f = [lp(1), lp(4), lp(16)]; return () => (f[0]() + 0.5*f[1]() + 0.15*f[2]()) / 1.128; }
+
+/* ---------- Generator state ---------- */
+const P = { f0: 10, amp: 40, lpct: 0.9, bancaud: false, auto: true };
+const G = {
+  closed: true, sinceChange: 99, autoT: 0, eyeUp: 1, blinkT: -1, nextBlink: 2,
+  gainL: 1, gainR: 1, phase: 0, squeak: 0, onsetDone: true, bphL: 0, bphR: 1,
+  sF: lp(0.3), sD: lp(0.2), sA: lp(0.35), sL: lp(0.5), sR: lp(0.5), sB: lp(1), sBL: lp(0.8), sBR: lp(0.8),
+  bg: Array.from({length: NBG}, pink),
+  hpX: new Float64Array(NE), hpY: new Float64Array(NE)
+};
+const HPA = (1/(2*Math.PI)) / (1/(2*Math.PI) + DT);  // 1 Hz single-pole high-pass
+const buf = new Float32Array(NE * NBUF);
+let N = 0;                       // samples written
+const ann = [];                  // {i, text}
+const amps = new Float64Array(NS), raw = new Float64Array(NE);
+
+function setEyes(closed) {
+  if (G.closed === closed) return;
+  G.closed = closed; G.sinceChange = 0; G.autoT = 0;
+  if (closed) { G.onsetDone = false; G.blinkT = -1; } else G.nextBlink = 1 + Math.random()*2;
+  ann.push({ i: N, text: closed ? 'Eyes closed' : 'Eyes open' });
+  syncEyes();
+}
+
+function genSample() {
+  if (P.auto) { G.autoT += DT; if (G.autoT >= (G.closed ? 10 : 5)) setEyes(!G.closed); }
+  G.sinceChange += DT;
+  // Eye position: rolls up when closed (Bell's phenomenon); blinks while open
+  G.eyeUp += ((G.closed ? 1 : 0) - G.eyeUp) * (1 - Math.exp(-DT/0.08));
+  let blink = 0;
+  if (!G.closed) {
+    if ((G.nextBlink -= DT) <= 0) { G.blinkT = 0; G.nextBlink = 2 + Math.random()*3.5; }
+    if (G.blinkT >= 0) { blink = Math.sin(Math.PI * G.blinkT / 0.3) ** 2; G.blinkT += DT; if (G.blinkT > 0.3) G.blinkT = -1; }
+  }
+  // Alpha reactivity, onset delay and "squeak"
+  const on = G.closed && G.sinceChange > 0.3;
+  if (on && !G.onsetDone) { G.onsetDone = true; G.squeak = 1.0; }
+  const tR = on ? 1 : (G.closed ? G.gainR : 0.12);
+  const tL = P.bancaud ? 1 : (on ? 1 : (G.closed ? G.gainL : 0.12));
+  G.gainR += (tR - G.gainR) * (1 - Math.exp(-DT/(tR > G.gainR ? 0.35 : 0.1)));
+  G.gainL += (tL - G.gainL) * (1 - Math.exp(-DT/(tL > G.gainL ? 0.35 : 0.1)));
+  G.squeak *= Math.exp(-DT/0.8);
+  G.phase += 2*Math.PI*(P.f0 + G.squeak + 0.12*G.sF()) * DT;
+  const common = 0.3*G.sA();
+  const envL = Math.min(1.6, Math.max(0.15, 1 + common + 0.15*G.sL()));
+  const envR = Math.min(1.6, Math.max(0.15, 1 + common + 0.15*G.sR()));
+  amps[S_AL] = P.amp * P.lpct * envL * G.gainL * Math.sin(G.phase);
+  amps[S_AR] = P.amp * envR * G.gainR * Math.sin(G.phase + 0.25*G.sD());
+  amps[S_EL] = amps[S_ER] = 120 * (0.9*G.eyeUp + blink);
+  // Low-amplitude frontocentral beta, a little more with eyes open
+  const bAmp = 4 * (G.closed ? 1 : 1.5);
+  const bf = 20 + 1.5*G.sB();
+  G.bphL += 2*Math.PI*bf*DT; G.bphR += 2*Math.PI*(bf + 0.7)*DT;
+  amps[S_BL] = bAmp * Math.abs(G.sBL()) * Math.sin(G.bphL);
+  amps[S_BR] = bAmp * Math.abs(G.sBR()) * Math.sin(G.bphR);
+  for (let k = 0; k < NBG; k++) amps[BG0 + k] = 4.5 * G.bg[k]();
+  let mean = 0;
+  for (let c = 0; c < NE; c++) { let v = 0; const r = LW[c]; for (let s = 0; s < NS; s++) v += r[s]*amps[s]; raw[c] = v + 0.5*gauss(); mean += raw[c]; }
+  mean /= NE;                     // keep average reference exact after sensor noise
+  const pos = N % NBUF;
+  for (let c = 0; c < NE; c++) {
+    const x = raw[c] - mean;
+    G.hpY[c] = HPA * (G.hpY[c] + x - G.hpX[c]); G.hpX[c] = x;
+    buf[c*NBUF + pos] = G.hpY[c];
+  }
+  N++;
+}
+// Warm up so filters and envelopes settle, then start a clean page
+for (let i = 0; i < 3*FS; i++) genSample();
+N = 0; ann.length = 0; buf.fill(0); G.autoT = 0;
+
+/* ---------- Montages ---------- */
+const MONT = {
+  dbl: [[['Fp1','F7'],['F7','T3'],['T3','T5'],['T5','O1']], [['Fp2','F8'],['F8','T4'],['T4','T6'],['T6','O2']],
+        [['Fp1','F3'],['F3','C3'],['C3','P3'],['P3','O1']], [['Fp2','F4'],['F4','C4'],['C4','P4'],['P4','O2']],
+        [['Fz','Cz'],['Cz','Pz']]],
+  avg: [['Fp1','F3','C3','P3','O1'], ['Fp2','F4','C4','P4','O2'], ['F7','T3','T5'], ['F8','T4','T6'], ['Fz','Cz','Pz']]
+        .map(g => g.map(e => [e, null]))
+};
+
+/* ---------- UI state ---------- */
+const $ = id => document.getElementById(id);
+let playing = true, speed = 1, sens = 7, montage = 'dbl', range = 50, showGen = false;
+let cursor = -1, acc = 0, last = performance.now();
+let COL = {};
+function readColors() { const cs = getComputedStyle(document.documentElement);
+  for (const k of ['panel','ink','muted','line','grid','grid2','trace','ann','cursor','accent']) COL[k] = cs.getPropertyValue('--' + k).trim(); }
+readColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); dirty = true; });
+
+function syncEyes() { const b = $('eyes'); b.dataset.closed = G.closed;
+  b.textContent = G.closed ? 'Eyes closed: open them' : 'Eyes open: close them'; }
+function syncFlags() {
+  const f = [];
+  if (P.f0 < 8) f.push(`PDR ${P.f0.toFixed(1)} Hz is slow for an awake adult (normal 8 Hz or faster).`);
+  const asym = 1 - Math.min(P.lpct, 1/P.lpct);
+  if (asym > 0.5) f.push(`Amplitude asymmetry ${Math.round(asym*100)}%: over 50% is abnormal.`);
+  if (P.bancaud) f.push('Left alpha does not attenuate with eye opening (Bancaud phenomenon): suggests a left-sided lesion.');
+  $('flags').textContent = f.join(' ');
+}
+$('play').onclick = () => setPlay(!playing);
+function setPlay(p) { playing = p; $('play').textContent = p ? 'Pause' : 'Play'; if (p) cursor = -1; last = performance.now(); dirty = true; }
+$('eyes').onclick = () => { $('auto').checked = P.auto = false; setEyes(!G.closed); dirty = true; };
+$('auto').onchange = e => { P.auto = e.target.checked; G.autoT = 0; };
+$('mont').onchange = e => { montage = e.target.value; layoutEEG(); };
+$('sens').onchange = e => { sens = +e.target.value; dirty = true; };
+$('speed').onchange = e => { speed = +e.target.value; };
+$('range').onchange = e => { range = +e.target.value; $('cb-lo').textContent = '−' + range; $('cb-hi').textContent = '+' + range; dirty = true; };
+$('gen').onchange = e => { showGen = e.target.checked; dirty = true; };
+$('freq').oninput = e => { P.f0 = +e.target.value; $('o-f').textContent = P.f0.toFixed(1) + ' Hz'; syncFlags(); };
+$('amp').oninput = e => { P.amp = +e.target.value; $('o-a').textContent = P.amp + ' µV'; };
+$('lpct').oninput = e => { P.lpct = e.target.value / 100; $('o-l').textContent = e.target.value + '%'; syncFlags(); };
+$('bancaud').onchange = e => { P.bancaud = e.target.checked; syncFlags(); };
+document.addEventListener('keydown', e => {
+  const t = e.target instanceof Element ? e.target : document.body;
+  if (t.closest('input,select,textarea')) return;
+  if (e.key === ' ' && !t.closest('button')) { e.preventDefault(); setPlay(!playing); }
+  else if (e.key === 'e' || e.key === 'E') { $('eyes').click(); }
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault(); if (playing) setPlay(false);
+    if (cursor < 0) cursor = N - 1;
+    cursor = clampCursor(cursor + (e.key === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 10 : 1)); dirty = true;
+  }
+});
+const GAP = Math.round(0.12 * FS);
+const clampCursor = i => Math.max(Math.max(0, N - NBUF + GAP), Math.min(N - 1, i));
+
+/* ---------- EEG drawing ---------- */
+const cv = $('eeg'), cx = cv.getContext('2d');
+const LABW = 70, TOP = 22, ROWH = 25, GGAP = 10;
+let rows = [], CW = 0, CH = 0, dirty = true;
+function layoutEEG() {
+  rows = []; let y = TOP + ROWH/2;
+  MONT[montage].forEach((g, gi) => { if (gi) y += GGAP; g.forEach(([a, b]) => { rows.push({a: IDX[a], b: b ? IDX[b] : -1, label: b ? `${a}–${b}` : `${a}–Avg`, y}); y += ROWH; }); });
+  CH = y - ROWH/2 + 8; resize();
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1; CW = cv.parentElement.clientWidth;
+  cv.width = CW * dpr; cv.height = CH * dpr; cv.style.height = CH + 'px';
+  cx.setTransform(dpr, 0, 0, dpr, 0, 0); sizeMap(); dirty = true;
+}
+window.addEventListener('resize', resize);
+const absAt = k => { const head = N % NBUF, base = N - head; return k < head ? base + k : base - NBUF + k; };
+function drawEEG() {
+  const x0 = LABW, w = CW - LABW - 8, head = N % NBUF, base = N - head;
+  cx.fillStyle = COL.panel; cx.fillRect(0, 0, CW, CH);
+  // grid
+  for (let k = 0; k <= PAGE * 5; k++) {
+    const x = x0 + k / (PAGE*5) * w; cx.strokeStyle = k % 5 ? COL.grid : COL.grid2; cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(Math.round(x)+.5, TOP - 4); cx.lineTo(Math.round(x)+.5, CH); cx.stroke();
+  }
+  cx.font = '11px ' + getComputedStyle(document.body).getPropertyValue('--font-mono'); cx.fillStyle = COL.muted; cx.textBaseline = 'alphabetic';
+  const headX = x0 + head / NBUF * w;
+  for (let k = 0; k < PAGE; k++) { const x = x0 + k / PAGE * w; const sec = (x < headX ? base : base - NBUF) / FS + k; if (sec >= 0) cx.fillText(sec + ' s', x + 3, 12); }
+  // labels
+  cx.textBaseline = 'middle'; cx.fillStyle = COL.ink;
+  cx.font = '12px ' + getComputedStyle(document.body).getPropertyValue('--font-mono');
+  rows.forEach(r => cx.fillText(r.label, 6, r.y));
+  // traces (negative up: positive voltage is drawn downward)
+  const k = 3.78 / sens, step = Math.max(1, Math.floor(NBUF / (w * 2)));
+  cx.strokeStyle = COL.trace; cx.lineWidth = 1; cx.lineJoin = 'round';
+  for (const r of rows) {
+    const A = r.a * NBUF, B = r.b >= 0 ? r.b * NBUF : -1;
+    cx.save(); cx.beginPath(); cx.rect(x0, r.y - ROWH*1.6, w, ROWH*3.2); cx.clip(); cx.beginPath();
+    const seg = (from, to) => { let first = true;
+      for (let p = from; p < to; p += step) { const i = absAt(p); if (i < 0) { first = true; continue; }
+        const v = buf[A + p] - (B >= 0 ? buf[B + p] : 0), x = x0 + p / NBUF * w, y = r.y + v * k;
+        if (first) { cx.moveTo(x, y); first = false; } else cx.lineTo(x, y); } };
+    seg(0, head); seg(Math.min(NBUF, head + GAP), NBUF);
+    cx.stroke(); cx.restore();
+  }
+  // annotations
+  cx.font = '11.5px ' + getComputedStyle(document.body).getPropertyValue('--font-body');
+  for (const a of ann) {
+    if (a.i <= N - NBUF + GAP || a.i >= N) continue;
+    const x = Math.round(x0 + (a.i % NBUF) / NBUF * w) + .5;
+    cx.strokeStyle = COL.ann; cx.setLineDash([4, 3]); cx.beginPath(); cx.moveTo(x, TOP); cx.lineTo(x, CH); cx.stroke(); cx.setLineDash([]);
+    cx.fillStyle = COL.ann; cx.textBaseline = 'middle'; cx.fillText(a.text, x + 4, TOP + 2);
+  }
+  // cursor
+  const ci = curIndex();
+  if (ci >= 0) { const x = Math.round(x0 + (ci % NBUF) / NBUF * w) + .5;
+    cx.strokeStyle = COL.cursor; cx.lineWidth = playing ? 1 : 1.5; cx.beginPath(); cx.moveTo(x, TOP - 4); cx.lineTo(x, CH); cx.stroke(); }
+}
+const curIndex = () => playing ? N - 1 : (cursor < 0 ? N - 1 : cursor);
+function pick(e) {
+  const r = cv.getBoundingClientRect(), w = CW - LABW - 8;
+  const p = Math.max(0, Math.min(NBUF - 1, Math.round((e.clientX - r.left - LABW) / w * NBUF)));
+  if (playing) setPlay(false); cursor = clampCursor(absAt(p)); dirty = true;
+}
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); pick(e); });
+cv.addEventListener('pointermove', e => { if (cv.hasPointerCapture(e.pointerId)) pick(e); });
+
+/* ---------- Scalp map: spherical splines (Perrin et al. 1989, m = 4) ---------- */
+const MAPN = 120, EDGE = 112;     // grid size; polar angle (deg) at the edge of the disc
+function gfun(x) { let pm = 1, p = x, s = 3 / 16 * x;
+  for (let n = 2; n <= 40; n++) { const pn = ((2*n-1)*x*p - (n-1)*pm) / n; pm = p; p = pn; s += (2*n+1) / Math.pow(n*(n+1), 4) * pn; }
+  return s / (4*Math.PI); }
+function invert(M) { const n = M.length, A = M.map((r, i) => [...r, ...Array.from({length: n}, (_, j) => +(i === j))]);
+  for (let c = 0; c < n; c++) { let p = c; for (let r = c+1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]]; const d = A[c][c]; for (let j = 0; j < 2*n; j++) A[c][j] /= d;
+    for (let r = 0; r < n; r++) if (r !== c) { const f = A[r][c]; if (f) for (let j = 0; j < 2*n; j++) A[r][j] -= f * A[c][j]; } }
+  return A.map(r => r.slice(n)); }
+const Am = Array.from({length: NE+1}, (_, i) => Array.from({length: NE+1}, (_, j) =>
+  i < NE && j < NE ? gfun(dot(EPOS[i], EPOS[j])) + (i === j ? 1e-7 : 0) : (i === NE && j === NE ? 0 : 1)));
+const Ai = invert(Am);
+const toScreen = v => { const pol = Math.acos(Math.max(-1, Math.min(1, v[2]))) / D2R, h = Math.hypot(v[0], v[1]) || 1;
+  const r = pol / EDGE; return [v[0]/h * r, v[1]/h * r]; };   // unit-disc coords, y up
+const pix = [], PW = [];
+for (let j = 0; j < MAPN; j++) for (let i = 0; i < MAPN; i++) {
+  const u = (i + .5) / MAPN * 2 - 1, v = 1 - (j + .5) / MAPN * 2, r = Math.hypot(u, v); if (r > 1) continue;
+  const p = r * EDGE * D2R, q = r ? [Math.sin(p)*u/r, Math.sin(p)*v/r, Math.cos(p)] : [0, 0, 1];
+  const g = EPOS.map(e => gfun(dot(q, e)));
+  const w = new Float32Array(NE);
+  for (let jj = 0; jj < NE; jj++) { let s = Ai[NE][jj]; for (let ii = 0; ii < NE; ii++) s += g[ii] * Ai[ii][jj]; w[jj] = s; }
+  pix.push((j * MAPN + i) * 4); PW.push(w);
+}
+const STOPS = [[33,102,172],[103,169,207],[209,229,240],[247,247,247],[253,219,199],[239,138,98],[178,24,43]];
+function cmap(t) { t = Math.max(-1, Math.min(1, t)); const f = (t + 1) / 2 * 6, i = Math.min(5, Math.floor(f)), r = f - i;
+  const a = STOPS[i], b = STOPS[i+1]; return [a[0]+(b[0]-a[0])*r, a[1]+(b[1]-a[1])*r, a[2]+(b[2]-a[2])*r]; }
+const off = document.createElement('canvas'); off.width = off.height = MAPN;
+const ox = off.getContext('2d'), img = ox.createImageData(MAPN, MAPN);
+const mv = $('map'), mx = mv.getContext('2d'); let MS = 300;
+function sizeMap() { const dpr = window.devicePixelRatio || 1; MS = mv.parentElement.clientWidth;
+  mv.width = MS * dpr; mv.height = MS * dpr; mx.setTransform(dpr, 0, 0, dpr, 0, 0); }
+const vals = new Float64Array(NE);
+function drawMap() {
+  const ci = curIndex(); const pos = ((ci % NBUF) + NBUF) % NBUF;
+  for (let c = 0; c < NE; c++) vals[c] = ci >= 0 ? buf[c*NBUF + pos] : 0;
+  const d = img.data;
+  for (let n = 0; n < pix.length; n++) { const w = PW[n]; let s = 0; for (let c = 0; c < NE; c++) s += w[c] * vals[c];
+    const col = cmap(s / range), o = pix[n]; d[o] = col[0]; d[o+1] = col[1]; d[o+2] = col[2]; d[o+3] = 255; }
+  ox.putImageData(img, 0, 0);
+  const pad = MS * 0.08, R = (MS - 2*pad) / 2, C = MS / 2;
+  mx.clearRect(0, 0, MS, MS);
+  // nose and ears
+  mx.strokeStyle = COL.ink; mx.lineWidth = 1.5; mx.fillStyle = COL.panel;
+  mx.beginPath(); mx.moveTo(C - R*0.1, C - R*0.995); mx.lineTo(C, C - R*1.1); mx.lineTo(C + R*0.1, C - R*0.995); mx.stroke();
+  for (const sgn of [-1, 1]) { mx.beginPath(); mx.ellipse(C + sgn*R*1.02, C, R*0.05, R*0.16, 0, 0, 2*Math.PI); mx.stroke(); }
+  mx.save(); mx.beginPath(); mx.arc(C, C, R, 0, 2*Math.PI); mx.clip();
+  mx.imageSmoothingEnabled = true; mx.drawImage(off, C - R, C - R, 2*R, 2*R); mx.restore();
+  mx.beginPath(); mx.arc(C, C, R, 0, 2*Math.PI); mx.stroke();
+  // electrodes
+  mx.font = `${Math.max(9, MS/30)}px ` + getComputedStyle(document.body).getPropertyValue('--font-mono');
+  mx.textAlign = 'center'; mx.textBaseline = 'top';
+  EPOS.forEach((e, i) => { const [u, v] = toScreen(e), x = C + u*R, y = C - v*R;
+    mx.fillStyle = '#18202b'; mx.beginPath(); mx.arc(x, y, 2.4, 0, 2*Math.PI); mx.fill();
+    mx.fillStyle = 'rgba(24,32,43,.85)'; mx.fillText(EL[i][0], x, y + 3); });
+  if (showGen) {
+    mx.strokeStyle = '#111'; mx.fillStyle = '#111'; mx.lineWidth = 2;
+    for (const s of [S_AL, S_AR, S_EL, S_ER]) { const src = SRC[s], r = Math.hypot(...src.pos);
+      const [u, v] = toScreen(src.pos), x = C + u*R*r, y = C - v*R*r;
+      const tip = [x + src.ori[0]*R*0.18, y - src.ori[1]*R*0.18];
+      mx.beginPath(); mx.moveTo(x, y); mx.lineTo(...tip); mx.stroke();
+      const a = Math.atan2(tip[1]-y, tip[0]-x); mx.beginPath(); mx.moveTo(...tip);
+      mx.lineTo(tip[0] - 7*Math.cos(a-0.45), tip[1] - 7*Math.sin(a-0.45)); mx.lineTo(tip[0] - 7*Math.cos(a+0.45), tip[1] - 7*Math.sin(a+0.45)); mx.fill(); }
+  }
+  const f = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(0);
+  $('readout').textContent = ci < 0 ? ' ' :
+    `t ${(ci / FS).toFixed(3)} s   O1 ${f(vals[IDX.O1])}  O2 ${f(vals[IDX.O2])}  Fz ${f(vals[IDX.Fz])}  Fp1 ${f(vals[IDX.Fp1])} µV`;
+}
+
+/* ---------- Loop ---------- */
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (playing) { acc += dt * FS * speed; while (acc >= 1) { genSample(); acc--; } dirty = true; }
+  if (dirty) { drawEEG(); drawMap(); dirty = false; }
+  requestAnimationFrame(frame);
+}
+layoutEEG(); syncEyes(); syncFlags();
+requestAnimationFrame(frame);
+window.__eeg = { G, P, LA, IDX, buf, get N() { return N; }, genSample, NBUF };
+})();
+</script>
+</body>
+</html>
